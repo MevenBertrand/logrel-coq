@@ -77,6 +77,8 @@ theories/Decidability/Completeness.v
 theories/Decidability/Termination.v
 theories/Decidability.v
 
+theories/Decidability/UntypedFunctions.v
+
 theories/TermNotations.v
 theories/Decidability/Execution.v
 theories/Positivity.v

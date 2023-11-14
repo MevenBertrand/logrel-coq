@@ -144,7 +144,7 @@ Section CtxAccessCorrect.
 End CtxAccessCorrect.
 
 Ltac funelim_conv :=
-  funelim (conv _); 
+  funelim (_conv _); 
     [ funelim (conv_ty _) | funelim (conv_ty_red _) | 
       funelim (conv_tm _) | funelim (conv_tm_red _) | 
       funelim (conv_ne _) | funelim (conv_ne_red _) ].
@@ -167,7 +167,7 @@ Section ConversionSound.
   end.
 
   Lemma _implem_conv_sound :
-    funrect conv (fun _ => True) conv_sound_type.
+    funrect _conv (fun _ => True) conv_sound_type.
   Proof.
     intros x _.
     funelim_conv ; cbn.
@@ -199,25 +199,46 @@ Section ConversionSound.
     - split; tea. now econstructor.
   Qed.
 
-  Corollary implem_conv_sound x r :
-    graph conv x r ->
-    conv_sound_type x r.
+  Arguments conv_full_cod _ /.
+  Arguments conv_cod _/.
+
+  Corollary implem_conv_sound Γ T V r :
+    graph tconv (Γ,T,V) (ok r) ->
+    [Γ |-[al] T ≅ V].
   Proof.
-    eapply funrect_graph.
-    1: now apply _implem_conv_sound.
-    easy.
+    assert (funrect tconv (fun _ => True)
+      (fun '(Γ,T,V) r => match r with | ok _ => [Γ |-[al] T ≅ V] | _ => True end)) as Hrect.
+    {
+     intros ? _.
+     funelim (tconv _) ; cbn.
+     intros [] ; cbn ; [|easy].
+     eintros ?%funrect_graph.
+     2: now apply _implem_conv_sound.
+     all: now cbn in *.
+    }
+    eintros ?%funrect_graph.
+    2: eassumption.
+    all: now cbn in *.
   Qed.
 
 End ConversionSound.
 
 Ltac funelim_typing :=
-  funelim (typing _); 
-    [ funelim (typing_inf _) | 
-      funelim (typing_check _) |
-      funelim (typing_inf_red _) | 
-      funelim (typing_wf_ty _) ].
+  funelim (typing _ _); 
+    [ funelim (typing_inf _ _) | 
+      funelim (typing_check _ _) |
+      funelim (typing_inf_red _ _) | 
+      funelim (typing_wf_ty _ _) ].
 
-Section TypingCorrect.
+Section TypingSound.
+
+  #[local]Existing Instance ty_errors.
+
+  Variable conv : (context × term × term) -> StdInstance.orec (context × term × term) (fun _ => result unit) (result unit).
+
+  Hypothesis conv_sound : forall Γ T V r,
+    graph conv (Γ,T,V) (ok r) ->
+    [Γ |-[al] T ≅ V].
 
   Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
   Proof.
@@ -237,9 +258,8 @@ Section TypingCorrect.
   | (check_state;Γ;T;t), (success _) => [Γ |-[al] t ◃ T]
   end.
 
-
   Lemma _implem_typing_sound :
-    funrect typing (fun _ => True) typing_sound_type.
+    funrect (typing conv) (fun _ => True) typing_sound_type.
   Proof.
     intros x _.
     funelim_typing ; cbn.
@@ -262,7 +282,7 @@ Section TypingCorrect.
   Qed.
 
   Lemma implem_typing_sound x r:
-    graph typing x r ->
+    graph (typing conv) x r ->
     typing_sound_type x r.
   Proof.
     eapply funrect_graph.
@@ -270,15 +290,11 @@ Section TypingCorrect.
     easy.
   Qed.
 
-End TypingCorrect.
-
-Section CtxTypingSound.
-
   Lemma _check_ctx_sound :
-    funrect check_ctx (fun _ => True) (fun Γ r => if r then [|- Γ] else True).
+    funrect (check_ctx conv) (fun _ => True) (fun Γ r => if r then [|- Γ] else True).
   Proof.
     intros ? _.
-    funelim (check_ctx _) ; cbn.
+    funelim (check_ctx _ _) ; cbn.
     - now constructor.
     - split ; [easy|].
       intros [|] ; cbn ; try easy.
@@ -288,7 +304,7 @@ Section CtxTypingSound.
   Qed.
      
   Lemma check_ctx_sound Γ :
-    graph check_ctx Γ (success tt) ->
+    graph (check_ctx conv) Γ (success tt) ->
     [|-[al] Γ].
   Proof.
     eintros ?%funrect_graph.

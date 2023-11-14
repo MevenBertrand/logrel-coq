@@ -2,7 +2,6 @@
 From Coq Require Import Morphisms List CRelationClasses.
 From Coq Require Import ssrbool.
 From smpl Require Import Smpl.
-From LogRel.AutoSubst Require Import core unscoped Ast.
 
 Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.

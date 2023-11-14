@@ -485,8 +485,7 @@ Equations to_neutral_diag (t u : term) : option (ne_view1 t × ne_view1 u) :=
     | _ , _ => None
   }.
 
-
-Time Equations conv_ne : conv_stmt ne_state :=
+Equations conv_ne : conv_stmt ne_state :=
   | (Γ;inp; t; t') with t, t', to_neutral_diag t t' :=
   {
     | _, _, Some (ne_view1_rel n, ne_view1_rel n') with n =? n' :=
@@ -618,12 +617,19 @@ Equations conv : ∇(x : conv_full_dom), [Sing wh_red]⇒[exn errors] cstate_out
   | (ne_state; Γ ; inp ; T; V) := conv_ne (Γ; inp; T; V);
   | (ne_red_state; Γ ; inp ; T; V) := conv_ne_red (Γ; inp; T; V).
 
+Import StdInstance.
+
+Equations tconv : (context × term × term) ⇀ result unit :=
+  tconv (Γ,T,V) := call _conv (ty_state;Γ;tt;T;V).
+
 End Conversion.
 
 
 #[export] Instance: PFun conv := pfun_gen _ _ conv.
 
 Section Typing.
+
+Variable conv : (context × term × term) -> StdInstance.orec (context × term × term) (fun _ => result unit) (result unit).
 
 Variant typing_state : Type :=
   | inf_state (** inference *)
@@ -664,7 +670,7 @@ Equations typing_wf_ty : typing_stmt wf_ty_state :=
   {
     | ty_view1_ty (eSort s) := ok ;
     | ty_view1_ty (eProd A B) :=
-        rA ← rec (wf_ty_state;Γ;tt;A) ;;
+        rec (wf_ty_state;Γ;tt;A) ;;[M]
         rec (wf_ty_state;Γ,,A;tt;B) ;
     | ty_view1_ty (eNat) := ok ;
     | ty_view1_ty (eEmpty) := ok ;
