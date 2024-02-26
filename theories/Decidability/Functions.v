@@ -13,6 +13,7 @@ Set Printing Universes.
 #[global]
 Obligation Tactic := idtac.
 
+Definition ok {M} `{Monad M} : M unit := ret tt.
 
 Inductive errors : Type :=
   | variable_not_in_context (n : nat) (Γ : context) : errors
@@ -31,7 +32,7 @@ Equations ctx_access (Γ : context) (n : nat) : exn errors term :=
   ctx_access (_,,d) 0 := ret (d⟨↑⟩) ;
   ctx_access (Γ,,_) (S n') := d ← (ctx_access Γ n') ;; ret d⟨↑⟩.
 
-Definition eq_sort (s s' : sort) : exn errors unit := success tt.
+Definition eq_sort (s s' : sort) : exn errors unit := ok.
 
 Variant ty_entry : term -> Type :=
   | eSort s : ty_entry (tSort s)
@@ -399,8 +400,6 @@ Equations conv_ty : conv_stmt ty_state :=
     V' ← call_single wh_red V ;;[M0]
     r ← rec (ty_red_state;Γ;tt;T';V') ;;[M]
     ret (A:= unit) r.
-
-Definition ok {M} `{Monad M} : M unit := ret tt.
 
 Equations conv_ty_red : conv_stmt ty_red_state :=
   | (Γ;inp;T;T') with (build_nf_ty_view2 T T') :=

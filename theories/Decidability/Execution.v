@@ -9,48 +9,47 @@ From LogRel Require TermNotations.
 Import DeclarativeTypingProperties.
 
 #[local] Definition infer (Γ : context) (t : term) : Fueled (exn errors term) :=
-  (fueled typing 1000 (inf_state;Γ;tt;t)).
+  (fueled (typing tconv) 1000 (inf_state;Γ;tt;t)).
 
 #[local] Definition check (Γ : context) (T t : term) : Fueled (exn errors unit) := 
-  (fueled typing 1000 (check_state;Γ;T;t)).
+  (fueled (typing tconv) 1000 (check_state;Γ;T;t)).
 
 #[local] Definition check_ty (Γ : context) (t : term) : Fueled (exn errors unit) := 
-  (fueled typing 1000 (wf_ty_state;Γ;tt;t)).
+  (fueled (typing tconv) 1000 (wf_ty_state;Γ;tt;t)).
 
-#[local] Definition conv_tm (Γ : context) (T: term) (t1 : term) (t2 : term) : Fueled _ :=
-  (fueled conv 1000 (tm_state;Γ;T;t1;t2)).
+#[local] Definition conv_tm (Γ : context) (T: term) (t1 : term) (t2 : term) : Fueled (exn errors unit) :=
+  (fueled _conv 1000 (tm_state;Γ;T;t1;t2)).
 
 
 Ltac infer_auto :=
   match goal with
   | |- [ε |- ?t : ?T] =>
     assert [|- ε] by econstructor ;
-      eassert (graph typing (inf_state;ε;tt;t) (success _))
+      eassert (graph (typing tconv) (inf_state;ε;tt;t) (success _))
         as ?%implem_typing_sound%algo_typing_sound
-        by (apply (fueled_graph_sound typing 1000 (inf_state;_)) ; reflexivity)
-  end ; auto.
+        by (apply (fueled_graph_sound (typing tconv) 1000 (inf_state;_)) ; reflexivity)
+  end ; auto using implem_tconv_sound.
 
 Ltac wf_ty_auto :=
   match goal with
   | |- [ε |- ?T] =>
       assert [|- ε] by econstructor ;
-      eassert (graph typing (wf_ty_state;ε;tt;T) (success _))
+      eassert (graph (typing tconv) (wf_ty_state;ε;tt;T) (success _))
         as ?%implem_typing_sound%algo_typing_sound
-        by (apply (fueled_graph_sound typing 1000 (wf_ty_state;_)) ; reflexivity)
-  end ; auto.
+        by (apply (fueled_graph_sound (typing tconv) 1000 (wf_ty_state;_)) ; reflexivity)
+  end ; auto using implem_tconv_sound.
 
 Ltac check_auto :=
   match goal with
   | |- [ε |- ?t : ?T] =>
     assert [|- ε] by econstructor ;
-    eassert (graph typing (check_state;ε;T;t) (success _))
+    eassert (graph (typing tconv) (check_state;ε;T;t) (success _))
       as ?%implem_typing_sound%algo_typing_sound
-      by (apply (fueled_graph_sound typing 1000 (check_state;_)) ; reflexivity) ;
-    eassert (graph typing (wf_ty_state;ε;tt;T) (success _))
+      by (apply (fueled_graph_sound (typing tconv) 1000 (check_state;_)) ; reflexivity) ;
+    eassert (graph (typing tconv) (wf_ty_state;ε;tt;T) (success _))
       as ?%implem_typing_sound%algo_typing_sound
-      by (apply (fueled_graph_sound typing 1000 (wf_ty_state;_)) ; reflexivity) ;
-    auto
-end.
+      by (apply (fueled_graph_sound (typing tconv) 1000 (wf_ty_state;_)) ; reflexivity)
+end ; auto using implem_tconv_sound.
 
 
 Import TermNotations.

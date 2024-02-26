@@ -3,7 +3,7 @@ From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Context Notations UntypedReduction DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
-From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicTypingProperties.
+From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel.Decidability Require Import Functions Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
@@ -288,17 +288,17 @@ End RedImplemComplete.
 Section ConversionComplete.
 
 Let PTyEq (Γ : context) (A B : term) :=
-  forall v, graph conv (ty_state;Γ;v;A;B) ok.
+  forall v, graph _conv (ty_state;Γ;v;A;B) ok.
 Let PTyRedEq (Γ : context) (A B : term) :=
-  forall v, graph conv (ty_red_state;Γ;v;A;B) ok. 
+  forall v, graph _conv (ty_red_state;Γ;v;A;B) ok. 
 Let PNeEq (Γ : context) (A t u : term) :=
-  forall v, graph conv (ne_state;Γ;v;t;u) (success A).
+  forall v, graph _conv (ne_state;Γ;v;t;u) (success A).
 Let PNeRedEq (Γ : context) (A t u : term) :=
-  forall v, graph conv (ne_red_state;Γ;v;t;u) (success A).
+  forall v, graph _conv (ne_red_state;Γ;v;t;u) (success A).
 Let PTmEq (Γ : context) (A t u : term) := 
-  graph conv (tm_state;Γ;A;t;u) (success tt).
+  graph _conv (tm_state;Γ;A;t;u) ok.
 Let PTmRedEq (Γ : context) (A t u : term) :=
-  graph conv (tm_red_state;Γ;A;t;u) (success tt).
+  graph _conv (tm_red_state;Γ;A;t;u) ok.
 
 Definition whne_ne_view1 {N} (w : whne N) : ne_view1 N :=
   match w with
@@ -359,16 +359,14 @@ Ltac patch_rec_ret :=
     let Ba := type of hBa in change Bx with Ba
   end).
 
-Lemma implem_conv_complete :
+Lemma _implem_conv_complete :
   BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
 Proof.
   subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
   apply BundledConvInduction.
   - intros * ?? Hconv [IH] **.
     unfold graph.
-    simp conv conv_ty ; cbn.
-    (* destruct v. 
-    change ((conv_full_cod (ty_red_state; Γ; tt; A; B))) with ((conv_full_cod (ty_state; Γ; tt; A; B))). *)
+    simp _conv conv_ty ; cbn.
     repeat (match goal with |- orec_graph _ _ _ => econstructor end) ; cbn.
     + eapply wh_red_complete_whnf_ty ; tea.
       eapply algo_conv_wh in Hconv as [].
@@ -380,26 +378,26 @@ Proof.
     + cbn; econstructor.
   - intros * HA [IHA] HB [IHB] ** ; cbn in *.
     unfold graph.
-    simp conv conv_ty_red ; cbn.
+    simp _conv conv_ty_red ; cbn.
     econstructor.  1: exact (IHA tt).
     cbn; patch_rec_ret; econstructor.
     1: exact (IHB tt).
     now econstructor.
   - intros ; cbn in *.
     unfold graph.
-    simp conv conv_ty_red ; cbn.
+    simp _conv conv_ty_red ; cbn.
     econstructor.
   - intros.
     unfold graph.
-    simp conv conv_ty_red ; cbn.
+    simp _conv conv_ty_red ; cbn.
     econstructor.
   - intros.
     unfold graph.
-    simp conv conv_ty_red ; cbn.
+    simp _conv conv_ty_red ; cbn.
     econstructor.
   - intros * HA [IHA] HB [IHB] **; cbn in *.
     unfold graph.
-    simp conv conv_ty_red ; cbn.
+    simp _conv conv_ty_red ; cbn.
     econstructor.
     1: exact (IHA tt).
     cbn; patch_rec_ret; econstructor.
@@ -407,7 +405,7 @@ Proof.
     now econstructor.
   - intros * hA [ihA] hx [ihx] hy [ihy] **; cbn in *.
     unfold graph.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     econstructor.
     1: exact (ihA tt).
     econstructor.
@@ -417,7 +415,7 @@ Proof.
     now econstructor.
   - intros * HM [IHM []] **.
     unfold graph.
-    simp conv conv_ty_red ; cbn.
+    simp _conv conv_ty_red ; cbn.
     rewrite whne_ty_view2.
     2-3: now eapply algo_conv_wh in HM as [].
     cbn.
@@ -426,13 +424,13 @@ Proof.
     now constructor.
   - intros **.
     unfold graph.
-    simp conv conv_ne.
+    simp _conv conv_ne.
     rewrite Nat.eqb_refl ; cbn.
     erewrite ctx_access_complete ; tea ; cbn.
     now econstructor.
   - intros * Hm [IHm []] Ht [IHt] **.
     unfold graph.
-    simp conv conv_ne ; cbn.
+    simp _conv conv_ne ; cbn.
     econstructor.
     1: exact (IHm tt).
     cbn.
@@ -441,7 +439,7 @@ Proof.
     now constructor.
   - intros * ? [IHn []] ? [IHP] ? [IHz] ? [IHs] **.
     unfold graph.
-    simp conv conv_ne ; cbn.
+    simp _conv conv_ne ; cbn.
     econstructor.
     1: exact (IHn tt).
     econstructor.
@@ -453,7 +451,7 @@ Proof.
     now econstructor.
   - intros * ? [IHe []] ? [IHP] **.
     unfold graph.
-    simp conv conv_ne ; cbn.
+    simp _conv conv_ne ; cbn.
     econstructor.
     1: exact (IHe tt).
     econstructor.
@@ -461,19 +459,19 @@ Proof.
     now econstructor.
   - intros * ? [IH []] **.
     unfold graph.
-    simp conv conv_ne; cbn.
+    simp _conv conv_ne; cbn.
     econstructor.
     1: exact (IH tt).
     econstructor.
   - intros * ? [IH []] **.
     unfold graph.
-    simp conv conv_ne; cbn.
+    simp _conv conv_ne; cbn.
     econstructor.
     1: exact (IH tt).
     econstructor.
   - intros * ? [ihe []] ? [ihA] ? [ihx] ? [ihP] ? [ihhr] ? [ihy] **.
     unfold graph.
-    simp conv conv_ne; cbn.
+    simp _conv conv_ne; cbn.
     econstructor.
     1: exact (ihe tt).
     econstructor.
@@ -489,7 +487,7 @@ Proof.
     now econstructor.
   - intros * ? [IHm []] **.
     unfold graph.
-    simp conv conv_ne_red ; cbn.
+    simp _conv conv_ne_red ; cbn.
     econstructor.
     1: exact (IHm tt).
     econstructor.
@@ -498,7 +496,7 @@ Proof.
     boundary.
   - intros * ??? []%algo_conv_wh [IHt'] **.
     unfold graph.
-    simp conv conv_tm ; cbn -[PFun_instance_1].
+    simp _conv conv_tm ; cbn -[PFun_instance_1].
     repeat (match goal with |- orec_graph _ _ _ => econstructor end) ; cbn -[PFun_instance_1].
     + eapply wh_red_complete_whnf_ty ; tea.
       1: boundary.
@@ -509,7 +507,7 @@ Proof.
     + cbn; econstructor.
   - intros * ? [IHA] ? [IHB] **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     econstructor.
     1: exact IHA.
     cbn; patch_rec_ret; econstructor.
@@ -517,31 +515,31 @@ Proof.
     now constructor.
   - intros.
     unfold graph.
-    simp conv conv_tm_red.
+    simp _conv conv_tm_red.
     constructor.
   - intros.
     unfold graph.
-    simp conv conv_tm_red.
+    simp _conv conv_tm_red.
     constructor.
   - intros * ? [IHt] **.
     unfold graph.
-    simp conv conv_tm_red; cbn.
+    simp _conv conv_tm_red; cbn.
     patch_rec_ret; econstructor.
     1: exact IHt.
     now constructor.
   - intros.
     unfold graph.
-    simp conv conv_tm_red.
+    simp _conv conv_tm_red.
     now constructor.
   - intros * ?? ? [IHf] **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     patch_rec_ret; econstructor.
     1: exact IHf.
     now constructor.
   - intros * ? [IHA] ? [IHB] **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     econstructor.
     1: exact IHA.
     cbn; patch_rec_ret; econstructor.
@@ -549,7 +547,7 @@ Proof.
     now constructor.
   - intros * ??? [ihFst] ? [ihSnd] **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     econstructor.
     1: exact ihFst.
     cbn; patch_rec_ret; econstructor.
@@ -557,7 +555,7 @@ Proof.
     now constructor.
   - intros * ? [ihA] ? [ihx] ? [ihy] **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     econstructor.
     1: exact ihA.
     econstructor.
@@ -567,7 +565,7 @@ Proof.
     now econstructor.
   - intros * ? [ihA] ? [ihx] **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     econstructor.
     1: exact (ihA tt).
     cbn; patch_rec_ret; econstructor.
@@ -575,16 +573,37 @@ Proof.
     now econstructor.
   - intros * ? [IHm []] wP **.
     unfold graph.
-    simp conv conv_tm_red ; cbn.
+    simp _conv conv_tm_red ; cbn.
     unshelve erewrite whne_nf_view3 ; tea.
     2-3: now eapply algo_conv_wh in H as [].
     destruct wP ; cbn.
     all: now econstructor ; [exact (IHm tt)|constructor].
 Qed.
 
+Lemma implem_conv_complete Γ A B :
+  [Γ |-[de] A ≅ B] ->
+  graph tconv (Γ,A,B) ok.
+Proof.
+  intros.
+  unfold graph.
+  simp tconv ; cbn.
+  econstructor ; cbn.
+  - apply _implem_conv_complete.
+    split.
+    1-3: boundary.
+    now apply algo_conv_complete.
+  - econstructor.
+Qed. 
+
 End ConversionComplete.
 
 Section TypingComplete.
+
+Variable conv : (context × term × term) ⇀ exn errors unit.
+
+Hypothesis conv_complete : forall Γ T V,
+  [Γ |-[de] T ≅ V] ->
+  graph conv (Γ,T,V) ok.
 
 Definition isCanonical_ty_view1 t (c : ~ isCanonical t) : ne_view1 t.
 Proof.
@@ -615,10 +634,10 @@ Ltac patch_rec_ret :=
     let Ba := type of hBa in change Bx with Ba
   end).
 
-Let PTy Γ A := forall v, graph typing (wf_ty_state;Γ;v;A) (success tt).
-Let PInf Γ A t := forall v, graph typing (inf_state;Γ;v;t) (success A).
-Let PInfRed Γ A t := forall v, whnf A -> graph typing (inf_red_state;Γ;v;t) (success A).
-Let PCheck Γ A t := graph typing (check_state;Γ;A;t) (success tt).
+Let PTy Γ A := forall v, graph (typing conv) (wf_ty_state;Γ;v;A) ok.
+Let PInf Γ A t := forall v, graph (typing conv) (inf_state;Γ;v;t) (success A).
+Let PInfRed Γ A t := forall v, whnf A -> graph (typing conv) (inf_red_state;Γ;v;t) (success A).
+Let PCheck Γ A t := graph (typing conv) (check_state;Γ;A;t) ok.
 
 Arguments _bind : simpl nomatch.
 
@@ -631,7 +650,7 @@ Proof.
   all: unfold graph in *.
   all: simp typing typing_inf typing_wf_ty typing_inf_red typing_check.
   (* Well formed types *)
-  1-5:repeat match goal with | |- orec_graph typing _ _ => patch_rec_ret ; econstructor ; try eauto ; cbn end.
+  1-5:repeat match goal with | |- orec_graph (typing conv) _ _ => patch_rec_ret ; econstructor ; try eauto ; cbn end.
   - cbn in *.
     econstructor.
     1: exact (g1 tt).
@@ -744,9 +763,10 @@ Proof.
     cbn.
     econstructor.
     2: econstructor.
-    eapply implem_conv_complete.
-    split ; tea.
-    now boundary.
+    cbn.
+    eapply conv_complete.
+    eapply algo_conv_sound in H0.
+    all: now boundary.
 Qed.
 
 End TypingComplete.

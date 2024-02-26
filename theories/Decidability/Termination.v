@@ -5,7 +5,7 @@ From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Context Notations UntypedReduction DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
 From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel.Decidability Require Import Functions Soundness Completeness.
-From PartialFun Require Import Monad PartialFun.
+From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
 
@@ -16,31 +16,31 @@ Section ConversionTerminates.
 Let PTyEq (Γ : context) (A B : term) :=
   forall v B',
   [Γ |-[de] B'] ->
-  domain conv (ty_state;Γ;v;A;B').
+  domain _conv (ty_state;Γ;v;A;B').
 Let PTyRedEq (Γ : context) (A B : term) :=
   forall v B',
   isType B' ->
   [Γ |-[de] B'] ->
-  domain conv (ty_red_state;Γ;v;A;B').
+  domain _conv (ty_red_state;Γ;v;A;B').
 Let PNeEq (Γ : context) (A t u : term) :=
   forall v u',
   whne u' ->
   well_typed (ta := de) Γ u' ->
-  domain conv (ne_state;Γ;v;t;u').
+  domain _conv (ne_state;Γ;v;t;u').
 Let PNeRedEq (Γ : context) (A t u : term) :=
   forall v u',
   whne u' ->
   well_typed (ta := de) Γ u' ->
-  domain conv (ne_red_state;Γ;v;t;u').
+  domain _conv (ne_red_state;Γ;v;t;u').
 Let PTmEq (Γ : context) (A t u : term) :=
   forall u',
   [Γ |-[de] u' : A] ->
-  domain conv (tm_state;Γ;A;t;u').
+  domain _conv (tm_state;Γ;A;t;u').
 Let PTmRedEq (Γ : context) (A t u : term) :=
   forall u',
   whnf u' ->
   [Γ |-[de] u' : A] ->
-  domain conv (tm_red_state;Γ;A;t;u').
+  domain _conv (tm_red_state;Γ;A;t;u').
 
 Theorem _conv_terminates :
   BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
@@ -49,7 +49,7 @@ Proof.
   apply BundledConvInduction.
   - intros * ?? HA' [IH] **.
     apply compute_domain.
-    simp conv conv_ty.
+    simp _conv conv_ty.
     cbn.
     split.
     1: eapply wh_red_complete ; now exists istype.
@@ -73,53 +73,53 @@ Proof.
       all: now eapply red_sound.
   - intros * ? [IHA] ? [IHB] ? []%prod_ty_inv []%prod_ty_inv ? B' wB' HtyB'.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     destruct wB' as [|A'' B''| | | | |? wB'].
     all: simp build_nf_ty_view2 ; cbn ; try easy.
     2: now rewrite (whne_ty_view1 wB') ; cbn.
     apply prod_ty_inv in HtyB' as [].
     split.
     2: intros [] ; cbn ; [|easy].
-    2: intros Hconv%implem_conv_sound%algo_conv_sound ; tea ; split .
+    2: intros Hconv%implem_conv_graph%algo_conv_sound ; tea ; split .
     + now apply (IHA tt A'').
     + apply (IHB tt B'').
       now eapply stability1.
     + intros []; cbn; easy.
   - intros * ??? ? ? wB' ?.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
     match goal with H : whne _ |- _ => now rewrite (whne_ty_view1 H) ; cbn end.
   - intros * ??? ? ? wB' ?.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
     match goal with H : whne _ |- _ => now rewrite (whne_ty_view1 H) ; cbn end.
   - intros * ??? ? ? wB' ?.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
     match goal with H : whne _ |- _ => now rewrite (whne_ty_view1 H) ; cbn end.
   - intros * ? [IHA] ? [IHB] ? []%sig_ty_inv []%sig_ty_inv ? B' wB' HtyB'.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     destruct wB' as [| | | | A'' B'' | | ? wB'].
     all: simp build_nf_ty_view2 ; cbn ; try easy.
     2: now rewrite (whne_ty_view1 wB') ; cbn.
     apply sig_ty_inv in HtyB' as [].
     split.
     2: intros x; destruct x ; cbn ; [|easy].
-    2: intros Hconv%implem_conv_sound%algo_conv_sound ; tea ; split.
+    2: intros Hconv%implem_conv_graph%algo_conv_sound ; tea ; split.
     + now apply (IHA tt A'').
     + apply (IHB tt B'').
       now eapply stability1.
     + intros []; easy.
   - intros * ? [ihA] ? [ihx] ? [ihy] ? [? []]%id_ty_inv [? []]%id_ty_inv * wB' htyB'.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     destruct wB' as [| | | | |A'' x'' y''| ? wB'].
     all: simp build_nf_ty_view2 ; cbn.
     1-5: easy.
@@ -127,9 +127,9 @@ Proof.
     apply id_ty_inv in htyB' as [? []].
     split; cycle -1.
     1: intros []; cbn;[|easy].
-    1: intros HconvA%implem_conv_sound%algo_conv_sound; tea; split; cycle -1.
+    1: intros HconvA%implem_conv_graph%algo_conv_sound; tea; split; cycle -1.
     1: intros []; cbn;[|easy].
-    1: intros Hconvx%implem_conv_sound%algo_conv_sound; tea.
+    1: intros Hconvx%implem_conv_graph%algo_conv_sound; tea.
     1: split; cycle -1.
     1: intros []; cbn;easy.
     + apply (ihy y''); now econstructor.
@@ -138,7 +138,7 @@ Proof.
     + now apply (ihA tt A'').
   - intros * HM [IHM []] ??? ? ? wB' Hty.
     apply compute_domain.
-    simp conv conv_ty_red.
+    simp _conv conv_ty_red.
     eapply algo_conv_wh in HM as [].
     destruct wB'.
     1-6: simp build_nf_ty_view2 ; cbn.
@@ -152,7 +152,7 @@ Proof.
   - intros * ???? ? ? wu' ?.
     apply compute_domain.
     destruct wu' as [n'| | | | | |].
-    all: simp conv conv_ne to_neutral_diag ; cbn ; try easy.
+    all: simp _conv conv_ne to_neutral_diag ; cbn ; try easy.
     destruct (Nat.eqb_spec n n') ; cbn.
     2: easy.
     erewrite ctx_access_complete ; tea.
@@ -160,13 +160,13 @@ Proof.
   - intros ? ???? A B Hm [IHm []] ? [IHt] ??? ? u' wu' Hty.
     apply compute_domain.
     destruct wu' as [|m' t'| | | | |].
-    all: simp conv conv_ne to_neutral_diag ; cbn; try exact I.
+    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
     split.
     + apply (IHm tt m') ; tea.
       destruct Hty as [? (?&(?&?&[])&?)%termGen'].
       now eexists.
     + destruct Hty as [? (?&(?&?&[??Htym'])&?)%termGen'] ; subst.
-      intros [T|] ; cbn ; [|easy] ; intros [Hconvm?]%implem_conv_sound.
+      intros [T|] ; cbn ; [|easy] ; intros [Hconvm?]%implem_conv_graph.
       assert (T = tProd A B) by now eapply algo_conv_det.
       subst.
       apply algo_conv_sound in Hconvm as [?? Hgenm'].
@@ -180,17 +180,17 @@ Proof.
   - intros * Hn [IHn] ? [IHP] ? [IHz] ? [IHs] ??? ? u' wu' Hty.
     apply compute_domain.
     destruct wu' as [| |P'' hz'' hs'' n''| | | |].
-    all: simp conv conv_ne to_neutral_diag ; cbn ; try exact I.
+    all: simp _conv conv_ne to_neutral_diag ; cbn ; try exact I.
     destruct Hty as [? (?&[]&?)%termGen'].
     split.
     1: apply (IHn tt n'') ; tea ; now eexists.
-    intros [T|] ; cbn ; [|easy] ; intros [HconvT ?]%implem_conv_sound.
+    intros [T|] ; cbn ; [|easy] ; intros [HconvT ?]%implem_conv_graph.
     eapply algo_conv_det in HconvT as ->.
     2: now apply Hn.
     cbn.
     split.
     1: now apply (IHP tt P'').
-    intros [|] ; cbn ; [|easy] ; intros HconvP%implem_conv_sound%algo_conv_sound.
+    intros [|] ; cbn ; [|easy] ; intros HconvP%implem_conv_graph%algo_conv_sound.
     2-3: boundary.
     split.
     1:{
@@ -200,7 +200,7 @@ Proof.
       2: now symmetry.
       now do 2 econstructor.
     }
-    assert (domain conv (tm_state; Γ; elimSuccHypTy P; hs; hs'')).
+    assert (domain _conv (tm_state; Γ; elimSuccHypTy P; hs; hs'')).
     {
       specialize (IHs hs'') ; apply IHs.
       econstructor ; tea.
@@ -215,11 +215,11 @@ Proof.
   - intros * He [IHe] ? [IHP] ??? ? u' wu' Hty.
     apply compute_domain.
     destruct wu' as [| | | P'' e'' | | |].
-    all: simp conv conv_ne to_neutral_diag ; cbn ; try exact I.
+    all: simp _conv conv_ne to_neutral_diag ; cbn ; try exact I.
     destruct Hty as [? (?&[]&?)%termGen'].
     split.
     1: apply (IHe tt e'') ; tea ; now eexists.
-    intros [T|] ; cbn ; [|easy] ; intros [HconvT ?]%implem_conv_sound.
+    intros [T|] ; cbn ; [|easy] ; intros [HconvT ?]%implem_conv_graph.
     eapply algo_conv_det in HconvT as ->.
     2: now apply He.
     cbn.
@@ -229,47 +229,47 @@ Proof.
   - intros * h [ih []] ??? ? u' wu' Hty.
     apply compute_domain.
     destruct wu' as [| | | | t | |].
-    all: simp conv conv_ne to_neutral_diag ; cbn ; try exact I.
+    all: simp _conv conv_ne to_neutral_diag ; cbn ; try exact I.
     destruct Hty as [? hu'%termGen']; cbn in hu'; prod_hyp_splitter; subst.
     split.
     1: apply (ih tt t); tea; now eexists.
     intros [T|]; cbn ; [|easy].
-    intros [Hconv ?]%implem_conv_sound.
+    intros [Hconv ?]%implem_conv_graph.
     eapply algo_conv_det in Hconv as ->.
     2: now eapply h.
     now cbn.
   - intros * h [ih []] ??? ? u' wu' Hty.
     apply compute_domain.
     destruct wu' as [| | | | | t | ].
-    all: simp conv conv_ne to_neutral_diag ; cbn ; try exact I.
+    all: simp _conv conv_ne to_neutral_diag ; cbn ; try exact I.
     destruct Hty as [? hu'%termGen']; cbn in hu'; prod_hyp_splitter; subst.
     split.
     1: apply (ih tt t); tea; now eexists.
     intros [T|]; cbn ; [|easy].
-    intros [Hconv ?]%implem_conv_sound.
+    intros [Hconv ?]%implem_conv_graph.
     eapply algo_conv_det in Hconv as ->.
     2: now eapply h.
     now cbn.
   - intros * he [ihe []] ? [ihA] ? [ihx] ? [ihP] ? [ihhr] ? [ihy] ??? ?? wu' Hu'.
     apply compute_domain.
     destruct wu' as [| | | | | | A0 x0 P0 hr0 y0 e0].
-    all: simp conv conv_ne to_neutral_diag ; cbn ; try exact I.
+    all: simp _conv conv_ne to_neutral_diag ; cbn ; try exact I.
     destruct Hu' as [? hu'%termGen']; cbn in hu'; prod_hyp_splitter; subst.
     split.
     1: apply (ihe tt e0); tea; now eexists.
     intros [T|]; cbn ; [|easy].
-    intros [Hconve ?]%implem_conv_sound.
+    intros [Hconve ?]%implem_conv_graph.
     eapply algo_conv_det in Hconve as ->.
     2: now eapply he.
     split.
     1: apply (ihA tt A0); tea; now eexists.
     intros [|]; cbn ; [|easy].
-    intros HconvA%implem_conv_sound%algo_conv_sound.
+    intros HconvA%implem_conv_graph%algo_conv_sound.
     2,3: boundary.
     split.
     1: apply (ihx x0); try now econstructor.
     intros [|]; cbn ; [|easy].
-    intros Hconvx%implem_conv_sound%algo_conv_sound.
+    intros Hconvx%implem_conv_graph%algo_conv_sound.
     rewrite <- !(Weakening.wk1_ren_on Γ A).
     assert [(Γ,, A),, tId A⟨@Weakening.wk1 Γ A⟩ x⟨@Weakening.wk1 Γ A⟩ (tRel 0) |-[ de ] P0].
     1:{
@@ -282,7 +282,7 @@ Proof.
     2: boundary.
     2: econstructor; tea; now symmetry.
     intros [|]; cbn; [|easy].
-    intros HconvP%implem_conv_sound%algo_conv_sound; tea.
+    intros HconvP%implem_conv_graph%algo_conv_sound; tea.
     2: boundary.
     assert [Γ |-[ de ] hr0 : P[tRefl A x .: x..]].
     1:{
@@ -294,16 +294,16 @@ Proof.
     split.
     1: apply (ihhr hr0); tea.
     intros [|]; cbn; [|easy].
-    intros Hconvhr%implem_conv_sound%algo_conv_sound; tea.
+    intros Hconvhr%implem_conv_graph%algo_conv_sound; tea.
     2: boundary.
     split.
     1: apply (ihy y0); try now econstructor.
     intros [|]; cbn; easy.
   - intros * ? [IHm] ?? ??? ? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_ne_red ; cbn.
+    simp _conv conv_ne_red ; cbn.
     split.
-    2: intros [T|] ; cbn ; [|easy] ; intros []%implem_conv_sound%algo_conv_sound ; tea.
+    2: intros [T|] ; cbn ; [|easy] ; intros []%implem_conv_graph%algo_conv_sound ; tea.
     2: split ; [|easy].
     + now apply (IHm tt u').
     + eapply wh_red_complete.
@@ -311,7 +311,7 @@ Proof.
       boundary.
   - intros * ??? Hconv [IHt'] ??? u' Hty.
     apply compute_domain.
-    simp conv conv_tm ; cbn.
+    simp _conv conv_tm ; cbn.
     split.
     2: intros A'' [redA]%red_sound ; split.
     3: intros t'' []%red_sound ; split.
@@ -344,14 +344,14 @@ Proof.
     + intros x; destruct x; cbn; easy.
   - intros * ? [IHA] ? [IHB] ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply Uterm_isType in wu' ; tea.
     destruct wu' as [ | A'' B'' | | | | | ? wu'] ; cycle -1.
     1: rewrite (whne_ty_view1 wu').
     all: cbn ; try exact I.
     eapply termGen' in Hty as (?&[]&?) ; subst.
     split.
-    2: intros [|] ; cbn ; [|easy] ; intros ?%implem_conv_sound%algo_conv_sound.
+    2: intros [|] ; cbn ; [|easy] ; intros ?%implem_conv_graph%algo_conv_sound.
     3-4: boundary.
     2: split.
     + now apply (IHA A'').
@@ -362,21 +362,21 @@ Proof.
     + intros []; now cbn.
   - intros * ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply Uterm_isType in wu' ; tea.
     destruct wu' as [ | | | | | | ? wu'] ; cycle -1.
     1: rewrite (whne_ty_view1 wu').
     all: now cbn.
   - intros * ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply nat_isNat in wu' ; tea.
     destruct wu' as [ | | ? wu'] ; cycle -1.
     1: rewrite (whne_nf_view1 wu').
     all: now cbn.
   - intros * ? [IHt] ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply nat_isNat in wu' ; tea.
     destruct wu' as [ | u' | ? wu'] ; cycle -1.
     1: rewrite (whne_nf_view1 wu').
@@ -387,14 +387,14 @@ Proof.
     now apply termGen' in Hty as (?&[]&?).
   - intros * ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply Uterm_isType in wu' ; tea.
     destruct wu' as [ | | | | | | ? wu'] ; cycle -1.
     1: rewrite (whne_ty_view1 wu').
     all: now cbn.
   - intros * ?? ? [IHf] ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 ; cbn.
+    simp _conv conv_tm_red build_nf_view3 ; cbn.
     split.
     2: intros x; destruct x; now cbn.
     specialize (IHf (eta_expand u')).
@@ -402,14 +402,14 @@ Proof.
     now eapply typing_eta'.
   - intros * ? [IHA] ? [IHB] ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply Uterm_isType in wu' ; tea.
     destruct wu' as [ |  | | | A'' B'' | | ? wu'] ; cycle -1.
     1: rewrite (whne_ty_view1 wu').
     all: cbn ; try easy.
     eapply termGen' in Hty as (?&[]&?) ; subst.
     split.
-    2: intros [|] ; cbn ; [|easy] ; intros ?%implem_conv_sound%algo_conv_sound.
+    2: intros [|] ; cbn ; [|easy] ; intros ?%implem_conv_graph%algo_conv_sound.
     3-4: boundary.
     2: split.
     + now apply (IHA A'').
@@ -420,11 +420,11 @@ Proof.
     + intros []; now cbn.
   - intros * ?? ? [ihFst] ? [ihSnd] ??? u' wu' Hty.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     econstructor.
     1: apply (ihFst (tFst u')); now econstructor.
     intros [T|]; cbn; [|easy].
-    intros ?%implem_conv_sound%algo_conv_sound.
+    intros ?%implem_conv_graph%algo_conv_sound.
     2,3: now econstructor.
     split; [|intros x; destruct x; now cbn].
     apply (ihSnd (tSnd u')).
@@ -434,7 +434,7 @@ Proof.
     now apply TypeRefl.
   - intros * ? [ihA] ? [ihx] ? [ihy] ? [? [[->]]]%termGen' [? [[->]]]%termGen' ? wu' Hu'.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2 .
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2 .
     eapply Uterm_isType in wu' ; tea.
     destruct wu' as [ |  | | | | A'' x'' y'' | ? wu'] ; cycle -1.
     1: rewrite (whne_ty_view1 wu').
@@ -443,30 +443,30 @@ Proof.
     split.
     1: apply (ihA A''); tea.
     intros [|]; cbn; [|easy].
-    intros HconvA%implem_conv_sound%algo_conv_sound; tea.
+    intros HconvA%implem_conv_graph%algo_conv_sound; tea.
     assert [Γ |- A'' ≅ A] by (symmetry; now econstructor).
     split.
     1: apply (ihx x''); now econstructor.
     intros [|]; cbn; [|easy].
-    intros Hconvx%implem_conv_sound%algo_conv_sound; tea.
+    intros Hconvx%implem_conv_graph%algo_conv_sound; tea.
     2: now econstructor.
     split; [|easy].
     apply (ihy y''); now econstructor.
   - intros * ? [ihA] ? [ihx] ? [? [[->]]]%termGen' [? [[->]]]%termGen' ? wu' Hu'.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3 build_nf_ty_view2.
+    simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply id_isId in wu' as [wu' | [A0 [x0 ->]] ]; tea.
     1: rewrite (whne_nf_view1 wu'); now cbn.
     pose proof Hu' as [? [[->]]]%termGen'.
     cbn; split.
     1: eapply (ihA tt A0); tea.
     intros [|]; cbn; [|easy].
-    intros HconvA%implem_conv_sound%algo_conv_sound; tea.
+    intros HconvA%implem_conv_graph%algo_conv_sound; tea.
     split; [| easy].
     eapply ihx; econstructor; tea; now symmetry.
   - intros * Hm [IHm []] Hpos ??? u' wu' Hu'.
     apply compute_domain.
-    simp conv conv_tm_red build_nf_view3.
+    simp _conv conv_tm_red build_nf_view3.
     eapply algo_conv_wh in Hm as [].
     destruct Hpos as [[]| | | |].
     + cbn.
@@ -522,23 +522,43 @@ Proof.
       now eexists.
   Qed.
   
-  Corollary conv_terminates Γ A A' :
+  Corollary tconv_terminates Γ A A' :
     [Γ |-[de] A] ->
     [Γ |-[de] A'] ->
-    forall v,
-    domain conv (ty_state;Γ;v;A;A').
+    domain tconv (Γ,A,A').
   Proof.
     intros.
-    eapply _conv_terminates ; tea.
-    split.
-    4: eapply algo_conv_complete.
-    4: econstructor.
-    all: boundary.
+    assert (domain _conv (ty_state; Γ; tt; A; A')) as [].
+    {
+      eapply _conv_terminates ; tea.
+      split.
+      4: eapply algo_conv_complete.
+      4: econstructor.
+      all: boundary.
+    }
+    eexists.
+    unfold graph.
+    simp tconv.
+    econstructor ; cbn in * ; tea.
+    now constructor.
   Qed.
 
 End ConversionTerminates.
 
 Section TypingTerminates.
+
+  Import AlgorithmicTypingData.
+
+  Variable conv : (context × term × term) ⇀ exn errors unit.
+
+  Hypothesis conv_sound : forall Γ T V,
+    graph conv (Γ,T,V) ok ->
+    [Γ |-[al] T ≅ V].
+
+  Hypothesis conv_terminates : forall Γ A A',
+    [Γ |-[de] A] ->
+    [Γ |-[de] A'] ->
+    domain conv (Γ,A,A').
 
   Definition lt_state (s s' : typing_state) :=
     match s, s' with
@@ -587,7 +607,7 @@ Definition wf_input (s : typing_state) Γ : tstate_input s -> Type :=
 Theorem typing_terminates (s : typing_state) (Γ : context) (v : tstate_input s) (t : term) :
   [|-[de] Γ] ->
   wf_input s Γ v ->
-  domain typing (s;Γ;v;t).
+  domain (typing conv) (s;Γ;v;t).
 Proof.
   intros HΓ Hv.
   set (x := (s;Γ;v;t)).

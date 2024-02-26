@@ -202,8 +202,17 @@ Section ConversionSound.
   Arguments conv_full_cod _ /.
   Arguments conv_cod _/.
 
-  Corollary implem_conv_sound Γ T V r :
-    graph tconv (Γ,T,V) (success r) ->
+  Corollary implem_conv_graph x r :
+    graph _conv x r ->
+    conv_sound_type x r.
+  Proof.
+    eapply funrect_graph.
+    1: now apply _implem_conv_sound.
+    easy.
+  Qed.
+
+  Corollary implem_tconv_sound Γ T V :
+    graph tconv (Γ,T,V) ok ->
     [Γ |-[al] T ≅ V].
   Proof.
     assert (funrect tconv (fun _ => True)
@@ -234,8 +243,8 @@ Section TypingSound.
 
   Variable conv : (context × term × term) ⇀ exn errors unit.
 
-  Hypothesis conv_sound : forall Γ T V r,
-    graph conv (Γ,T,V) (success r) ->
+  Hypothesis conv_sound : forall Γ T V,
+    graph conv (Γ,T,V) ok ->
     [Γ |-[al] T ≅ V].
 
   Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
@@ -277,6 +286,9 @@ Section TypingSound.
       end).
     all: try now econstructor.
     econstructor; tea; now rewrite 2!Weakening.wk1_ren_on.
+    econstructor ; tea.
+    apply conv_sound.
+    now match goal with | H : unit |- _ => destruct H end.
   Qed.
 
   Lemma implem_typing_sound x r:
@@ -302,7 +314,7 @@ Section TypingSound.
   Qed.
      
   Lemma check_ctx_sound Γ :
-    graph (check_ctx conv) Γ (success tt) ->
+    graph (check_ctx conv) Γ ok ->
     [|-[al] Γ].
   Proof.
     eintros ?%funrect_graph.
