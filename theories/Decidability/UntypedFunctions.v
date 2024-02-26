@@ -3,17 +3,11 @@ From Coq Require Import Nat Lia.
 From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Context.
-From PartialFun Require Import Monad PartialFun.
+From PartialFun Require Import Monad PartialFun MonadExn.
 From LogRel.Decidability Require Import Functions.
 
 Import MonadNotations.
 Set Universe Polymorphism.
-Import IndexedDefinitions.
-
-
-#[local]Instance ty_errors : Errors := errors.
-#[local]Existing Instance MonadId | 10.
-#[local]Existing Instance MonadError | 1.
 
 Inductive nf_view2 : term -> term -> Type :=
 | sorts (s1 s2 : sort) : nf_view2 (tSort s1) (tSort s2)
@@ -112,17 +106,12 @@ Equations build_nf_view2 (t t' : term) : nf_view2 t t' :=
 Section Conversion.
 
 Definition uconv_dom := uconv_state × term × term.
-Definition uconv_cod (_ : uconv_dom) := result unit.
-
-#[local] Instance: forall x, PFun (singleton_store wh_red x) := singleton_pfun wh_red.
+Definition uconv_cod (_ : uconv_dom) := exn errors unit.
 
 #[local]
-Notation M0 := (irec (singleton_store wh_red) (uconv_dom) (uconv_cod)).
+Notation M0 := (orec (Sing wh_red) (uconv_dom) (uconv_cod)).
 #[local]
-Notation M := (errrec (singleton_store wh_red) (A:=uconv_dom) (B:=uconv_cod)).
-
-#[local] Instance: Monad M0 := MonadOrec.
-#[local] Instance: Monad M := monad_erec.
+Notation M := (combined_orec (exn errors) (Sing wh_red) uconv_dom uconv_cod).
 
 Equations uconv_ty :
   (term × term) -> M unit :=
@@ -139,8 +128,8 @@ Equations uconv_ty_red :
     | ty_prods A A' B B' :=
         rec (ty_state,A,A') ;;
         rec (ty_state,B,B') ;
-    | ty_nats := success ;
-    | ty_emptys := success ;
+    | ty_nats := ok ;
+    | ty_emptys := ok ;
     | ty_sigs A A' B B' :=
         rec (ty_state,A,A') ;;
         rec (ty_state,B,B') ;
@@ -168,8 +157,8 @@ Equations uconv_tm_red : (term × term) -> M unit :=
     | prods A A' B B' :=
         rec (tm_state,A,A') ;;
         rec (tm_state,B,B') ;
-    | nats := success ;
-    | emptys := success ;
+    | nats := ok ;
+    | emptys := ok ;
     | sigs A A' B B' :=
         rec (tm_state,A,A') ;;
         rec (tm_state,B,B') ;
@@ -183,7 +172,7 @@ Equations uconv_tm_red : (term × term) -> M unit :=
         rec (tm_state,t,eta_expand t') ;
     | ne_lam t _ t' :=
         rec (tm_state,eta_expand t,t') ;
-    | zeros := success ;
+    | zeros := ok ;
     | succs t t' :=
         rec (tm_state,t,t') ;
     | pairs _ _ _ _ t t' u u' :=
@@ -208,7 +197,7 @@ Equations uconv_ne : (term × term) -> M unit :=
   | (tRel n , tRel n')
       with n =? n' :=
       { | false := raise (variable_mismatch n n') ;
-        | true := success ;
+        | true := ok ;
       } ;
       
   | (tApp n t , tApp n' t') :=
@@ -233,16 +222,18 @@ Equations uconv_ne : (term × term) -> M unit :=
 
 | (n,n') := raise (destructor_mismatch n n').
 
-Equations _conv : (uconv_state × term × term) ⇀[singleton_store wh_red] result unit :=
+Equations _conv : ∇ _ : uconv_state × term × term, Sing wh_red  ⇒ exn errors ♯ unit :=
   | (ty_state,ts) := uconv_ty ts;
   | (ty_red_state,ts) := uconv_ty_red ts ;
   | (tm_state,ts) := uconv_tm ts ;
   | (tm_red_state,ts) := uconv_tm_red ts;
   | (ne_state,ts) := uconv_ne ts.
 
-  Import StdInstance.
+  #[local] Instance: PFun _conv := pfun_gen _ _ _conv.
 
-  Equations uconv : (context × term × term) ⇀ result unit :=
+  Equations uconv : (context × term × term) ⇀ exn errors unit :=
     uconv (Γ,T,V) := call _conv (ty_state,T,V).
   
 End Conversion.
+
+#[export] Instance: PFun uconv := pfun_gen _ _ uconv.

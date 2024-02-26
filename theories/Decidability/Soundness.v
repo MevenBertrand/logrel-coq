@@ -203,11 +203,11 @@ Section ConversionSound.
   Arguments conv_cod _/.
 
   Corollary implem_conv_sound Γ T V r :
-    graph tconv (Γ,T,V) (ok r) ->
+    graph tconv (Γ,T,V) (success r) ->
     [Γ |-[al] T ≅ V].
   Proof.
     assert (funrect tconv (fun _ => True)
-      (fun '(Γ,T,V) r => match r with | ok _ => [Γ |-[al] T ≅ V] | _ => True end)) as Hrect.
+      (fun '(Γ,T,V) r => match r with | success _ => [Γ |-[al] T ≅ V] | _ => True end)) as Hrect.
     {
      intros ? _.
      funelim (tconv _) ; cbn.
@@ -232,12 +232,10 @@ Ltac funelim_typing :=
 
 Section TypingSound.
 
-  #[local]Existing Instance ty_errors.
-
-  Variable conv : (context × term × term) -> StdInstance.orec (context × term × term) (fun _ => result unit) (result unit).
+  Variable conv : (context × term × term) ⇀ exn errors unit.
 
   Hypothesis conv_sound : forall Γ T V r,
-    graph conv (Γ,T,V) (ok r) ->
+    graph conv (Γ,T,V) (success r) ->
     [Γ |-[al] T ≅ V].
 
   Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
@@ -312,4 +310,4 @@ Section TypingSound.
     all: easy.
   Qed.
 
-End CtxTypingSound.
+End TypingSound.
