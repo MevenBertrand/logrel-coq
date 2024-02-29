@@ -549,9 +549,9 @@ Section BundledConv.
       split; [eauto| split].
       + now econstructor.
       + intros ? [?[[?[?[-> []%ihm%sig_ty_inj]]]]]%termGen'.
-        etransitivity; tea; now symmetry.
+        now etransitivity.
       + intros ? [?[[?[?[-> []%ihn%sig_ty_inj]]]]]%termGen'.
-        etransitivity; tea; now symmetry.
+        now etransitivity.
     - intros * ? ih ? hm hn.
       pose proof hm as [? [?[[?[?[-> hm']]]]]%termGen'].
       pose proof hn as [? [?[[?[?[->]]]]]%termGen'].
@@ -562,40 +562,49 @@ Section BundledConv.
       + intros ? [?[[?[?[-> h%ihm]]]]]%termGen'.
         pose proof h as []%sig_ty_inj.
         etransitivity; tea.
-        eapply typing_subst1; tea; econstructor; eapply TermConv; tea.
-        refold; now eapply lrefl.
+        eapply typing_subst1; tea ; do 2 econstructor.
+        boundary.
       + intros ? [?[[?[?[-> h%ihn]]]]]%termGen'.
         pose proof h as []%sig_ty_inj.
         etransitivity; tea.
-        eapply typing_subst1; tea; econstructor; eapply TermConv; tea.
-    - intros * ? ihe (*? ihA'' ? ihx'' ? ihy''*) ? ihA ? ihx ? ihP ? ihhr ? ihy ? hm hn.
+        eapply typing_subst1; tea.
+        now  econstructor.
+    - intros * ? ihe (*? ihA'' ? ihx'' ? ihy''*) (* ? ihA ? ihx ? ihy *) ? ihP ? ihhr ? hm hn.
       pose proof hm as [? [? [[-> ????? he]]]%termGen'].
-      pose proof hn as [? [? [[->]]]%termGen'].
+      pose proof hn as [? [? [[-> ????? he']]]%termGen'].
       edestruct ihe as [? [? ihm ihn]]; tea.
       1,2: now eexists.
-      pose proof (ihm _ he).
-      assert [Γ |-[de] A ≅ A'] by now eapply ihA.
-      assert [Γ |-[de] x' : A] by (eapply wfTermConv; tea; refold; now symmetry). 
-      assert [Γ |-[de] x ≅ x' : A] by now eapply ihx.
-      assert [Γ |-[de] y' : A] by (eapply wfTermConv; tea; refold; now symmetry). 
+      epose proof (idElimConv hm hn) as (?&?&?&[]) ; tea.
+      1: eapply TypeRefl ; refold ; boundary.
+      1: constructor.
       assert [ |-[ de ] (Γ,, A),, tId A⟨wk1 A⟩ x⟨wk1 A⟩ (tRel 0)] by boundary.
       assert [(Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |-[ de ] P'].
-      1: eapply stability; tea; symmetry; eapply idElimMotiveCtxConv; tea; now boundary + eapply ctx_refl.
+      {
+        eapply stability; tea; symmetry; eapply idElimMotiveCtxConv;
+        tea; now boundary + eapply ctx_refl.
+      }
       assert [(Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |-[ de ] P ≅ P'] by now eapply ihP.
       assert [Γ |-[ de ] hr' : P[tRefl A x .: x..]].
-      1:{
-        eapply wfTermConv; tea; refold; symmetry.
+      {
+        econstructor; tea; refold; symmetry.
         eapply typing_subst2; tea.
         cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq; now econstructor.
       }
-      split.  1: eapply X13; eauto.  (* ?? *)
+      split ; [now eauto 20|..].
       split.
-      + econstructor; tea; [now eapply ihhr| now eapply ihy| now eapply TermConv].
+      + econstructor; tea.
+        * now eapply ihhr.
+        * econstructor ; tea.
+          symmetry.
+          now econstructor. 
       + now intros ? [? [[->]]]%termGen'.
-      + intros ? [? [[->]]]%termGen'; transitivity (P'[e' .: y'..]) ; tea.
-        eapply typing_subst2; tea; [now eapply ihy|].
+      + intros ? [? [[->]]]%termGen'.
+        etransitivity ; [..|eassumption].
+        eapply typing_subst2; tea.
         cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq.
-        eapply TermConv; tea; eapply ihe; tea; now eexists.
+        econstructor ; tea.
+        symmetry.
+        now econstructor.
     - intros * ? IHm HA ? ? Htym Htyn.
       pose proof Htym as [? Htym'].
       pose proof Htyn as [? Htyn'].
@@ -706,12 +715,22 @@ Section BundledConv.
       assert [Γ |-[de] y' : A] by (eapply wfTermConv; tea; refold; now symmetry). 
       split; [eauto|].
       econstructor; [eapply ihA|eapply ihx| eapply ihy]; tea.
-    - intros * ? ihA ? ihx ? hm hn.
-      pose proof hm as [?[[->]]]%termGen'.
+    - intros * ? hm hn.
+      pose proof hm as [?[[-> ??] []%id_ty_inj]]%termGen'.
       pose proof hn as [?[[-> ??] []%id_ty_inj]]%termGen'.
-      assert [Γ |-[de] x' : A] by (eapply wfTermConv; tea; refold; now symmetry). 
-      split; [eauto|].
-      econstructor; tea; econstructor; tea; now symmetry.
+      split ; [eauto|].
+      assert [Γ |-[de] A ≅ A'] by
+        (etransitivity ; tea ; now symmetry).
+      econstructor.
+      1: econstructor.
+      3: econstructor.
+      + eassumption. 
+      + etransitivity ; tea.
+        symmetry.
+        now econstructor.
+      + now symmetry.
+      + eassumption.
+      + eassumption.
     - intros * ? IHm ? ? Htym Htyn.
       edestruct IHm as [? [? Hm']].
       1: easy.

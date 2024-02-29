@@ -250,26 +250,18 @@ Proof.
     eapply algo_conv_det in Hconv as ->.
     2: now eapply h.
     now cbn.
-  - intros * he [ihe []] ? [ihA] ? [ihx] ? [ihP] ? [ihhr] ? [ihy] ??? ?? wu' Hu'.
+  - intros * he [ihe []] ? [ihP] ? [ihhr] ? helim helim' ?? wu' Hu'.
     apply compute_domain.
     destruct wu' as [| | | | | | A0 x0 P0 hr0 y0 e0].
     all: simp _conv conv_ne to_neutral_diag ; cbn ; try exact I.
-    destruct Hu' as [? hu'%termGen']; cbn in hu'; prod_hyp_splitter; subst.
+    pose proof Hu' as [? [? hu']%termGen'] ; cbn in hu'; prod_hyp_splitter; subst.
     split.
     1: apply (ihe tt e0); tea; now eexists.
     intros [T|]; cbn ; [|easy].
-    intros [Hconve ?]%implem_conv_graph.
-    eapply algo_conv_det in Hconve as ->.
-    2: now eapply he.
-    split.
-    1: apply (ihA tt A0); tea; now eexists.
-    intros [|]; cbn ; [|easy].
-    intros HconvA%implem_conv_graph%algo_conv_sound.
-    2,3: boundary.
-    split.
-    1: apply (ihx x0); try now econstructor.
-    intros [|]; cbn ; [|easy].
-    intros Hconvx%implem_conv_graph%algo_conv_sound.
+    intros [[Hconve Hconve']%dup ?]%implem_conv_graph.
+    eapply algo_conv_sound in Hconve' as [].
+    2-3: eexists ; boundary.
+    epose proof (idElimConv helim Hu') as (?&?&?&[eq]) ; eauto ; subst.
     rewrite <- !(Weakening.wk1_ren_on Γ A).
     assert [(Γ,, A),, tId A⟨@Weakening.wk1 Γ A⟩ x⟨@Weakening.wk1 Γ A⟩ (tRel 0) |-[ de ] P0].
     1:{
@@ -279,8 +271,6 @@ Proof.
     }
     split.
     1: apply (ihP tt P0); tea.
-    2: boundary.
-    2: econstructor; tea; now symmetry.
     intros [|]; cbn; [|easy].
     intros HconvP%implem_conv_graph%algo_conv_sound; tea.
     2: boundary.
@@ -293,11 +283,6 @@ Proof.
     }
     split.
     1: apply (ihhr hr0); tea.
-    intros [|]; cbn; [|easy].
-    intros Hconvhr%implem_conv_graph%algo_conv_sound; tea.
-    2: boundary.
-    split.
-    1: apply (ihy y0); try now econstructor.
     intros [|]; cbn; easy.
   - intros * ? [IHm] ?? ??? ? u' wu' Hty.
     apply compute_domain.
@@ -452,18 +437,13 @@ Proof.
     2: now econstructor.
     split; [|easy].
     apply (ihy y''); now econstructor.
-  - intros * ? [ihA] ? [ihx] ? [? [[->]]]%termGen' [? [[->]]]%termGen' ? wu' Hu'.
+  - intros * ? [? [[->]]]%termGen' [? [[->]]]%termGen' ? wu' Hu'.
     apply compute_domain.
     simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply id_isId in wu' as [wu' | [A0 [x0 ->]] ]; tea.
     1: rewrite (whne_nf_view1 wu'); now cbn.
     pose proof Hu' as [? [[->]]]%termGen'.
-    cbn; split.
-    1: eapply (ihA tt A0); tea.
-    intros [|]; cbn; [|easy].
-    intros HconvA%implem_conv_graph%algo_conv_sound; tea.
-    split; [| easy].
-    eapply ihx; econstructor; tea; now symmetry.
+    now cbn.
   - intros * Hm [IHm []] Hpos ??? u' wu' Hu'.
     apply compute_domain.
     simp _conv conv_tm_red build_nf_view3.

@@ -152,8 +152,8 @@ Module AlgorithmicTypingProperties.
       pose proof bun_inf_conv_conv as [?[?[]]]%red_ty_compl_sig_r .
       econstructor; tea.
       1: do 2 econstructor; tea; now eapply (redty_red (ta:=de)).
-      eapply typing_subst1; [|now symmetry].
-      eapply TermConv; refold; [|now symmetry].
+      eapply typing_subst1; tea.
+      eapply TermConv; refold ; [|now symmetry].
       econstructor. eapply TermRefl.
       now eapply inf_conv_decl.
     - intros_bn.
@@ -313,8 +313,7 @@ Module AlgorithmicTypingProperties.
       2: now apply redalg_snd.
       econstructor; tea.
       do 2 econstructor; tea; now eapply (redty_red (ta:=de)).
-      eapply typing_subst1.
-      2: now symmetry.
+      eapply typing_subst1 ; tea.
       eapply TermRefl; eapply wfTermConv; refold; [|now symmetry].
       econstructor; now eapply inf_conv_decl.
     - intros * tyA tyx tyP tyhr tyy tyA' tyz convA convxy convxz.

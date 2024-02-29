@@ -79,11 +79,11 @@ Section Definitions.
       (* [Γ |- x'' ≅ x : A] -> *)
       (* [Γ |- y'' ◃ A] -> *)
       (* [Γ |- y'' ≅ y : A] -> *)
-      [Γ |- A ≅ A'] ->
+      (* [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
+      [Γ |- y ≅ y' : A] -> *)
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
       [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
-      [Γ |- y ≅ y' : A] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' ▹ P[e .: y..] ]
   (** **** Conversion of neutral terms at a type reduced to weak-head normal form*)
   with ConvNeuRedAlg : context -> term -> term -> term -> Type :=
@@ -136,8 +136,6 @@ Section Definitions.
       [Γ |- y ≅ y' : A] ->
       [Γ |- tId A x y ≅h tId A' x' y' : U]
     | termIdReflCong {Γ A A' A'' x x' y y'} :
-      [Γ |- A ≅ A'] ->
-      [Γ |- x ≅ x' : A] ->
       [Γ |- tRefl A x ≅h tRefl A' x' : tId A'' y y' ]
     | termNeuConvAlg {Γ m n T P} :
       [Γ |- m ~ n ▹ T] ->
@@ -496,7 +494,7 @@ Section TypingWk.
     - intros ??? A? ? IH *; cbn.
       rewrite (subst_ren_wk_up (A:=A)).
       econstructor; now eapply IH.
-    - intros * ? IHe (*?? ?? ??*) ?? ?? ? IHp **; erewrite <-2!wk_idElim, subst_ren_wk_up2.
+    - intros * ? IHe (*?? ?? ?? ?? ?? *) ? IHp **; erewrite <-2!wk_idElim, subst_ren_wk_up2.
       econstructor; eauto.
       + rewrite 2!(wk_up_wk1 ρ).
         eapply IHp; constructor; tea.
@@ -757,7 +755,7 @@ Proof.
     inversion Hconv; subst; clear Hconv; refold.
     apply IH in H3.
     now inversion H3.
-  - intros * ? IH (*? _ ? _ ? _*) ? _ ? _ ? _ ? _ ? _ * Hconv.
+  - intros * _ * _ * _ * ? ? ? _ ? _ * Hconv.
     inversion Hconv; now subst.
   - intros * ? IH ???? Hconv.
     inversion Hconv ; subst ; clear Hconv ; refold.

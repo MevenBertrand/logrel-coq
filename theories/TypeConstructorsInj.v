@@ -20,7 +20,7 @@ Section TypeConstructors.
       | NatType, NatType => True
       | EmptyType, EmptyType => True
       | NeType _, NeType _ => [Γ |- T ≅ T' : U]
-      | @SigType A B, @SigType A' B' => [Γ |- A' ≅ A] × [Γ,, A' |- B ≅ B']
+      | @SigType A B, @SigType A' B' => [Γ |- A ≅ A'] × [Γ,, A |- B ≅ B']
       | @IdType A x y, @IdType A' x' y' => [× [Γ |- A' ≅ A], [Γ |- x ≅ x' : A] & [Γ |- y ≅ y' : A]]
       | _, _ => False
     end.
@@ -118,8 +118,8 @@ Section TypeConstructors.
       1: subst; inv_whne.
       all: try congruence.
       inversion HeqT ; inversion HeqT' ; subst ; clear HeqT HeqT'; cbn.
-      destruct (polyRedEqId (normRedΣ0 (invLRΣ HT')) (PolyRedEqSym _ polyRed0)).
-      split; now escape.
+      eapply polyRedEqId in polyRed0 as [].
+      split ; now escape.
     - intros [??? ty] _ _ -> nfT T' nfT' HΓ HT' [??? ty']; cbn in *.
       assert (T = ty) as HeqT by (apply red_whnf; gen_typing).
       assert (T' = ty') as HeqT' by (apply red_whnf; gen_typing).
@@ -145,6 +145,14 @@ Section TypeConstructors.
     now destruct nfT, Hconv.
   Qed.
 
+  Corollary red_ty_compl_univ_l' Γ T :
+    whnf T ->
+    [Γ |- U ≅ T] ->
+    T = U.
+  Proof.
+    now intros ? ?%red_ty_compl_univ_l%redty_whnf.
+  Qed.
+
   Corollary red_ty_compl_univ_r Γ T :
     [Γ |- T ≅ U] ->
     [Γ |- T ⤳* U].
@@ -152,6 +160,15 @@ Section TypeConstructors.
     intros.
     eapply red_ty_compl_univ_l.
     now symmetry.
+  Qed.
+
+  Corollary red_ty_compl_univ_r' Γ T :
+    whnf T ->
+    [Γ |- T ≅ U ] ->
+    T = U.
+  Proof.
+    intros ? ?%red_ty_compl_univ_r%redty_whnf.
+    all: easy.
   Qed.
 
   Corollary red_ty_compl_nat_l Γ T :
@@ -171,6 +188,15 @@ Section TypeConstructors.
     now destruct nfT, Hconv.
   Qed.
 
+  Corollary red_ty_compl_nat_l' Γ T :
+    whnf T ->
+    [Γ |- tNat ≅ T] ->
+    T = tNat.
+  Proof.
+    intros ? ?%red_ty_compl_nat_l%redty_whnf.
+    all: easy.
+  Qed.
+
   Corollary red_ty_compl_nat_r Γ T :
     [Γ |- T ≅ tNat] ->
     [Γ |- T ⤳* tNat].
@@ -178,6 +204,15 @@ Section TypeConstructors.
     intros.
     eapply red_ty_compl_nat_l.
     now symmetry.
+  Qed.
+
+  Corollary red_ty_compl_nat_r' Γ T :
+    whnf T ->
+    [Γ |- T ≅ tNat ] ->
+    T = tNat.
+  Proof.
+    intros ? ?%red_ty_compl_nat_r%redty_whnf.
+    all: easy.
   Qed.
 
   Corollary red_ty_compl_empty_l Γ T :
@@ -197,6 +232,15 @@ Section TypeConstructors.
     now destruct nfT, Hconv.
   Qed.
 
+  Corollary red_ty_compl_empty_l' Γ T :
+    whnf T ->
+    [Γ |- tEmpty ≅ T] ->
+    T = tEmpty.
+  Proof.
+    intros ? ?%red_ty_compl_empty_l%redty_whnf.
+    all: easy.
+  Qed.
+
   Corollary red_ty_compl_empty_r Γ T :
     [Γ |- T ≅ tEmpty] ->
     [Γ |- T ⤳* tEmpty].
@@ -204,6 +248,15 @@ Section TypeConstructors.
     intros.
     eapply red_ty_compl_empty_l.
     now symmetry.
+  Qed.
+
+  Corollary red_ty_compl_empty_r' Γ T :
+    whnf T ->
+    [Γ |- T ≅ tEmpty] ->
+    T = tEmpty.
+  Proof.
+    intros ? ?%red_ty_compl_empty_r%redty_whnf.
+    all: easy.
   Qed.
 
   Corollary red_ty_compl_prod_l Γ A B T :
@@ -224,6 +277,16 @@ Section TypeConstructors.
     all: eassumption.
   Qed.
 
+  Corollary red_ty_compl_prod_l' Γ A B T :
+    whnf T ->
+    [Γ |- tProd A B ≅ T] ->
+    ∑ A' B', [× T = tProd A' B', [Γ |- A' ≅ A] & [Γ,, A' |- B ≅ B']].
+  Proof.
+    intros ? (?&?&[->%redty_whnf])%red_ty_compl_prod_l.
+    2: gen_typing.
+    now do 2 eexists.
+  Qed.
+
   Corollary prod_ty_inj Γ A B  A' B' :
     [Γ |- tProd A B ≅ tProd A' B'] ->
     [Γ |- A' ≅ A] × [Γ,, A' |- B ≅ B'].
@@ -236,7 +299,7 @@ Section TypeConstructors.
 
   Corollary red_ty_compl_sig_l Γ A B T :
     [Γ |- tSig A B ≅ T] ->
-    ∑ A' B', [× [Γ |- T ⤳* tSig A' B'], [Γ |- A' ≅ A] & [Γ,, A' |- B ≅ B']].
+    ∑ A' B', [× [Γ |- T ⤳* tSig A' B'], [Γ |- A ≅ A'] & [Γ,, A |- B ≅ B']].
   Proof.
     intros HT.
     pose proof HT as HT'.
@@ -256,12 +319,14 @@ Section TypeConstructors.
     [Γ |- T ≅ tSig A B] ->
     ∑ A' B', [× [Γ |- T ⤳* tSig A' B'], [Γ |- A' ≅ A] & [Γ,, A' |- B ≅ B']].
   Proof.
-    intros; eapply red_ty_compl_sig_l; now symmetry.
+    intros ? (?&?&[->%redty_whnf])%red_ty_compl_sig_l.
+    2: gen_typing.
+    now do 2 eexists.
   Qed.
 
   Corollary sig_ty_inj Γ A B  A' B' :
     [Γ |- tSig A B ≅ tSig A' B'] ->
-    [Γ |- A' ≅ A] × [Γ,, A' |- B ≅ B'].
+    [Γ |- A ≅ A'] × [Γ,, A |- B ≅ B'].
   Proof.
     intros Hty.
     unshelve eapply ty_conv_inj in Hty.
@@ -288,9 +353,22 @@ Section TypeConstructors.
 
   Corollary red_ty_compl_id_r Γ A x y T :
     [Γ |- T ≅ tId A x y] ->
-    ∑ A' x' y', [× [Γ |- T ⤳* tId A' x' y'], [Γ |- A' ≅ A], [Γ |- x ≅ x' : A] & [Γ |- y ≅ y' : A]].
+    ∑ A' x' y', [× [Γ |- T ⤳* tId A' x' y'], [Γ |- A' ≅ A], [Γ |- x' ≅ x : A] & [Γ |- y' ≅ y : A]].
   Proof.
-    intros; eapply red_ty_compl_id_l; now symmetry.
+    intros hconv.
+    symmetry in hconv.
+    eapply red_ty_compl_id_l in hconv as (?&?&?&[]).
+    do 3 eexists ; now split.
+  Qed.
+  
+  Corollary red_ty_compl_id_r' Γ A x y T :
+    whnf T ->
+    [Γ |- T ≅ tId A x y] ->
+    ∑ A' x' y', [× T = tId A' x' y', [Γ |- A' ≅ A], [Γ |- x' ≅ x : A] & [Γ |- y' ≅ y : A]].
+  Proof.
+    intros ? (?&?&?&[->%redty_whnf])%red_ty_compl_id_r.
+    2: gen_typing.
+    do 3 eexists ; now split.
   Qed.
 
   Corollary id_ty_inj {Γ A A' x x' y y'} :
@@ -491,6 +569,42 @@ Proof.
   1-2: now boundary.
   now symmetry.
 Qed.
+
+Corollary red_ty_compl_prod_r' Γ A B T :
+  whnf T ->
+  [Γ |- T ≅ tProd A B] ->
+  ∑ A' B', [× T = tProd A' B', [Γ |- A ≅ A'] & [Γ,, A |- B' ≅ B]].
+Proof.
+  intros ? (?&?&[->%redty_whnf])%red_ty_compl_prod_r.
+  2: gen_typing.
+  now do 2 eexists.
+Qed.
+
+Corollary red_ty_compl_sig_r Γ A B T :
+  [Γ |- T ≅ tSig A B] ->
+  ∑ A' B', [× [Γ |- T ⤳* tSig A' B'], [Γ |- A' ≅ A] & [Γ,, A' |- B' ≅ B]].
+Proof.
+  intros HT.
+  symmetry in HT.
+  eapply red_ty_compl_sig_l in HT as (?&?&[HA ? HB]).
+  do 2 eexists ; split ; tea.
+  1: now symmetry.
+  symmetry.
+  eapply stability1 ; tea.
+  1-2: now boundary.
+  now symmetry.
+Qed.
+
+Corollary red_ty_compl_sig_r' Γ A B T :
+  whnf T ->
+  [Γ |- T ≅ tSig A B] ->
+  ∑ A' B', [× T = tSig A' B', [Γ |- A' ≅ A] & [Γ,, A' |- B' ≅ B]].
+Proof.
+  intros ? (?&?&[->%redty_whnf])%red_ty_compl_sig_r.
+  2: gen_typing.
+  now do 2 eexists.
+Qed.
+
 
 Section Stability.
 
@@ -701,8 +815,8 @@ Proof.
     apply termGen' in h as [?[[->] u]].
     destruct (sig_ty_inj _ _ _ _ _ u).
     eapply TermConv; refold.
-    2: etransitivity;[|tea]; now symmetry.
-    econstructor; tea.
+    1: econstructor ; tea.
+    now etransitivity.
   - apply termGen' in Hty as [? [[?[?[->]]]]].
     eapply TermConv; tea ; refold.
     now econstructor.
@@ -904,4 +1018,71 @@ Proof.
   all: unshelve eapply ty_conv_inj in Hconv ; tea.
   all: try now econstructor.
   all: now cbn in Hconv.
+Qed.
+
+(** *** Lemmas to handle identity types *)
+
+
+Lemma idElimMotiveCtx {Γ A x} : 
+[Γ |- A] ->
+[Γ |- x : A] ->
+[|- (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)].
+Proof.
+intros; assert [|- Γ] by boundary.
+assert [|- Γ,, A] by now econstructor.
+econstructor; tea.
+econstructor.
+1: now eapply wft_wk. 
+1:  eapply ty_wk; tea; econstructor; tea.
+rewrite wk1_ren_on; now eapply ty_var0.
+Qed.
+
+Lemma idElimMotiveCtxConv {Γ Γ' A A' x x'} :
+[|- Γ ≅ Γ'] ->
+[Γ |- A ≅ A'] ->
+[Γ |- x ≅ x' : A] ->
+[ |- (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)] ->
+[ |- (Γ',, A'),, tId A'⟨@wk1 Γ' A'⟩ x'⟨@wk1 Γ' A'⟩ (tRel 0)] ->
+[ |- (Γ',, A'),, tId A'⟨@wk1 Γ' A'⟩ x'⟨@wk1 Γ' A'⟩ (tRel 0) ≅ (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)].
+Proof.
+intros.
+assert [|- Γ] by boundary.
+assert [Γ |- A] by boundary.
+eapply convCtxSym0; tea.
+econstructor.
+1: econstructor; tea; now eapply ctx_refl.
+erewrite (wk1_irr (t:=A')), (wk1_irr (t:=x')); econstructor.
+1,2: eapply typing_wk; tea; gen_typing.
+rewrite wk1_ren_on; eapply TermRefl; now eapply ty_var0.
+Qed.
+
+Lemma idElimConv {Γ A x P hr y e A' x' P' hr' e' y' T A'' x'' y''}:
+  well_typed (ta := de) Γ (tIdElim A x P hr y e) ->
+  well_typed (ta := de) Γ (tIdElim A' x' P' hr' y' e') ->
+  (forall T', [Γ |-[de] e : T'] -> [Γ |-[de] T ≅ T']) ->
+  (forall T', [Γ |-[de] e' : T'] -> [Γ |-[de] T ≅ T']) ->
+  [Γ |-[de] T ≅ tId A'' x'' y''] ->
+  whnf T ->
+  ∑ AT xT yT,
+  [× T = tId AT xT yT,
+    [Γ |-[de] A ≅ A'], [Γ |-[de] A ≅ AT], [Γ |-[de] A ≅ A''],
+    [Γ |-[de] x ≅ x' : A], [Γ |-[de] x ≅ xT : A], [Γ |-[de] x ≅ x'' : A],
+    [Γ |-[de] y ≅ y' : A], [Γ |-[de] y ≅ yT : A] & [Γ |-[de] y ≅ y'' : A]].
+Proof.
+  intros [? [? [[-> ????? he]]]%termGen'] [? [? [[-> ????? he']]]%termGen'] hty hty' htyconv ?.
+  specialize (hty _ he) as (?&?&?&[-> ])%red_ty_compl_id_r'.
+  2: gen_typing.
+  specialize (hty' _ he') as []%id_ty_inj ; tea.
+  eapply id_ty_inj in htyconv as [].
+  do 3 eexists ; split.
+  1: reflexivity.
+  - etransitivity ; now symmetry.
+  - now symmetry.
+  - etransitivity ; now symmetry.
+  - etransitivity ; symmetry ; tea ; symmetry ; now econstructor.
+  - now symmetry.
+  - etransitivity ; symmetry ; tea ; symmetry ; now econstructor.
+  - etransitivity ; symmetry ; tea ; symmetry ; now econstructor.
+  - now symmetry.
+  - etransitivity ; symmetry ; tea ; symmetry ; now econstructor.
 Qed.

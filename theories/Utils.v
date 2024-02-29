@@ -134,6 +134,9 @@ End ReflexiveTransitiveClosure.
 
 (** ** Tactics *)
 
+(* To use in intro patterns, similar to SSReflects' /dup view *)
+Definition dup {A : Type} : A -> A × A := fun x => (x,x).
+
 Ltac tea := try eassumption.
 Ltac easy ::= solve [intuition eauto 3 with core crelations].
 

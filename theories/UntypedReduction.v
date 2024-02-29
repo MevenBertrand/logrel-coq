@@ -248,3 +248,15 @@ Qed.
 
 Lemma redalg_one_step {t t'} : [t ⤳ t'] -> [t ⤳* t'].
 Proof. intros; econstructor;[tea|reflexivity]. Qed.
+
+Lemma eta_expand_beta {A t} : [(eta_expand (tLambda A t)) ⤳ t].
+Proof.
+  cbn.
+  evar (t' : term).
+  replace t with t' at 2 ; subst t'.
+  1: econstructor.
+  substify.
+  asimpl.
+  rewrite scons_eta'.
+  now asimpl.
+Qed.

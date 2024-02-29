@@ -460,9 +460,7 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
     | pairs A B t u :=
         rec (tm_state;Γ;A;tFst t; tFst u) ;;
         rec (tm_state;Γ; B[(tFst t)..]; tSnd t; tSnd u) (* ::: (tm_red_state;Γ;tSig A B;t;u) ;*) ;
-    | refls A x y A' x' A'' x'' :=
-      rec (ty_state;Γ;tt;A';A'') ;;
-      rec (tm_state;Γ;A';x';x'')
+    | refls A x y A' x' A'' x'' := ok ;
     | neutrals _ _ _ :=
       rec (ne_state;Γ;tt;t;u) ;; ok ;
     | mismatch _ _ _ := raise (head_mismatch (Some A) t u) ;
@@ -528,11 +526,8 @@ Equations conv_ne : conv_stmt ne_state :=
       T ← rec (ne_red_state;Γ;tt;n;n') ;;
       match T with
       | tId _ _ _ =>
-        rec (ty_state;Γ;tt;A;A') ;;
-        rec (tm_state;Γ;A;x;x') ;;
         rec (ty_state;Γ,,A,,tId A⟨↑⟩ x⟨↑⟩ (tRel 0);tt;P;P') ;;
         rec (tm_state;Γ;P[tRefl A x.: x..];hr;hr') ;;
-        rec (tm_state;Γ;A;y;y') ;;
         ret P[n .: y..]
       | _ => undefined
       end ;

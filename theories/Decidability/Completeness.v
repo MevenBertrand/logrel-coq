@@ -469,22 +469,16 @@ Proof.
     econstructor.
     1: exact (IH tt).
     econstructor.
-  - intros * ? [ihe []] ? [ihA] ? [ihx] ? [ihP] ? [ihhr] ? [ihy] **.
+  - intros * ? [ihe []] ? [ihP] ? [ihhr] **.
     unfold graph.
     simp _conv conv_ne; cbn.
     econstructor.
     1: exact (ihe tt).
     econstructor.
-    1: exact (ihA tt).
-    econstructor.
-    1: exact ihx.
-    econstructor.
     1: do 2 erewrite <- Weakening.wk1_ren_on; exact (ihP tt).
     econstructor.
     1: exact ihhr.
     cbn; patch_rec_ret; econstructor.
-    1: exact ihy.
-    now econstructor.
   - intros * ? [IHm []] **.
     unfold graph.
     simp _conv conv_ne_red ; cbn.
@@ -563,13 +557,9 @@ Proof.
     cbn; patch_rec_ret; econstructor.
     1: exact ihy.
     now econstructor.
-  - intros * ? [ihA] ? [ihx] **.
+  - intros **.
     unfold graph.
     simp _conv conv_tm_red ; cbn.
-    econstructor.
-    1: exact (ihA tt).
-    cbn; patch_rec_ret; econstructor.
-    1: exact ihx.
     now econstructor.
   - intros * ? [IHm []] wP **.
     unfold graph.
