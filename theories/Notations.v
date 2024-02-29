@@ -98,6 +98,16 @@ Notation "[ Γ |- n ~ n' : A ]" := (conv_neu_conv Γ A n n')
 Notation "[ Γ |-[ ta  ] n ~ n' : A ]" := (conv_neu_conv (ta := ta) Γ A n n')
   (at level 0, ta, Γ, n, n', A at level 50) : typing_scope.
 
+(** ** Untyped Conversion *)
+
+(** Types/terms t and u are convertible *)
+Reserved Notation "[ t ≅ u ]" (at level 0, t, u at level 50).
+(** Types/terms in whnf t and u are convertible *)
+Reserved Notation "[ t '≅h' u ]" (at level 0, t, u at level 50).
+(** Neutrals n and n' are convertible *)
+Reserved Notation "[ n ~ n' ]" (at level 0, n, n' at level 50).
+
+
 (** ** Reductions *)
 Class RedType (ta : tag) := red_ty : context -> term -> term -> Set.
 Class OneStepRedTerm (ta : tag) := osred_tm : context -> term -> term -> term -> Set.
