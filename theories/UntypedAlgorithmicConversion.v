@@ -4,6 +4,7 @@ From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakenin
   UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance
   BundledAlgorithmicTyping AlgorithmicTyping AlgorithmicConvProperties TypeConstructorsInj
   Normalisation DeclarativeSubst Fundamental LogicalRelation.
+From LogRel Require Import Sections.
 From LogRel.LogicalRelation Require Import Induction Neutral Escape Reflexivity.
 From LogRel.Substitution Require Import Escape Poly.
 
@@ -21,6 +22,8 @@ Inductive UConvAlg : term -> term  -> Type :=
     [t ≅ u]
 (** **** Conversion of types/terms reduced to a weak-head normal form *)
 with UConvRedAlg : term -> term -> Type :=
+  | UnivReflUAlg :
+      [U ≅h U]
   | PiCongUAlg {A B A' B'} :
     [A ≅ A'] ->
     [B ≅ B'] ->
@@ -207,6 +210,335 @@ Section UAlgoConvWh.
 
 End UAlgoConvWh.
 
+Notation "[ A ≅ B ]" := (UConvAlg A B).
+Notation "[ A ≅h B ]" := (UConvRedAlg A B).
+Notation "[ m ~ n ]" := (UConvNeuAlg m n).
+
+Section UConvStr.
+  
+  Let PEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
+    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
+    [A' ≅ B'].
+  Let PRedEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
+    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
+    [A' ≅h B'].
+  Let PNeEq (t u : term) := forall Γ Δ (ρ : Γ ≤ Δ) t' u',
+    t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
+    [t' ~ u'].
+
+  #[local] Ltac push_renaming :=
+    repeat match goal with
+    | eq : _ = ?t⟨_⟩ |- _ =>
+        destruct t ; cbn in * ; try solve [congruence] ;
+        inversion eq ; subst ; clear eq
+    end.
+
+  Theorem algo_uconv_str :
+    UAlgoConvInductionConcl PEq PRedEq PNeEq.
+  Proof.
+    subst PEq PRedEq PNeEq.
+    apply UAlgoConvInduction.
+    - intros * Hred Hred' ? IH * -> ->.
+      eapply credalg_str in Hred as [? [->]] , Hred' as [? [->]].
+      now econstructor.
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IHA ? IHB ? **.
+      push_renaming.
+      econstructor.
+      + now eapply IHA.
+      + now unshelve eapply IHB with(ρ := wk_up _ ρ).
+    - solve [intros ; push_renaming ; now econstructor].
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; push_renaming ; econstructor ; now eapply IH.
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; push_renaming ; econstructor ; now
+        unshelve eapply IH with (ρ := wk_up _ ρ).
+    - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + unshelve eapply IH with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + unshelve eapply IH with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ? IHA ? IHB ** ; push_renaming ; econstructor.
+      + now eapply IHA.
+      + unshelve eapply IHB with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ? IHf ? IHs ** ; push_renaming ; econstructor.
+      + now eapply IHf.
+      + now eapply IHs.
+    - intros * ?? IHf ? IHs ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + now eapply IHf.
+      + now eapply IHs.
+    - intros * ?? IHf ? IHs ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + now eapply IHf.
+      + now eapply IHs.
+    - intros * ? IHA ? IHa ? IHa' ** ; push_renaming ; econstructor.
+      + now eapply IHA.
+      + now eapply IHa.
+      + now eapply IHa'.
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; subst.
+      econstructor.
+      now eapply IH.
+    - intros ; push_renaming.
+      eapply section_inj in H1 as ->.
+      2: eapply section_wk.
+      now econstructor.
+    - intros * ? IH ? IH' ** ; push_renaming.
+      econstructor.
+      + now eapply IH.
+      + now eapply IH'.
+    - intros * ? IHn ? IHP ? IHz ? IHs ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+      + now eapply IHz.
+      + now eapply IHs.
+    - intros * ? IHn ? IHP ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ? IH ** ; push_renaming.
+      econstructor.
+      now eapply IH.
+    - intros * ? IH ** ; push_renaming.
+      econstructor.
+      now eapply IH.
+    - intros * ? IHn ? IHP ? IHr ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ (wk_up _ ρ)).
+        1-2: assumption.
+        all: now bsimpl.
+      + now eapply IHr.
+  Qed.
+
+End UConvStr.
+
+Section ConvStr.
+  Import AlgorithmicTypingData.
+  
+  Let PTyEq (Γ : context) (A B : term) := forall Δ (ρ : Γ ≤ Δ) A' B',
+    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
+    [Δ |- A' ≅ B'].
+  Let PTyRedEq (Γ : context) (A B : term) := forall Δ (ρ : Γ ≤ Δ) A' B',
+    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
+    [Δ |- A' ≅h B'].
+  Let PNeEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u',
+    t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
+    ∑ A', A = A'⟨ρ⟩ × [Δ |- t' ~ u' ▹ A'].
+  Let PNeRedEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u',
+    t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
+    ∑ A', A = A'⟨ρ⟩ × [Δ |- t' ~h u' ▹ A'].
+  Let PTmEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u' A',
+    A = A'⟨ρ⟩ -> t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
+    [Δ |- t' ≅ u' : A'].
+  Let PTmRedEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u' A',
+    A = A'⟨ρ⟩ -> t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
+    [Δ |- t' ≅h u' : A'].
+
+  #[local] Ltac push_renaming :=
+    repeat match goal with
+    | eq : _ = ?t⟨_⟩ |- _ =>
+        destruct t ; cbn in * ; try solve [congruence] ;
+        inversion eq ; subst ; clear eq
+    end.
+
+  Theorem algo_conv_str :
+    AlgoConvInductionConcl PTyEq PTyRedEq
+      PNeEq PNeRedEq PTmEq PTmRedEq.
+  Proof.
+    subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+    apply AlgoConvInduction.
+    - intros * Hred Hred' ? IH * -> ->.
+      eapply credalg_str in Hred as [? [->]], Hred' as [? [->]].
+      econstructor ; tea.
+      now eapply IH.
+    - intros * ? IHA ? IHB ? **.
+      push_renaming.
+      econstructor.
+      + now eapply IHA.
+      + now eapply IHB with(ρ := wk_up _ ρ).
+    - intros ; push_renaming.
+      econstructor.
+    - intros ; push_renaming.
+      now econstructor.
+    - intros ; push_renaming.
+      now econstructor.
+    - intros * ? IHA ? IHB ? * ??.
+      push_renaming.
+      econstructor.
+      + now eapply IHA.
+      + now eapply IHB with (ρ := wk_up _ ρ).
+    - intros * ? IHA ? IHa ? IHa' **.
+      push_renaming.
+      econstructor.
+      + eapply IHA ; reflexivity.
+      + eapply IHa ; reflexivity.
+      + eapply IHa' ; reflexivity. 
+    - intros * ? IH ** ; subst.
+      edestruct IH as [? [->]].
+      1-2 : reflexivity.
+      now econstructor.
+    - intros * Hin **.
+      push_renaming.
+      apply in_ctx_str in Hin as [? [-> ]].
+      eexists ; split.
+      1: reflexivity.
+      eapply section_inj in H1 as ->.
+      2: eapply section_wk.
+      now econstructor.
+    - intros * ? IHm ? IHt **.
+      push_renaming.
+      edestruct IHm as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split.
+      2: econstructor ; tea.
+      2: eapply IHt.
+      2-4: reflexivity.
+      now bsimpl.
+    - intros * ? IHn ? IHP ? IHz ? IHs **.
+      push_renaming.
+      edestruct IHn as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split ; cycle -1.
+      1: econstructor ; tea.
+      + eapply IHP with (ρ := wk_up tNat ρ).
+        all: reflexivity.
+      + eapply IHz.
+        2-3: reflexivity.
+        now bsimpl.
+      + eapply IHs.
+        2-3: reflexivity.
+        unfold elimSuccHypTy ; cbn.
+        now bsimpl.
+      + now bsimpl.
+    - intros * ? IHn ? IHP **.
+      push_renaming.
+      edestruct IHn as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split ; cycle -1.
+      1: econstructor ; tea.
+      + eapply IHP with (ρ := wk_up tEmpty ρ).
+        all: reflexivity.
+      + now bsimpl.
+    - intros * ? IHm **.
+      push_renaming.
+      edestruct IHm as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split.
+      2: econstructor ; tea.
+      reflexivity.
+    - intros * ? IHm **.
+      push_renaming.
+      edestruct IHm as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split.
+      2: econstructor ; tea.
+      now bsimpl.
+    - intros * ? IHn ? IHP ? IHe **.
+      push_renaming.
+      edestruct IHn as [? []].
+      1-2: reflexivity.
+      push_renaming.
+      eexists ; split ; cycle -1.
+      1: econstructor ; tea.
+      + unshelve eapply IHP.
+        * unshelve eexists.
+          1: exact (_wk_up (_wk_up ρ)).
+          evar (A : term) ; replace (tId _ _ _) with A ; subst A.
+          1: do 2 eapply well_up ; eauto.
+          now bsimpl.
+        * reflexivity.
+        * reflexivity.
+      + eapply IHe.
+        2-3: reflexivity.
+        now bsimpl.
+      + now bsimpl.
+    - intros * ? IH red ** ; subst.
+      edestruct IH as [? []].
+      1-2: reflexivity.
+      subst.
+      eapply credalg_str in red as [? [-> ]].
+      eexists ; split ; [reflexivity|..].
+      econstructor ; tea.
+      now eapply whnf_ren.
+    - intros * red red' red'' ? IH * -> -> ->.
+      eapply credalg_str in red as [? [->]], red' as [? [->]], red'' as [? [->]].
+      now econstructor.
+    - intros * ? IHA ? IHB **.
+      push_renaming.
+      econstructor.
+      + eapply IHA ; reflexivity.
+      + eapply IHB with (ρ := wk_up _ ρ).
+        all: reflexivity.
+    - intros ; push_renaming.
+      econstructor.
+    - intros ; push_renaming.
+      econstructor.
+    - intros * ? IH **.
+      push_renaming.
+      econstructor.
+      eapply IH.
+      all: reflexivity.
+    - intros ; push_renaming.
+      econstructor.
+    - intros * ?? ? IH **.
+      subst.
+      push_renaming.
+      econstructor.
+      1-2: now eapply whnf_ren.
+      eapply IH with (ρ := wk_up _ ρ).
+      all: now bsimpl.
+    - intros * ? IHA ? IHB **.
+      push_renaming.
+      econstructor.
+      + eapply IHA ; reflexivity.
+      + eapply IHB with (ρ := wk_up _ ρ).
+        all: reflexivity.
+    - intros * ?? ? IHf ? IHs **.
+      subst.
+      push_renaming.
+      econstructor.
+      1-2: now eapply whnf_ren.
+      + eapply IHf ; reflexivity.
+      + eapply IHs.
+        2-3: reflexivity.
+        now bsimpl.
+    - intros * ? IHA ? IHa ? IHa' **.
+      push_renaming.
+      econstructor.
+      + eapply IHA ; reflexivity.
+      + eapply IHa ; reflexivity.
+      + eapply IHa' ; reflexivity.
+    - intros **.
+      push_renaming.
+      now econstructor.
+    - intros * ? IH **.
+      subst.
+      edestruct IH as [? [-> ]].
+      1-2: reflexivity.
+      econstructor ; tea.
+      now eapply isPosType_ren.
+  Qed.
+
+End ConvStr.
 
 Section NeutralConversion.
   Import AlgorithmicTypingData.
@@ -216,131 +548,125 @@ Section NeutralConversion.
 
   Lemma ne_conv_conv (Γ : context) (A m n : term) :
     [Γ |-[de] A] ->
-    [Γ |-[de] m : A] ->
+    well_typed Γ m ->
+    well_typed Γ n ->
     [Γ |-[al] m ~ n ▹ A] ->
     [Γ |-[al] m ≅ n : A].
   Proof.
+    now intros * ??? [?%algo_conv_tm_complete]%algo_conv_sound.
+  Qed.
+
+  Lemma conv_wh_conv_red (Γ : context) (A A' m n : term) :
+    [A ⤳* A'] ->
+    whnf A' ->
+    whnf m ->
+    whnf n ->
+    [Γ |-[ al ] m ≅ n : A] ->
+    [Γ |-[al] m ≅h n : A'].
+  Proof.
+    intros hred hA hm hn hconv.
+    destruct hconv as [??????? redA ?? hconv] ; refold.
+    eapply red_whnf in hm, hn ; tea ; subst.
+    eapply whred_det in redA ; tea ; subst.
+    2: now eapply algo_conv_wh in hconv as [] ; gen_typing.
+    eassumption.
+  Qed.
+
+  Lemma conv_ne_complete_pos (Γ : context) (A A' m n : term) :
+    [A ⤳* A'] ->
+    isPosType A' ->
+    whne m ->
+    whne n ->
+    [Γ |-[ al ] m ≅ n : A] ->
+    ∑ A'', [Γ |-[al] m ~ n ▹ A''].
+  Proof.
+    intros redA hpos hnem hnen hconv.
+    eapply conv_wh_conv_red in hconv ; tea.
+    2-4: now gen_typing.
+    inversion hconv ; subst ; refold ; [..|easy].
+    all: try solve [now inversion hnem].
+    all: inversion hpos as [ | | | | ? hpos']; now inversion hpos'.
+  Qed.
+
+  Lemma conv_ne_complete (Γ : context) (A m n : term) :
+    [Γ |-[de] A] ->
+    whne m ->
+    whne n ->
+    [Γ |-[al] m ≅ n : A] ->
+    ∑ A', [Γ |-[al] m ~ n ▹ A'].
+  Proof.
     intros * Hty.
-    pose proof (Hty' := Hty).
-    eapply Fundamental in Hty' as [? Hfund%reducibleTy].
+    eapply Fundamental in Hty as [? Hfund%reducibleTy].
     revert m n.
-    pattern one, Γ, A, Hfund. apply LR_rect_TyUr; clear Γ A Hty VΓ Hfund.
-    - intros.
-      econstructor.
-      1: eapply redty_red; now destruct h as [??? [??]].
-      1-2: reflexivity.
-      econstructor. 
-      2: now constructor.
-      eassumption.
-    - intros ? * [] ?.
-      econstructor.
-      1: gen_typing.
-      1-2: reflexivity.
-      econstructor.
-      1: eassumption.
-      econstructor; eapply (convneu_whne eq).
-    - intros ? ? ? ΠA IHdom IHcod m n mty Hconv ; cbn in *.
-      destruct ΠA  as [?????? []]; cbn in *.
-      econstructor.
-      1: gen_typing.
-      1-2: reflexivity.
-      econstructor.
-      1-2: econstructor ; now eapply algo_conv_wh in Hconv.
-      eapply convtm_meta_conv.
-      3: reflexivity.
-      1: unshelve eapply IHcod.
+    pattern one, Γ, A, Hfund. apply LR_rect_TyUr ; clear Γ A VΓ Hfund.
+    - intros * [??? [_ ?%redty_red]] **.
+      eapply conv_ne_complete_pos ; tea.
+      now constructor.
+    - intros ? * [? [_ ?%redty_red] []] **.
+      eapply conv_ne_complete_pos ; tea.
+      now econstructor.
+    - intros ? ? ? ΠA IHdom IHcod m n hmne hnne Hconv ; cbn in *.
+      destruct ΠA  as [?? [] ??? []]; cbn in *.
+      eapply conv_wh_conv_red in Hconv ; tea.
+      2: now eapply redty_red.
+      2-4: now gen_typing.
+      unshelve edestruct IHcod.
+      + exact (Γ,, dom).
       + exact (tRel var_zero).
-      + apply wk1.
-      + gen_typing.
-      + eapply var0; tea ; now bsimpl.
-      + econstructor. 1:econstructor.
-        * renToWk; erewrite wk_prod; eapply ty_wk.
-          1: econstructor; tea; boundary.
-          econstructor; tea. gen_typing.
-        * rewrite wk1_ren_on; now eapply ty_var0.
-        * assert (cod⟨wk_up dom (@wk1 Γ dom)⟩[(tRel 0)..] = cod[tRel 0 .: @wk1 Γ dom >> tRel]) as -> by now bsimpl.
-          econstructor. now rewrite var0_wk1_id.
-      + eapply convne_meta_conv.
-        3: reflexivity.
-        1: econstructor.
-        * replace (tProd _ _) with ((tProd dom cod)⟨↑⟩) by
-            (cbn ; reflexivity).
-          eapply algo_conv_shift.
-          econstructor ; tea.
-          1: now gen_typing.
-          econstructor.
-        * eapply convtm_meta_conv.
-          1: unshelve eapply IHdom.
-          -- now eapply wk1.
-          -- gen_typing.
-          -- rewrite wk1_ren_on; now eapply ty_var0.
-          -- eapply convne_meta_conv.
-             1: do 2 econstructor.
-             2: reflexivity.
-             now bsimpl.
-          -- now bsimpl.
-          -- reflexivity.
-        * now bsimpl.
-      + bsimpl.
+      + eapply wk1.
+      + econstructor ; boundary.
+      + exact (tApp m⟨↑⟩ (tRel 0)).
+      + exact (tApp n⟨↑⟩ (tRel 0)).
+      + eapply var0.
+        1: now rewrite wk1_ren_on.
+        boundary.
+      + econstructor ; now eapply whne_ren.
+      + econstructor ; now eapply whne_ren. 
+      + inversion Hconv ; subst ; refold.
+        2: now inversion H0 ; inversion H1.
+        replace cod[_] with cod ; tea.
+        bsimpl.
         rewrite scons_eta'.
         now bsimpl.
-  - intros _ Δ B NB **; destruct NB.
-    econstructor.
-    + now eapply redtywf_red.
-    + reflexivity.
-    + reflexivity.
-    + econstructor; [eassumption|constructor].
-  - intros _ Δ B NB **; destruct NB.
-    econstructor.
-    + now eapply redtywf_red.
-    + reflexivity.
-    + reflexivity.
-    + econstructor; [eassumption|constructor].
-  - intros ??? ΣA ihdom ihcod m n tym Hconv.
-    destruct (polyRedId ΣA); escape.
-    assert [|-[de] Γ] by boundary.
-    econstructor.
-    1: eapply (ParamRedTy.red ΣA).
-    1,2: reflexivity.
-    assert [Γ |-[de] m : ParamRedTy.outTy ΣA]. 1:{
-      econstructor; tea.
-      eapply convty_exp. 
-      1: eapply (ParamRedTy.red ΣA).
-      1: eapply redtywf_refl; eapply (ParamRedTy.red ΣA).
-      econstructor; tea;
-      eapply LogicalRelation.Escape.escapeEq;
-      eapply reflLRTyEq.
-    }
-    assert [Γ |-[ de ] tFst m : (ParamRedTy.dom ΣA)⟨@wk_id Γ⟩].
-    1: rewrite wk_id_ren_on; now econstructor.
-    assert [Γ |-[ al ] tFst m ~ tFst n ▹ ParamRedTy.dom ΣA].
-    1:{
-      do 2 econstructor; tea.
-      1: eapply (ParamRedTy.red ΣA).
-      constructor.
-    }
-    econstructor.
-    1-2: econstructor ; now eapply algo_conv_wh in Hconv.
-    + unshelve epose (r := ihdom _ wk_id _ _ _ _).
-      1,4: tea.
-      2: rewrite wk_id_ren_on in r; now apply r.
-    + unshelve epose (r := ihcod _ (tFst m) wk_id _ _ _ _ _).
-      1: tea.
-      5: erewrite Sigma.wk_id_shift in r; apply r.
-      3: do 2 econstructor; tea.
-      3: eapply (ParamRedTy.red ΣA).
-      3: constructor.
-      * assert (whne m).
-        { apply algo_conv_wh in Hconv; now destruct Hconv. }
-        eapply neuTerm; tea.
-        split; tea; now econstructor.
-      * rewrite Sigma.wk_id_shift; now econstructor.
-    Unshelve. 2,4: tea.
-  - intros ??? [???? red] IH _ m n tym hconv; cbn in *.
-    econstructor.
-    1: apply red.
-    1,2: reflexivity.
-    econstructor; tea; constructor.
+      + inversion projT2 ; subst ; clear projT2 ; refold.
+        unshelve eapply algo_conv_str in H4 as [? []].
+        2: eapply wk1.
+        4-5: rewrite wk1_ren_on ; reflexivity.
+        inversion c ; subst ; refold ; clear c.
+        now eexists.
+  - intros ? * [[? ?%redty_red]] **.
+    eapply conv_ne_complete_pos ; tea.
+    now constructor.
+  - intros _ * [[? ?%redty_red]] * ?? Hconv.
+    eapply conv_ne_complete_pos ; tea.
+    now constructor.
+  - intros ? ? ? ΣA IHdom IHcod m n hmne hnne Hconv ; cbn in *.
+    destruct ΣA  as [?? [] ??? []]; cbn in *.
+    eapply conv_wh_conv_red in Hconv ; tea.
+    2: now eapply redty_red.
+    2-4: now gen_typing.
+    unshelve edestruct IHdom.
+    + exact Γ.
+    + eapply wk_id.
+    + exact (tFst m).
+    + exact (tFst n).
+    + boundary.
+    + now econstructor.
+    + now econstructor.
+    + inversion Hconv ; subst ; refold.
+      2: now inversion H0 ; inversion H1.
+      replace dom[_] with dom ; tea.
+      now bsimpl.
+    + inversion projT2 ; subst ; clear projT2 ; refold.
+      unshelve eapply algo_conv_str in H3 as [? []].
+      2: eapply wk_id.
+      4-5: rewrite wk_id_ren_on ; reflexivity.
+      inversion c ; subst ; refold ; clear c.
+      now eexists.
+  - intros ??? [??? ? red] ?? * ?? Hconv ; cbn in *.
+    eapply conv_ne_complete_pos ; tea.
+    1: now eapply red.
+    now constructor.
   Qed.
 
 End NeutralConversion.
@@ -400,6 +726,9 @@ Section Soundness.
           gen_typing.
         * eapply subject_reduction_raw ; tea.
           gen_typing.
+    - split.
+      + now econstructor.
+      + intros * ? [? [[] ]]%termGen'.  
     - intros * HA [IHA_ty IHA_tm] HB [IHB_ty IHB_tm].
       split.
       + intros * [HtyA HtyB]%prod_ty_inv [HtyA' HtyB']%prod_ty_inv.
@@ -685,7 +1014,7 @@ Section Soundness.
         2-3: now eexists.
         eapply ne_conv_conv in IHconv.
         2: boundary.
-        2: econstructor ; tea ; now symmetry.
+        2-3: econstructor ; tea ; now symmetry.
         eapply algo_conv_conv in IHconv ; tea.
         2: eapply ctx_refl ; boundary.
         2-3: now econstructor.
@@ -868,3 +1197,120 @@ Section Soundness.
   Qed.
 
 End Soundness.
+
+Section Completeness.
+
+  Lemma whne_app_inv f g :
+  [tApp f⟨↑⟩ (tRel 0) ~ tApp g⟨↑⟩ (tRel 0)] ->
+  [f ~ g].
+  Proof.
+    inversion 1 ; subst.
+    unshelve eapply algo_uconv_str.
+    6: eassumption.
+    3: unshelve eapply wk1 ; tea ; exact ε.
+    all: now bsimpl.
+  Qed.
+
+  Let PTyEq (Γ : context) (A B : term) := 
+    [A ≅ B] × (whne A -> whne B -> [A ~ B]).
+  Let PTyRedEq (Γ : context) (A B : term) :=
+    [A ≅h B] × (whne A -> whne B -> [A ~ B]).
+  Let PNeEq (Γ : context) (A t u : term) := [t ~ u].
+  Let PNeRedEq (Γ : context) (A t u : term) := [t ~ u].
+  Let PTmEq (Γ : context) (A t u : term) :=
+    [t ≅ u] × (whne t -> whne u -> [t ~ u]).
+  Let PTmRedEq (Γ : context) (A t u : term) :=
+    [t ≅h u] × (whne t -> whne u -> [t ~ u]).
+
+  Theorem bundled_conv_uconv :
+    BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+  Proof.
+    all: subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+    apply BundledConvInduction ; cbn in *.
+    all: try solve [
+      intros ; prod_hyp_splitter ; 
+      now econstructor |
+      intros ; prod_hyp_splitter ; 
+      split ; [now econstructor|..] ;
+      intros ;
+      repeat match goal with
+        | H : [_ ⤳* _] |- _ => eapply red_whne in H ; [..|eassumption] end ;
+      now subst |
+      intros ; prod_hyp_splitter ; 
+      split ; [now econstructor|..] ;
+      intros Hne ; now inversion Hne].
+    - intros ; now prod_hyp_splitter.
+    - intros * whf whg ? [[IHconv IHne]] ? Hf Hg.
+      eapply fun_isFun in Hf ; tea.
+      eapply fun_isFun in Hg ; tea.
+      destruct Hf, Hg.
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor.
+        inversion IHconv ; subst.
+        econstructor ; tea.
+        all: eapply eta_expand_beta_inv ; tea.
+        all: now eapply algo_uconv_wh in H3 as [].
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor ; tea.
+        inversion IHconv ; subst.
+        econstructor ; tea.
+        eapply eta_expand_beta_inv ; tea.
+        now eapply algo_uconv_wh in H3 as [].
+      + split.
+        2: intros ? Hne ; inversion Hne.
+        econstructor ; tea.
+        inversion IHconv ; subst.
+        econstructor ; tea.
+        eapply eta_expand_beta_inv ; tea.
+        now eapply algo_uconv_wh in H3 as [].
+      + split.
+        1: econstructor.
+        2: intros _ _.
+        all: eapply whne_app_inv, IHne ; econstructor ; now eapply whne_ren.
+    - intros * whp whq ? [[IHconv IHne]] ? [[IHconv' IHne']] ? Hp Hq.
+      eapply sig_isPair in Hp ; tea.
+      eapply sig_isPair in Hq ; tea.
+      destruct Hp, Hq.
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor.
+        * inversion IHconv ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_fst_inv ; tea.
+          all: now eapply algo_uconv_wh in H4 as [].
+        * inversion IHconv' ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_snd_inv ; tea.
+          all: now eapply algo_uconv_wh in H4 as [].
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor ; tea.
+        * inversion IHconv ; subst.
+          econstructor ; tea.
+          eapply eta_expand_fst_inv ; tea.
+          now eapply algo_uconv_wh in H4 as [].
+        * inversion IHconv' ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_snd_inv ; tea.
+          all: now eapply algo_uconv_wh in H4 as [].
+      + split.
+        2: intros ? Hne ; inversion Hne.
+        econstructor ; tea.
+        * inversion IHconv ; subst.
+          econstructor ; tea.
+          eapply eta_expand_fst_inv ; tea.
+          now eapply algo_uconv_wh in H4 as [].
+        * inversion IHconv' ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_snd_inv ; tea.
+          all: now eapply algo_uconv_wh in H4 as [].
+      + split.
+        1: econstructor.
+        2: intros _ _.
+        all: unshelve (epose proof (IHne _ _) as IHne_ ; inversion IHne_ ; subst ; tea).
+        all: now econstructor.
+  Qed.
+  
+End Completeness.

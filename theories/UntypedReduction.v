@@ -292,3 +292,58 @@ Proof.
   rewrite scons_eta'.
   now asimpl.
 Qed.
+
+Lemma eta_expand_beta_inv {A t t'} :
+  [tApp (tLambda A t)⟨↑⟩ (tRel 0) ⤳* t'] ->
+  whnf t' ->
+  [t ⤳* t'].
+Proof.
+  intros red nf.
+  inversion red ; subst ; clear red.
+  - exfalso.
+    inversion nf ; subst ; clear nf.
+    inversion H ; subst ; clear H.
+    inversion H1 ; subst ; clear H1.
+  - inversion H ; subst.
+    2: now inversion H4.
+    refold.
+    replace (_[_]) with t in H0.
+    1: now assumption.
+    bsimpl.
+    rewrite scons_eta'.
+    now bsimpl.
+Qed.
+
+
+Lemma eta_expand_fst_inv {A B t u t'} :
+  [tFst (tPair A B t u) ⤳* t'] ->
+  whnf t' ->
+  [t ⤳* t'].
+Proof.
+  intros red nf.
+  inversion red ; subst ; clear red.
+  - exfalso.
+    inversion nf ; subst ; clear nf.
+    inversion H ; subst ; clear H.
+    inversion H1 ; subst ; clear H1.
+  - inversion H ; subst.
+    1: now inversion H2.
+    eassumption.
+Qed.
+
+
+Lemma eta_expand_snd_inv {A B t u u'} :
+  [tSnd (tPair A B t u) ⤳* u'] ->
+  whnf u' ->
+  [u ⤳* u'].
+Proof.
+  intros red nf.
+  inversion red ; subst ; clear red.
+  - exfalso.
+    inversion nf ; subst ; clear nf.
+    inversion H ; subst ; clear H.
+    inversion H1 ; subst ; clear H1.
+  - inversion H ; subst.
+    1: now inversion H2.
+    eassumption.
+Qed.
