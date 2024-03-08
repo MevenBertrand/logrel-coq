@@ -39,6 +39,14 @@ Qed.
 
 Coercion wk_to_ren : weakening >-> Funclass.
 
+
+(** ** Instance: how to rename by a well-formed weakening. *)
+
+#[global] Instance Ren1_wk {Y Z : Type} `(ren : Ren1 (nat -> nat) Y Z) :
+(Ren1 weakening Y Z) := fun ρ t => t⟨wk_to_ren ρ⟩.
+
+Arguments Ren1_wk {_ _ _} _ _/.
+
 Fixpoint wk_compose (ρ ρ' : weakening) : weakening :=
   match ρ, ρ' with
     | _wk_empty , _ => ρ'
@@ -77,7 +85,7 @@ Inductive well_weakening : weakening -> context -> context -> Type :=
   | well_step {Γ Δ : context} (A : term) (ρ : weakening) :
     well_weakening ρ Γ Δ -> well_weakening (_wk_step ρ) (Γ,, A) Δ
   | well_up {Γ Δ : context} (A : term) (ρ : weakening) :
-    well_weakening ρ Γ Δ -> well_weakening (_wk_up ρ) (Γ,, ren_term ρ A) (Δ,, A).
+    well_weakening ρ Γ Δ -> well_weakening (_wk_up ρ) (Γ,, A⟨ρ⟩) (Δ,, A).
 
 Lemma well_wk_id (Γ : context) : well_weakening (_wk_id Γ) Γ Γ.
 Proof.
@@ -101,9 +109,9 @@ Proof.
   - econstructor. auto.
   - inversion H' as [| | ? ? A' ν']; subst ; clear H'.
     1: now econstructor ; auto.
-    asimpl.
-    replace (ren_term (ν' >> ν) A') with (ren_term (wk_compose ν ν') A')
-      by now rewrite wk_compose_compose.
+    asimpl ; refold.
+    erewrite extRen_term ; refold.
+    2: symmetry ; now apply wk_compose_compose.
     econstructor ; auto.
 Qed.
 
@@ -115,16 +123,12 @@ Notation "Γ ≤ Δ" := (wk_well_wk Γ Δ).
 
 #[global] Hint Resolve well_wk : core.
 
-(** ** Instances: how to rename by a weakening. *)
-
-#[global] Instance Ren1_wk {Y Z : Type} `(ren : Ren1 (nat -> nat) Y Z) :
-  (Ren1 weakening Y Z) := fun ρ t => t⟨wk_to_ren ρ⟩.
+(** ** Instance: how to rename by a well-formed weakening. *)
 
 #[global] Instance Ren1_well_wk {Y Z : Type} `{Ren1 (nat -> nat) Y Z} {Γ Δ : context} :
   (Ren1 (Γ ≤ Δ) Y Z) :=
   fun ρ t => t⟨wk_to_ren ρ.(wk)⟩.
 
-Arguments Ren1_wk {_ _ _} _ _/.
 Arguments Ren1_well_wk {_ _ _ _ _} _ _/.
 
 Ltac fold_wk_ren :=
@@ -197,29 +201,6 @@ Proof.
   intros; cbn; now asimpl.
 Qed.
 
-(** ** Weakenings play well with context access *)
-
-Lemma in_ctx_wk (Γ Δ : context) n decl (ρ : Δ ≤ Γ) :
-  in_ctx Γ n decl ->
-  in_ctx Δ (ρ n) (ren_term ρ decl).
-Proof.
-  intros Hdecl.
-  destruct ρ as [ρ wfρ] ; cbn.
-  induction wfρ in n, decl, Hdecl |- *.
-  - cbn; now asimpl.
-  - cbn.
-    replace (ren_term (ρ >> S) decl) with (decl⟨ρ⟩⟨↑⟩) by now asimpl.
-    now econstructor.
-  - destruct n ; cbn.
-    + cbn.
-      inversion Hdecl ; subst ; clear Hdecl.
-      replace (ren_term _ A⟨↑⟩) with (A⟨ρ⟩⟨↑⟩) by now asimpl.
-      now constructor.
-    + inversion Hdecl ; subst ; cbn in *.
-      replace (ren_term _ (ren_term ↑ d)) with (d⟨ρ⟩⟨↑⟩) by now asimpl.
-      now econstructor.
-Qed.
-
 Section RenWlWhnf.
 
   Context {Γ Δ} (ρ : Δ ≤ Γ).
@@ -256,6 +237,7 @@ Section RenWlWhnf.
 
   Lemma isCanonical_ren_wl t : isCanonical t <~> isCanonical (t⟨ρ⟩).
   Proof.
+    symmetry.
     apply isCanonical_ren.
   Qed.
 
@@ -299,6 +281,54 @@ Ltac bsimpl := check_no_evars;
                   Up_term_term, Up_term, up_term, Subst_term, Subst1, subst1,
                   Ren1_subst, Ren1_wk, Ren1_well_wk
                   in *; bsimpl'; minimize.
+
+
+(** ** Weakenings play well with context access *)
+
+Lemma in_ctx_wk (Γ Δ : context) n decl (ρ : Δ ≤ Γ) :
+in_ctx Γ n decl ->
+in_ctx Δ (ρ n) (decl⟨ρ⟩).
+Proof.
+intros Hdecl.
+destruct ρ as [ρ wfρ] ; cbn in *.
+induction wfρ in n, decl, Hdecl |- *.
+- inversion Hdecl.
+- cbn.
+  replace (decl⟨_⟩) with (decl⟨ρ⟩⟨↑⟩) by now asimpl.
+  now econstructor.
+- destruct n ; cbn.
+  + inversion Hdecl ; subst ; clear Hdecl.
+    replace (A⟨↑⟩⟨_⟩) with (A⟨ρ⟩⟨↑⟩) by now asimpl.
+    now constructor.
+  + inversion Hdecl ; subst ; cbn in * ; refold.
+    replace (d⟨_⟩⟨_⟩) with (d⟨ρ⟩⟨↑⟩) by now asimpl.
+    now econstructor.
+Qed.
+
+Lemma in_ctx_str (Γ Δ : context) n decl (ρ : Δ ≤ Γ) :
+in_ctx Δ (ρ n) decl ->
+∑ decl', decl = decl'⟨ρ⟩ × in_ctx Γ n decl'.
+Proof.
+intros Hdecl.
+destruct ρ as [ρ wfρ] ; cbn in *.
+induction wfρ in n, decl, Hdecl |- *.
+- inversion Hdecl.
+- cbn in *.
+inversion Hdecl ; subst.
+edestruct IHwfρ as [? []]; tea ; subst.
+eexists ; split ; tea.
+now bsimpl.
+- destruct n ; cbn in *.
++ inversion Hdecl ; subst ; clear Hdecl.
+  eexists ; split.
+  2: now constructor.
+  now bsimpl.
++ inversion Hdecl ; subst ; clear Hdecl ; cbn in *.
+  edestruct IHwfρ as [? []]; tea ; subst.
+  eexists ; split.
+  2: now econstructor.
+  now bsimpl.
+Qed.
 
 (** Lemmas for easier rewriting *)
 

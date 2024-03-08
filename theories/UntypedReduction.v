@@ -1,7 +1,7 @@
 (** * LogRel.UntypedReduction: untyped reduction, used to define algorithmic typing.*)
 From Coq Require Import CRelationClasses.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening.
+From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening Sections.
 
 (** ** Reductions *)
 
@@ -186,7 +186,7 @@ Lemma oredalg_wk (ρ : nat -> nat) (t u : term) :
 Proof.
   intros Hred.
   induction Hred in ρ |- *.
-  2-5,6-12: cbn; asimpl; now econstructor.
+  2-12: cbn; asimpl; now econstructor.
   - cbn ; asimpl.
     evar (t' : term).
     replace (subst_term _ t) with t'.
@@ -195,11 +195,43 @@ Proof.
     now asimpl.
 Qed.
 
+Lemma oredalg_str (Γ Δ : context) (ρ : Δ ≤ Γ) (t u : term) :
+  [t⟨ρ⟩ ⤳ u] ->
+  ∑ u', u = u'⟨ρ⟩ × [t ⤳ u'].
+Proof.
+  intros Hred.
+  remember t⟨ρ⟩ as t' eqn:eqt in *.
+  induction Hred in t, eqt |- *.
+  all: repeat match goal with
+    | eq : _ = ?t⟨_⟩ |- _ =>
+        destruct t ; cbn in * ; try solve [congruence] ;
+        inversion eq ; subst ; clear eq
+  end.
+  all: try (edestruct IHHred as [? [->]]; [reflexivity|..]).
+  all: eexists ; split ; cycle -1 ; [now econstructor | now bsimpl].
+Qed.
+
 Lemma credalg_wk (ρ : nat -> nat) (t u : term) :
 [t ⤳* u] ->
 [t⟨ρ⟩ ⤳* u⟨ρ⟩].
 Proof.
   induction 1 ; econstructor ; eauto using oredalg_wk.
+Qed.
+
+Lemma credalg_str (Γ Δ : context) (ρ : Δ ≤ Γ) (t u : term) :
+  [t⟨ρ⟩ ⤳* u] ->
+  ∑ u', u = u'⟨ρ⟩ × [t ⤳* u'].
+Proof.
+  intros Hred.
+  remember t⟨ρ⟩ as t' eqn:eqt in *.
+  induction Hred in t, eqt |- *.
+  - eexists ; split ; tea.
+    now constructor.
+  - subst.
+    eapply oredalg_str in o as [? [-> ]].
+    edestruct IHHred as [? [->]]; [reflexivity|..].
+    eexists ; split ; [reflexivity|..].
+    now econstructor.
 Qed.
 
 (** Derived rules *)

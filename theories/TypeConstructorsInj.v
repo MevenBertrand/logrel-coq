@@ -65,7 +65,6 @@ Section TypeConstructors.
       destruct nfT ; inversion HeqU ; subst.
       2: now exfalso ; gen_typing.
       clear HeqU.
-      Set Printing All.
       remember U as T eqn:HeqU in nfT' |- * at 2.
       destruct nfT'; inversion HeqU ; subst.
       2: now exfalso ; gen_typing.
@@ -943,6 +942,27 @@ Proof.
   all:
     match goal with
       H : [_ |-[de] _ ≅ tProd _ _] |- _ => unshelve eapply ty_conv_inj in H as Hconv
+    end.
+  all: try now econstructor.
+  all: now cbn in Hconv.
+Qed.
+
+
+Lemma sig_isPair Γ A B t:
+  [Γ |-[de] t : tSig A B] ->
+  whnf t ->
+  isPair t.
+Proof.
+  intros Hty Hwh.
+  destruct Hwh.
+  all: try now econstructor.
+  all: eapply termGen' in Hty ; cbn in *.
+  all: exfalso.
+  all: prod_hyp_splitter ; try easy.
+  all: subst.
+  all:
+    match goal with
+      H : [_ |-[de] _ ≅ tSig _ _] |- _ => unshelve eapply ty_conv_inj in H as Hconv
     end.
   all: try now econstructor.
   all: now cbn in Hconv.

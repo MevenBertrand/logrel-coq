@@ -542,7 +542,7 @@ Section TypingWk.
     - intros.
       econstructor.
       + eauto.
-      + eauto using isPosType_ren.
+      + now eapply isPosType_ren.
   Qed.
 
   Let PTy (Γ : context) (A : term) := forall Δ (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩].
