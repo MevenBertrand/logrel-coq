@@ -888,6 +888,24 @@ Proof.
       now boundary.
 Qed.
 
+Corollary subject_reduction_raw Γ t t' A :
+[t ⤳* t'] ->
+[Γ |-[de] t : A] ->
+[Γ |-[de] t' : A].
+Proof.
+eintros Hty ?%subject_reduction ; tea.
+boundary.
+Qed.
+
+Corollary subject_reduction_raw_ty Γ A A' :
+[A ⤳* A'] ->
+[Γ |-[de] A] ->
+[Γ |-[de] A'].
+Proof.
+eintros Hty ?%subject_reduction_type ; tea.
+boundary.
+Qed.
+
 Corollary conv_red_l Γ A A' A'' : [Γ |-[de] A' ≅ A''] -> [A' ⤳* A] -> [Γ |-[de] A ≅ A''].
 Proof.
   intros Hconv **.

@@ -97,8 +97,6 @@ Equations build_nf_view2 (t t' : term) : nf_view2 t t' :=
   }.
 
   Variant uconv_state : Type :=
-  | ty_state (** Conversion of arbitrary types *)
-  | ty_red_state (** Comparison of types in weak-head normal forms *)
   | tm_state (** Conversion of arbitrary terms *)
   | tm_red_state (** Comparison of terms if weak-head normal forms *)
   | ne_state. (** Comparison of neutrals *)
@@ -113,7 +111,7 @@ Notation M0 := (orec (Sing wh_red) (uconv_dom) (uconv_cod)).
 #[local]
 Notation M := (combined_orec (exn errors) (Sing wh_red) uconv_dom uconv_cod).
 
-Equations uconv_ty :
+(* Equations uconv_ty :
   (term × term) -> M unit :=
   | (T,V) :=
     T' ← call_single wh_red T ;;[M0]
@@ -141,7 +139,7 @@ Equations uconv_ty_red :
       rec (tm_state,y,y') ;
     | ty_mismatch _ _ := raise (head_mismatch None T T') ;
     | ty_anomaly _ _ := undefined ;
-  }.
+  }. *)
 
 Equations uconv_tm : (term × term) -> M unit :=
   | (t,u) :=
@@ -185,7 +183,7 @@ Equations uconv_tm_red : (term × term) -> M unit :=
         rec (tm_state,tFst t, t') ;;
         rec (tm_state,tSnd t,u') ;
     | refls A A' x x' := 
-      rec (ty_state,A,A') ;;
+      rec (tm_state,A,A') ;;
       rec (tm_state,x,x') ;
     | neutrals _ _ :=
       rec (ne_state,t,t') ;
@@ -206,33 +204,38 @@ Equations uconv_ne : (term × term) -> M unit :=
 
 | (tNatElim P hz hs n,tNatElim P' hz' hs' n') :=
   rec (ne_state,n,n') ;;
-  rec (ty_state,P,P') ;;
+  rec (tm_state,P,P') ;;
   rec (tm_state,hz,hz') ;;
   rec (tm_state,hs,hs')
 
 | (tEmptyElim P n,tEmptyElim P' n') :=
   rec (ne_state,n,n') ;;
-  rec (ty_state,P,P')
+  rec (tm_state,P,P')
 
-| ( tFst n , tFst n') :=
+| (tFst n , tFst n') :=
   rec (ne_state,n,n')
 
-| ( tSnd n , tSnd n') :=
+| (tSnd n , tSnd n') :=
   rec (ne_state,n,n')
+
+| (tIdElim A x P hr y e, tIdElim A' x' P' hr' y' e') :=
+    rec (ne_state,e,e') ;;
+    rec (tm_state,P,P') ;;
+    rec (tm_state,hr,hr')
 
 | (n,n') := raise (destructor_mismatch n n').
 
-Equations _conv : ∇ _ : uconv_state × term × term, Sing wh_red  ⇒ exn errors ♯ unit :=
-  | (ty_state,ts) := uconv_ty ts;
-  | (ty_red_state,ts) := uconv_ty_red ts ;
+Equations _uconv : ∇ _ : uconv_state × term × term, Sing wh_red  ⇒ exn errors ♯ unit :=
+  (* | (ty_state,ts) := uconv_ty ts;
+  | (ty_red_state,ts) := uconv_ty_red ts ; *)
   | (tm_state,ts) := uconv_tm ts ;
   | (tm_red_state,ts) := uconv_tm_red ts;
   | (ne_state,ts) := uconv_ne ts.
 
-  #[local] Instance: PFun _conv := pfun_gen _ _ _conv.
+  #[local] Instance: PFun _uconv := pfun_gen _ _ _uconv.
 
   Equations uconv : (context × term × term) ⇀ exn errors unit :=
-    uconv (Γ,T,V) := call _conv (ty_state,T,V).
+    uconv (Γ,T,V) := call _uconv (tm_state,T,V).
   
 End Conversion.
 

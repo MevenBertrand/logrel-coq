@@ -685,24 +685,6 @@ Section Soundness.
     forall Γ A A', [Γ |-[de] t : A] -> [Γ |-[de] u : A'] ->
     ∑ A'', [× [Γ |-[al] t ~ u ▹ A''], [Γ |-[de] A'' ≅ A] & [Γ |-[de] A'' ≅ A']].
 
-  Property subject_reduction_raw Γ t t' A :
-    [t ⤳* t'] ->
-    [Γ |-[de] t : A] ->
-    [Γ |-[de] t' : A].
-  Proof.
-    eintros Hty ?%subject_reduction ; tea.
-    boundary.
-  Qed.
-
-  Property subject_reduction_raw_ty Γ A A' :
-    [A ⤳* A'] ->
-    [Γ |-[de] A] ->
-    [Γ |-[de] A'].
-  Proof.
-    eintros Hty ?%subject_reduction_type ; tea.
-    boundary.
-  Qed.
-
   Lemma uconv_sound :
     UAlgoConvInductionConcl PEq PRedEq PNeEq.
   Proof.
