@@ -40,6 +40,8 @@ Section Definitions.
       [ Γ |- y ≅ y' : A] ->
       [ Γ |- tId A x y ≅h tId A' x' y']
     | typeNeuConvAlg {Γ M N T} :
+      whne M ->
+      whne N ->
       [ Γ |- M ~ N ▹ T] -> 
       [ Γ |- M ≅h N]
   (** **** Conversion of neutral terms *)
@@ -71,7 +73,7 @@ Section Definitions.
     | neuSndCongAlg {Γ m n A B} :
       [ Γ |- m ~h n ▹ tSig A B ] ->
       [ Γ |- tSnd m ~ tSnd n ▹ B[(tFst m)..] ]
-    | neuIdEmlimCong {Γ A A' A'' x x' x'' P P' hr hr' y y' y'' e e'} :
+    | neuIdElimCong {Γ A A' A'' x x' x'' P P' hr hr' y y' y'' e e'} :
       [Γ |- e ~h e' ▹ tId A'' x'' y''] ->
       (* [Γ |- A'' ] -> *)
       (* [Γ |- A'' ≅ A] -> *)
@@ -454,7 +456,9 @@ Section TypingWk.
       now eapply IHB.
     - intros; now econstructor.
     - intros.
-      now econstructor.
+      econstructor.
+      3: easy.
+      all: now apply whne_ren.
     - intros * ? ? ?.
       eapply convne_meta_conv.
       1: econstructor ; eauto using in_ctx_wk.

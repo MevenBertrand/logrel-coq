@@ -742,7 +742,7 @@ Qed.
 
 Lemma id_ty_inv Γ A x y :
   [Γ |- tId A x y] ->
-  [Γ |- A] × [Γ |- x : A] × [Γ |- y : A].
+  [× [Γ |- A], [Γ |- x : A] & [Γ |- y : A]].
 Proof.
   intros Hty.
   apply TypeRefl, id_ty_inj in Hty as [HA HB].
@@ -1079,19 +1079,57 @@ Lemma idElimMotiveCtxConv {Γ Γ' A A' x x'} :
 [|- Γ ≅ Γ'] ->
 [Γ |- A ≅ A'] ->
 [Γ |- x ≅ x' : A] ->
-[ |- (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)] ->
-[ |- (Γ',, A'),, tId A'⟨@wk1 Γ' A'⟩ x'⟨@wk1 Γ' A'⟩ (tRel 0)] ->
 [ |- (Γ',, A'),, tId A'⟨@wk1 Γ' A'⟩ x'⟨@wk1 Γ' A'⟩ (tRel 0) ≅ (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)].
 Proof.
-intros.
-assert [|- Γ] by boundary.
-assert [Γ |- A] by boundary.
-eapply convCtxSym0; tea.
-econstructor.
-1: econstructor; tea; now eapply ctx_refl.
-erewrite (wk1_irr (t:=A')), (wk1_irr (t:=x')); econstructor.
-1,2: eapply typing_wk; tea; gen_typing.
-rewrite wk1_ren_on; eapply TermRefl; now eapply ty_var0.
+  intros.
+  assert [|- Γ] by boundary.
+  assert [Γ |- A] by boundary.
+  assert [ |- (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)].
+  {
+    constructor.
+    - constructor ; boundary.
+    - constructor.
+      + eapply typing_wk.
+        2: constructor.
+        all: boundary.
+      + eapply typing_wk.
+        2: constructor.
+        all: boundary.
+      + rewrite wk1_ren_on.
+        do 2 constructor.
+        all: boundary.
+  }
+  assert [Γ' |- A'].
+  {
+   eapply stability.
+   2: now symmetry.
+   now boundary.
+  }
+  assert [ |- (Γ',, A'),, tId A'⟨@wk1 Γ' A'⟩ x'⟨@wk1 Γ' A'⟩ (tRel 0)].
+  {
+    constructor.
+    - econstructor.
+      all: boundary.
+    - constructor.
+      + eapply typing_wk.
+        2: constructor.
+        all: boundary.
+      + eapply typing_wk.
+        2: econstructor ; boundary.
+        eapply stability.
+        2: now symmetry.
+        econstructor ; tea.
+        boundary.
+      + rewrite wk1_ren_on.
+        do 2 constructor.
+        all: boundary.
+  }
+  eapply convCtxSym0; tea.
+  econstructor.
+  1: econstructor; tea; now eapply ctx_refl.
+  erewrite (wk1_irr (t:=A')), (wk1_irr (t:=x')) ; econstructor.
+  1,2: eapply typing_wk; tea; gen_typing.
+  rewrite wk1_ren_on; eapply TermRefl; now eapply ty_var0.
 Qed.
 
 Lemma idElimConv {Γ A x P hr y e A' x' P' hr' e' y' T A'' x'' y''}:
