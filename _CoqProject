@@ -66,6 +66,8 @@ theories/TypeConstructorsInj.v
 theories/Normalisation.v
 theories/Consequences.v
 
+theories/PremisePreserve.v
+
 theories/BundledAlgorithmicTyping.v
 theories/AlgorithmicConvProperties.v
 theories/AlgorithmicTypingProperties.v
