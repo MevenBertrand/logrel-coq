@@ -24,8 +24,6 @@ Section Invariants.
   (fun Γ (A : term) t u =>
     [× well_typed (ta := de) Γ t & well_typed (ta := de) Γ u]).
 
-  Print conv_neu_precond.
-
   MetaCoq Quote Definition conv_tm_precond :=
   (fun Γ A t u => ([Γ |-[de] t : A]) × ([Γ |-[de] u : A])).
 
@@ -383,7 +381,213 @@ Section Invariants.
       cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq.
       now constructor.
   Qed.
+
+  Lemma neuConvRed_prem0 : $run (constructor_premise_preserve pre_cond post_cond 0 "neuConvRed").
+  Proof.
+    easy.
+  Qed.
+
+  Lemma neuConvRed_concl : $run (constructor_concl_preserve pre_cond post_cond "neuConvRed").
+  Proof.
+    eintros * [] ?%subject_reduction_type%RedConvTyC ? [].
+    2: boundary.
+    split.
+    - now econstructor.
+    - intros.
+      etransitivity.
+      2: eauto.
+      now symmetry.
+    - intros.
+      etransitivity.
+      2: eauto.
+      now symmetry.
+  Qed.
+
+  Lemma termConvRed_prem3 : $run (constructor_premise_preserve pre_cond post_cond 3 "termConvRed").
+  Proof.
+    eintros * HA Ht Hu [].
+    eapply subject_reduction_type, RedConvTyC in HA.
+    2: boundary.
+    eapply subject_reduction in Ht ; tea.
+    eapply subject_reduction in Hu ; tea.
+    split.
+    all: econstructor ; tea.
+    all: boundary.
+  Qed.
+
+  Lemma termConvRed_concl : $run (constructor_concl_preserve pre_cond post_cond "termConvRed").
+  Proof.
+    eintros * HA Ht Hu ? [].
+    eapply subject_reduction_type, RedConvTyC in HA.
+    2: boundary.
+    eapply subject_reduction, RedConvTeC in Ht ; tea.
+    eapply subject_reduction, RedConvTeC in Hu ; tea.
+    etransitivity ; tea.
+    etransitivity.
+    1: now econstructor.
+    now symmetry.
+  Qed.
+
+  Lemma termPiCongAlg_prem0 : $run (constructor_premise_preserve pre_cond post_cond 0 "termPiCongAlg").
+  Proof.
+    intros * [[? [[->] _]]%termGen' [? [[->] _]]%termGen'].
+    now split.
+  Qed.
+
+  Lemma termPiCongAlg_prem1 : $run (constructor_premise_preserve pre_cond post_cond 1 "termPiCongAlg").
+  Proof.
+    intros * ? [[? [[->] _]]%termGen' [? [[->] _]]%termGen'].
+    split.
+    1: eassumption.
+    eapply stability1 ; tea.
+    1-2: boundary.
+    now constructor.
+  Qed.
+
+  Lemma termPiCongAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termPiCongAlg").
+  Proof.
+    intros.
+    constructor ; tea.
+    boundary.
+  Qed.
+
+  Lemma termSuccCongAlg_prem0 : $run (constructor_premise_preserve pre_cond post_cond 0 "termSuccCongAlg").
+  Proof.
+    now intros * [(?&[->]&?)%termGen' (?&[->]&?)%termGen'].
+  Qed.
   
+  Lemma termSuccCongAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termSuccCongAlg").
+  Proof.
+    now constructor.
+  Qed.
+
+  Lemma termFunConvAlg_prem2: $run (constructor_premise_preserve pre_cond post_cond 2 "termFunConvAlg").
+  Proof.
+    intros * ?? [?%typing_eta' ?%typing_eta'].
+    now split.
+  Qed.
+
+  Lemma termFunConvAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termFunConvAlg").
+  Proof.
+    intros * ?? ? [].
+    etransitivity; [|now eapply TermFunEta].
+    etransitivity; [symmetry; now eapply TermFunEta|].
+    econstructor ; tea.
+    2-3: constructor.
+    all: boundary.
+  Qed.
+
+  Lemma termSigCongAlg_prem0 : $run (constructor_premise_preserve pre_cond post_cond 0 "termSigCongAlg").
+  Proof.
+    intros * [[? [[->] _]]%termGen' [? [[->] _]]%termGen'].
+    now split.
+  Qed.
+
+  Lemma termSigCongAlg_prem1 : $run (constructor_premise_preserve pre_cond post_cond 1 "termSigCongAlg").
+  Proof.
+    intros * ? [[? [[->] _]]%termGen' [? [[->] _]]%termGen'].
+    split.
+    1: eassumption.
+    eapply stability1 ; tea.
+    1-2: boundary.
+    now constructor.
+  Qed.
+
+  Lemma termSigCongAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termSigCongAlg").
+  Proof.
+    intros.
+    constructor ; tea.
+    boundary.
+  Qed.
+
+  Lemma termPairConvAlg_prem2 : $run (constructor_premise_preserve pre_cond post_cond 2 "termPairConvAlg").
+  Proof.
+    intros * ?? [].
+    split.
+    all: now econstructor.
+  Qed.
+
+  Lemma termPairConvAlg_prem3 : $run (constructor_premise_preserve pre_cond post_cond 3 "termPairConvAlg").
+  Proof.
+    intros * ?? ? [Hp ].
+    split.
+    1: now econstructor.
+    econstructor.
+    1: now econstructor.
+    eapply typing_subst1.
+    1: now symmetry.
+    constructor.
+    now eapply boundary, sig_ty_inv in Hp as [].
+  Qed.
+
+  Lemma termPairConvAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termPairConvAlg").
+  Proof.
+    intros * ?? ? ? [Hp].
+    etransitivity; [|now eapply TermPairEta].
+    etransitivity; [symmetry; now eapply TermPairEta|].
+    eapply boundary, sig_ty_inv in Hp as [].
+    econstructor ; tea.
+    all: constructor ; boundary.
+  Qed.
+
+  Lemma termIdCongAlg_prem0 : $run (constructor_premise_preserve pre_cond post_cond 0 "termIdCongAlg").
+  Proof.
+    now intros * [(?&[->]&?)%termGen' (?&[->]&?)%termGen'].
+  Qed.
+  
+  Lemma termIdCongAlg_prem1 : $run (constructor_premise_preserve pre_cond post_cond 1 "termIdCongAlg").
+  Proof.
+    intros * ? [(?&[->]&?)%termGen' (?&[->]&?)%termGen'].
+    split.
+    1: assumption.
+    econstructor ; tea.
+    now constructor. 
+  Qed.
+
+  Lemma termIdCongAlg_prem2 : $run (constructor_premise_preserve pre_cond post_cond 2 "termIdCongAlg").
+  Proof.
+    intros * ?? [(?&[->]&?)%termGen' (?&[->]&?)%termGen'].
+    split.
+    1: assumption.
+    econstructor ; tea.
+    now constructor. 
+  Qed.
+
+  Lemma termIdCongAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termIdCongAlg").
+  Proof.
+    intros * ??? [(?&[->]&?)%termGen' (?&[->]&?)%termGen'].
+    now econstructor.
+  Qed.
+
+  Lemma termIdReflCong_concl : $run (constructor_concl_preserve pre_cond post_cond "termIdReflCong").
+  Proof.
+    intros * [[?[[-> ??] []%id_ty_inj]]%termGen' [?[[-> ??] []%id_ty_inj]]%termGen'].
+    assert [Γ |-[de] A ≅ A'] by
+        (etransitivity ; tea ; now symmetry).
+    econstructor.
+    1: econstructor.
+    3: econstructor.
+    + eassumption. 
+    + etransitivity ; tea.
+      symmetry.
+      now econstructor.
+    + now symmetry.
+    + eassumption.
+    + eassumption.
+  Qed.
+
+  Lemma termNeuConvAlg_prem0 : $run (constructor_premise_preserve pre_cond post_cond 0 "termNeuConvAlg").
+  Proof.
+    intros * _ ? [].
+    split ; now eexists.
+  Qed.
+
+  Lemma termNeuConvAlg_concl : $run (constructor_concl_preserve pre_cond post_cond "termNeuConvAlg").
+  Proof.
+    intros * [] ? [].
+    now econstructor.
+  Qed.
+
 End Invariants.
 
 
@@ -789,9 +993,7 @@ Section BundledConv.
       eapply typeIdCongAlg_prem0, IHA in Hconcl as [? [? Hpre0]%dup] ; eauto.
       eapply typeIdCongAlg_prem1, IHx in Hpre0 as [? [? Hpre1]%dup] ; eauto.
       eapply typeIdCongAlg_prem2, IHy in Hpre1 as [? [? Hpre2]%dup] ; eauto.
-      eapply typeIdCongAlg_concl in Hpre2.
-      1: split ; eauto.
-      all: eauto.
+      eapply typeIdCongAlg_concl in Hpre2 ; eauto 20.
     - intros * ?? Hconv IH [? Hconcl]%dup.
       eapply typeNeuConvAlg_prem2, IH in Hconcl as [? [? Hpre2]%dup] ; eauto.
       eapply typeNeuConvAlg_concl in Hpre2 ; eauto.
@@ -822,139 +1024,49 @@ Section BundledConv.
       eapply neuIdElimCong_prem1, IHP in Hpre0 as [? [? Hpre1]%dup] ; eauto.
       eapply neuIdElimCong_prem2, IHe in Hpre1 as [? [? Hpre2]%dup] ; eauto.
       eapply neuIdElimCong_concl in Hpre2 ; eauto 20.
-    - intros * ? IHm HA ? ? Htym Htyn.
-      pose proof Htym as [? Htym'].
-      pose proof Htyn as [? Htyn'].
-      edestruct IHm as [_ [IHmc IHm' IHn']].
-      1: easy.
-      1-2: now eexists.
-      pose proof (HA' := HA).
-      eapply subject_reduction_type, RedConvTyC in HA'.
-      2: boundary.
-      split ; [now eauto|..].
-      split.
-      + gen_typing.
-      + intros.
-        symmetry in HA'.
-        etransitivity ; gen_typing.
-      + intros.
-        symmetry in HA'.
-        etransitivity ; gen_typing.
-    - intros * HA Ht Hu ? IH ? Htyt Htyu.
-      pose proof (HA' := HA).
-      pose proof (Ht' := Ht).
-      pose proof (Hu' := Hu).
-      eapply subject_reduction_type, RedConvTyC in HA'.
-      2: boundary.
-      eapply subject_reduction, RedConvTeC in Ht' ; tea.
-      eapply subject_reduction, RedConvTeC in Hu' ; tea.
-      pose proof (Ht'' := Ht').
-      pose proof (Hu'' := Hu').
-      eapply boundary in Ht'' as [], Hu'' as [].
-      split ; [now gen_typing|..].
-      etransitivity ; [..|etransitivity].
-      1: eassumption.
-      2: now symmetry.
-      econstructor.
-      2: now symmetry.
-      eapply IH.
-      all: gen_typing.
-    - intros * ? IHA ? IHB ? Hty Hty'.
-      pose proof (Htyd := Hty).
-      pose proof (Htyd' := Hty').
-      eapply termGen' in Htyd as [? [[->] _]].
-      eapply termGen' in Htyd' as [? [[->] _]].
-      assert [Γ,, A |-[de] B' : U].
-      { eapply stability ; tea.
-        econstructor.
-        1: now eapply ctx_refl.
-        now econstructor.
-      }
-      split ; [now gen_typing|..].
-      econstructor.
-      + assumption.
-      + now eapply IHA.
-      + now eapply IHB ; gen_typing.
+    - intros * ? IHm ?? [? Hconcl]%dup.
+      eapply IHm in Hconcl as [? [? Hpre0]]%dup.
+      eapply neuConvRed_concl in Hpre0 as [? Hconcl]%dup ; eauto.
+    - intros * ??? ? IH [? Hconcl]%dup.
+      eapply termConvRed_prem3, IH in Hconcl as [? [? Hpre3]%dup] ; eauto.
+      eapply termConvRed_concl in Hpre3 ; eauto.
+    - intros * ? IHA ? IHB [? Hconcl]%dup.
+      eapply termPiCongAlg_prem0, IHA in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply termPiCongAlg_prem1, IHB in Hpre0 as [? [? Hpre1]%dup] ; eauto.
+      eapply termPiCongAlg_concl in Hpre1 ; eauto.
     - intros.
       split ; [eauto|..].
       now econstructor.
     - intros.
       split ; [eauto|..].
       now econstructor.
-    - intros * ? IHt ? Htyt Htyt'.
-      pose proof (Htyd := Htyt).
-      pose proof (Htyd' := Htyt').
-      eapply termGen' in Htyd as [? [[->] _]].
-      eapply termGen' in Htyd' as [? [[->] _]].
-      split ; [eauto|..].
-      now econstructor.
+    - intros * ? IHt [? Hconcl]%dup.
+      eapply termSuccCongAlg_prem0, IHt in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply termSuccCongAlg_concl in Hpre0 ; eauto.
     - intros.
-      split ; eauto.
+      split ; [eauto|..].
       now econstructor. 
-    - intros * ? ? ? IH ? Hf Hg.
-      assert [Γ |-[de] A] by
-        (now eapply boundary, prod_ty_inv in Hf).
-      pose proof (Hf' := Hf).
-      pose proof (Hg' := Hg).
-      eapply typing_eta' in Hf'.
-      eapply typing_eta' in Hg'.
-      split ; [now gen_typing|..].
-      etransitivity; [|now eapply TermFunEta].
-      etransitivity; [symmetry; now eapply TermFunEta|].
-      econstructor ; tea; try now constructor.
-      now eapply IH ; gen_typing.
-    - intros * ? ihA ? ihB ? hty hty'.
-      pose proof hty as [?[[->]]]%termGen'.
-      pose proof hty' as [?[[->]]]%termGen'.
-      edestruct ihA as []; tea.
-      edestruct ihB as []; tea.
-      1: gen_typing.
-      1: eapply stability1; tea; gen_typing.
-      split ; [eauto|now econstructor].
-    - intros * ??? ihfst ? ihsnd ? hp hq.
-      edestruct ihfst as []; tea.
-      1,2: now econstructor.
-      pose proof hp as []%boundary%sig_ty_inv.
-      edestruct ihsnd as []; tea.
-      1: now econstructor.
-      2:{ split; [eauto|].
-          eapply TermTrans; [|now constructor].
-          eapply TermTrans; [eapply TermSym; now constructor|].
-          constructor; tea; now apply TypeRefl. }
-      eapply wfTermConv; [now econstructor|].
-      eapply typing_subst1; [now symmetry|].
-      now eapply TypeRefl.
-    - intros * ? ihA ? ihx ? ihy ? hm hn.
-      pose proof hm as [?[[->]]]%termGen'.
-      pose proof hn as [?[[->]]]%termGen'.
-      assert [Γ |-[de] A ≅ A'] by (econstructor; now eapply ihA).
-      assert [Γ |-[de] x' : A] by (eapply wfTermConv; tea; refold; now symmetry). 
-      assert [Γ |-[de] y' : A] by (eapply wfTermConv; tea; refold; now symmetry). 
-      split; [eauto|].
-      econstructor; [eapply ihA|eapply ihx| eapply ihy]; tea.
-    - intros * ? hm hn.
-      pose proof hm as [?[[-> ??] []%id_ty_inj]]%termGen'.
-      pose proof hn as [?[[-> ??] []%id_ty_inj]]%termGen'.
-      split ; [eauto|].
-      assert [Γ |-[de] A ≅ A'] by
-        (etransitivity ; tea ; now symmetry).
-      econstructor.
-      1: econstructor.
-      3: econstructor.
-      + eassumption. 
-      + etransitivity ; tea.
-        symmetry.
-        now econstructor.
-      + now symmetry.
-      + eassumption.
-      + eassumption.
-    - intros * ? IHm ? ? Htym Htyn.
-      edestruct IHm as [? [? Hm']].
-      1: easy.
-      1-2: now eexists.
-      split ; [now eauto|..].
-      econstructor ; tea.
-      now eapply Hm'.
+    - intros * ??? IH [? Hconcl]%dup.
+      eapply termFunConvAlg_prem2, IH in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply termFunConvAlg_concl in Hpre0 ; eauto.
+    - intros * ? IHA ? IHB [? Hconcl]%dup.
+      eapply termSigCongAlg_prem0, IHA in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply termSigCongAlg_prem1, IHB in Hpre0 as [? [? Hpre1]%dup] ; eauto.
+      eapply termSigCongAlg_concl in Hpre1 ; eauto.
+    - intros * ??? IHf ? IHs [? Hconcl]%dup.
+      eapply termPairConvAlg_prem2, IHf in Hconcl as [? [? Hpre2]%dup] ; eauto.
+      eapply termPairConvAlg_prem3, IHs in Hpre2 as [? [? Hpre3]%dup] ; eauto.
+      eapply termPairConvAlg_concl in Hpre3 ; eauto.
+    - intros * ? IHA ? IHx ? IHy [? Hconcl]%dup.
+      eapply termIdCongAlg_prem0, IHA in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply termIdCongAlg_prem1, IHx in Hpre0 as [? [? Hpre1]%dup] ; eauto.
+      eapply termIdCongAlg_prem2, IHy in Hpre1 as [? [? Hpre2]%dup] ; eauto.
+      eapply termIdCongAlg_concl in Hpre2 ; eauto 20.
+    - intros * [? Hconcl]%dup.
+      eapply termIdReflCong_concl in Hconcl ; eauto.
+    - intros * ? IH ? [? Hconcl]%dup.
+      eapply termNeuConvAlg_prem0, IH in Hconcl as [? [? Hpre0]%dup] ; eauto.
+      eapply termNeuConvAlg_concl in Hpre0 ; eauto.
 Qed.
 
   Definition BundledConvInductionConcl : Type :=
@@ -973,7 +1085,7 @@ Qed.
     intros.
     repeat split.
     all: intros * [].
-    all: apply algo_conv_discipline ; assumption.
+    all: now apply algo_conv_discipline.
   Qed.
 
 End BundledConv.
@@ -1008,10 +1120,9 @@ Section ConvSoundness.
       (fun _ _ _ _ => True) (fun _ _ _ _ => True) (fun _ _ _ _ => True)) as [H' H] ;
     cycle -1.
     1:{
-      repeat (split ; [
-      intros ; apply H' ; tea ; match goal with H : well_typed _ _ |- _ => destruct H | _ => idtac end ; gen_typing 
-      | ..] ; clear H' ; try destruct H as [H' H]).
-      intros ; apply H ; gen_typing. }
+      repeat (split ; [intros ; apply H' ; eauto |..] ; clear H' ; try destruct H as [H' H]).
+      intros ; apply H ; eauto. 
+    }
     all: now constructor.
   Qed.
 

@@ -8,6 +8,7 @@ From LogRel.Decidability Require Import Functions Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
+#[global] Unset Asymmetric Patterns.
 
 Import DeclarativeTypingProperties.
 
@@ -285,20 +286,6 @@ Section RedImplemComplete.
 
 End RedImplemComplete.
 
-Section ConversionComplete.
-
-Let PTyEq (Γ : context) (A B : term) :=
-  forall v, graph _conv (ty_state;Γ;v;A;B) ok.
-Let PTyRedEq (Γ : context) (A B : term) :=
-  forall v, graph _conv (ty_red_state;Γ;v;A;B) ok. 
-Let PNeEq (Γ : context) (A t u : term) :=
-  forall v, graph _conv (ne_state;Γ;v;t;u) (success A).
-Let PNeRedEq (Γ : context) (A t u : term) :=
-  forall v, graph _conv (ne_red_state;Γ;v;t;u) (success A).
-Let PTmEq (Γ : context) (A t u : term) := 
-  graph _conv (tm_state;Γ;A;t;u) ok.
-Let PTmRedEq (Γ : context) (A t u : term) :=
-  graph _conv (tm_red_state;Γ;A;t;u) ok.
 
 Definition whne_ne_view1 {N} (w : whne N) : ne_view1 N :=
   match w with
@@ -341,8 +328,27 @@ Proof.
   - rewrite whne_ty_view2 ; cbn ; tea.
     reflexivity.
   - unshelve erewrite whne_ty_view1 ; tea.
-    reflexivity.
+    cbn.
+    unshelve erewrite whne_nf_view1 ; tea ; cbn.
+    destruct (build_nf_view1 _) eqn:e ; try easy.
+    all: unshelve erewrite whne_nf_view1 in e ; tea.
+    all: inversion e.
 Qed.
+
+Section ConversionComplete.
+
+Let PTyEq (Γ : context) (A B : term) :=
+  forall v, graph _conv (ty_state;Γ;v;A;B) ok.
+Let PTyRedEq (Γ : context) (A B : term) :=
+  forall v, graph _conv (ty_red_state;Γ;v;A;B) ok. 
+Let PNeEq (Γ : context) (A t u : term) :=
+  forall v, graph _conv (ne_state;Γ;v;t;u) (success A).
+Let PNeRedEq (Γ : context) (A t u : term) :=
+  forall v, graph _conv (ne_red_state;Γ;v;t;u) (success A).
+Let PTmEq (Γ : context) (A t u : term) := 
+  graph _conv (tm_state;Γ;A;t;u) ok.
+Let PTmRedEq (Γ : context) (A t u : term) :=
+  graph _conv (tm_red_state;Γ;A;t;u) ok.
 
 Arguments PFun_instance_1 : simpl never.
 
@@ -364,7 +370,7 @@ Lemma _implem_conv_complete :
 Proof.
   subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
   apply BundledConvInduction.
-  - intros * ?? Hconv [IH] **.
+  - intros * ?? Hconv [IH] [] **.
     unfold graph.
     simp _conv conv_ty ; cbn.
     repeat (match goal with |- orec_graph _ _ _ => econstructor end) ; cbn.
@@ -413,7 +419,7 @@ Proof.
     cbn; patch_rec_ret; econstructor.
     1: exact ihy.
     now econstructor.
-  - intros * HM [IHM []] **.
+  - intros * ?? HM [IHM []] **.
     unfold graph.
     simp _conv conv_ty_red ; cbn.
     rewrite whne_ty_view2.
@@ -488,15 +494,15 @@ Proof.
     2: now econstructor.
     eapply wh_red_complete_whnf_ty ; tea.
     boundary.
-  - intros * ??? []%algo_conv_wh [IHt'] **.
+  - intros * ??? []%algo_conv_wh [IHt'] [] **.
     unfold graph.
     simp _conv conv_tm ; cbn -[PFun_instance_1].
     repeat (match goal with |- orec_graph _ _ _ => econstructor end) ; cbn -[PFun_instance_1].
     + eapply wh_red_complete_whnf_ty ; tea.
       1: boundary.
       now gen_typing.
-    + now eapply wh_red_complete_whnf_tm.
-    + now eapply wh_red_complete_whnf_tm.
+    + eapply wh_red_complete_whnf_tm ; eassumption.
+    + eapply wh_red_complete_whnf_tm ; eassumption.
     + exact IHt'.
     + cbn; econstructor.
   - intros * ? [IHA] ? [IHB] **.

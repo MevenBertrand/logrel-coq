@@ -346,7 +346,11 @@ Equations build_nf_view3 T t t' : nf_view3 T t t' :=
       | _, _ := anomaly _ _ _ ;
     }
   (** Neutral type *)
-  | ty_view1_small _ := neutrals _ _ _ ;
+  | ty_view1_small _ with (build_nf_view1 t), (build_nf_view1 t') :=
+    {
+      | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
+      | _, _ := anomaly _ _ _ ;
+    }
   (** The type is not a type *)
   | ty_view1_anomaly := anomaly _ _ _ ;
   }.

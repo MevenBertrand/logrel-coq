@@ -149,6 +149,66 @@ Ltac funelim_conv :=
       funelim (conv_tm _) | funelim (conv_tm_red _) | 
       funelim (conv_ne _) | funelim (conv_ne_red _) ].
 
+Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
+Proof.
+  destruct T ; cbn.
+  all: inversion 1.
+  all: inversion 1.
+Qed.
+
+Lemma tm_view1_neutral_can t n : build_nf_view1 t = nf_view1_ne n -> ~ isCanonical t.
+Proof.
+  destruct t ; cbn.
+  all: inversion 1.
+  all: inversion 1.
+Qed.
+
+Lemma ty_view2_neutral_can T V : build_nf_ty_view2 T V = ty_neutrals T V -> ~ isCanonical T × ~ isCanonical V.
+Proof.
+  destruct T, V ; cbn.
+  all: inversion 1.
+  all: split ; inversion 1.
+Qed.
+
+
+Lemma whnf_view3_ty_neutral_can s t u : build_nf_view3 (tSort s) t u = types s (ty_neutrals t u) -> ~ isCanonical t × ~ isCanonical u.
+Proof.
+  destruct t, u ; cbn.
+  all: inversion 1.
+  all: split ; inversion 1.
+Qed.
+
+Lemma whnf_view3_neutrals_can A t u :
+  whnf A ->
+  build_nf_view3 A t u = neutrals A t u ->
+  [× isPosType A, ~ isCanonical t & ~ isCanonical u].
+Proof.
+  intros HA.
+  simp build_nf_view3.
+  destruct (build_ty_view1 A) eqn:EA ; cbn.
+  all: try solve [inversion 1].
+  1: match goal with | |- context [match ?t with | _ => _ end] => destruct t eqn:? ; cbn end ;
+    try solve [inversion 1].
+  all: simp build_nf_view3 ; cbn.
+  all: destruct (build_nf_view1 t) eqn:? ; cbn.
+  all: try solve [inversion 1].
+  all: repeat (
+    match goal with | |- context [match ?t with | _ => _ end] => destruct t eqn:? ; cbn end ;
+    try solve [inversion 1]).
+  all: intros _.
+  all: split ; try solve [now eapply tm_view1_neutral_can].
+  all: econstructor.
+  eapply ty_view1_small_can in EA.
+  destruct HA ; try easy.
+  all: exfalso ; apply EA ; now constructor.
+Qed.
+
+Lemma whne_can t : whnf t -> ~ isCanonical t -> whne t.
+Proof.
+  destruct 1 ; eauto.
+  all: intros Hcan ; exfalso ; apply Hcan ; now constructor.
+Qed.
+
 Section ConversionSound.
 
 
@@ -158,12 +218,12 @@ Section ConversionSound.
   match x, r with
   | _, (exception _) => True
   | (ty_state;Γ;_;T;V), (success _) =>  [Γ |-[al] T ≅ V]
-  | (ty_red_state;Γ;_;T;V), (success _) => [Γ |-[al] T ≅h V]
+  | (ty_red_state;Γ;_;T;V), (success _) => whnf T -> whnf V -> [Γ |-[al] T ≅h V]
   | (tm_state;Γ;A;t;u), (success _) => [Γ |-[al] t ≅ u : A]
   | (tm_red_state;Γ;A;t;u), (success _) =>
       whnf A -> whnf t -> whnf u -> [Γ |-[al] t ≅h u : A]
-  | (ne_state;Γ;_;m;n), (success T) => [Γ |-[al] m ~ n ▹ T]
-  | (ne_red_state;Γ;_;m;n), (success T) => [Γ |-[al] m ~h n ▹ T] × whnf T
+  | (ne_state;Γ;_;m;n), (success T) => whne m -> whne n -> [Γ |-[al] m ~ n ▹ T]
+  | (ne_red_state;Γ;_;m;n), (success T) => whne m -> whne n -> [Γ |-[al] m ~h n ▹ T] × whnf T
   end.
 
   Lemma _implem_conv_sound :
@@ -180,14 +240,17 @@ Section ConversionSound.
       | |- context [match ?t with | _ => _ end] => destruct t ; cbn ; try easy
       | s : sort |- _ => destruct s
       | H : graph wh_red _ _ |- _ => eapply red_sound in H as []
-      | H : (_;_;_;_) = (_;_;_;_) |- _ => injection H; clear H; intros; subst 
+      | H : (_;_;_;_) = (_;_;_;_) |- _ => injection H; clear H; intros; subst
+      | H : (build_nf_ty_view2 _ _ = ty_neutrals _ _) |- _ =>
+          eapply ty_view2_neutral_can in H as [?%whne_can ?%whne_can] ; tea
+      | H : (build_nf_view3 (tSort _) _ _ = types _ (ty_neutrals _ _)) |- _ =>
+        eapply whnf_view3_ty_neutral_can in H as [?%whne_can ?%whne_can] ; tea
+      | H : (build_nf_view3 _ _ _ = neutrals _ _ _) |- _ =>
+        eapply whnf_view3_neutrals_can in H as [? ?%whne_can ?%whne_can] ; tea
       end).
+    all: repeat match goal with | H : whne (_ _) |- _ => inversion_clear H end.
     all: try solve [now econstructor].
-    - econstructor ; tea.
-      now econstructor.
-    - econstructor ; tea.
-      destruct H ; simp build_nf_view3 build_ty_view1 in Heq ; try solve [inversion Heq].
-      all: try now econstructor.
+    - econstructor ; eauto. econstructor.
     - econstructor; tea; [intuition (auto with *)| now rewrite 2!Weakening.wk1_ren_on].
     - eapply convne_meta_conv.
       2: reflexivity.
@@ -196,7 +259,7 @@ Section ConversionSound.
       + f_equal.
         symmetry.
         now eapply Nat.eqb_eq.
-    - split; tea. now econstructor.
+    - split; tea. econstructor ; eauto.
   Qed.
 
   Arguments conv_full_cod _ /.
@@ -246,13 +309,6 @@ Section TypingSound.
   Hypothesis conv_sound : forall Γ T V,
     graph conv (Γ,T,V) ok ->
     [Γ |-[al] T ≅ V].
-
-  Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
-  Proof.
-    destruct T ; cbn.
-    all: inversion 1.
-    all: inversion 1.
-  Qed.
 
   #[universes(polymorphic)]Definition typing_sound_type
     (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term)
