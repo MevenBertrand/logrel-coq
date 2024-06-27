@@ -394,10 +394,11 @@ Section ConvStr.
       + eapply IHA ; reflexivity.
       + eapply IHa ; reflexivity.
       + eapply IHa' ; reflexivity. 
-    - intros * ? IH ** ; subst.
+    - intros * ?? ? IH ** ; subst.
       edestruct IH as [? [->]].
       1-2 : reflexivity.
-      now econstructor.
+      econstructor ; tea.
+      all: now eapply whne_ren.
     - intros * Hin **.
       push_renaming.
       apply in_ctx_str in Hin as [? [-> ]].
@@ -677,90 +678,6 @@ Section NeutralConversion.
   Qed. *)
 
 End NeutralConversion.
-
-Section Invariants.
-
-  Unset MetaCoq Strict Unquote Universe Mode.
-
-  MetaCoq Quote Definition conv_precond :=
-  (fun u v => ∑ (Γ : context) A, [Γ |-[de] u : A] × [Γ |-[de] v : A]).
-  MetaCoq Quote Definition convred_precond :=
-  (fun u v => ∑ (Γ : context) A, [Γ |-[de] u : A] × [Γ |-[de] v : A]).
-  MetaCoq Quote Definition convneu_precond :=
-  (fun u v => ∑ (Γ : context), well_typed (ta := de) Γ u × well_typed (ta := de) Γ v).
-
-  #[local] Definition pre_cond (hyp : Ast.term) : Ast.term :=
-  match hyp with
-    | Ast.tApp c (u :: v :: nil)%list =>
-        if (c ?= <% UConvAlg %>) then Ast.tApp conv_precond (u :: v :: nil)%list
-        else if (c ?= <% UConvRedAlg %>) then Ast.tApp convred_precond (u :: v :: nil)%list
-        else if (c ?= <% UConvNeuAlg %>) then Ast.tApp convneu_precond (u :: v :: nil)%list
-        else hyp
-    | _ => hyp
-  end.
-
-  MetaCoq Quote Definition conv_postcond :=
-  (fun t u =>
-    (forall Γ, [Γ |-[de] t] -> [Γ |-[de] u] -> [Γ |-[al] t ≅ u]) ×
-    (forall Γ A, [Γ |-[de] t : A] -> [Γ |-[de] u : A] -> [Γ |-[al] t ≅ u : A])).
-
-  MetaCoq Quote Definition convred_postcond :=
-  (fun t u => 
-    (forall Γ, [Γ |-[de] t] -> [Γ |-[de] u] -> [Γ |-[al] t ≅h u]) ×
-    (forall Γ A, isType A -> [Γ |-[de] t : A] -> [Γ |-[de] u : A] -> [Γ |-[al] t ≅h u : A])).
-  
-  MetaCoq Quote Definition convneu_postcond :=
-  (fun t u => 
-    forall Γ A A', [Γ |-[de] t : A] -> [Γ |-[de] u : A'] ->
-    ∑ A'', [× [Γ |-[al] t ~ u ▹ A''], [Γ |-[de] A'' ≅ A] & [Γ |-[de] A'' ≅ A']]).
-
-  #[local] Definition post_cond (hyp : Ast.term) : Ast.term :=
-  match hyp with
-    | Ast.tApp c (u :: v :: nil)%list =>
-        if (c ?= <% UConvAlg %>) then Ast.tApp conv_postcond (u :: v :: nil)%list
-        else if (c ?= <% UConvRedAlg %>) then Ast.tApp convred_postcond (u :: v :: nil)%list
-        else if (c ?= <% UConvNeuAlg %>) then Ast.tApp convneu_postcond (u :: v :: nil)%list
-        else hyp
-    | _ => hyp
-  end.
-
-Lemma termConvRed_concl : $run (constructor_concl_preserve pre_cond post_cond "termConvRed").
-Proof.
-  intros * Ht Hu [Hty Htm].
-  split.
-  + intros.
-    econstructor ; eauto.
-    eapply Hty.
-    all: now eapply subject_reduction_raw_ty.
-  + intros.
-    assert [Γ |-[de] A] as [? red]%type_normalisation by boundary.
-    eapply subject_reduction_type in red as [] ; refold.
-    2: boundary.
-    econstructor ; eauto.
-    eapply Htm.
-    * eapply type_isType ; tea.
-      boundary.
-    * eapply subject_reduction_raw ; tea.
-      gen_typing.
-    * eapply subject_reduction_raw ; tea.
-      gen_typing.
-Qed.
-
-
-
-
-(* Proof.
-  intros m n t u [Γ [[? (?&(?&?&[-> ])&?)%termGen'] [? (?&(?&?&[-> ])&?)%termGen']]].
-  exists Γ.
-  split ; now eexists.
-Qed. *)
-
-Lemma bar : $run (constructor_premise_preserve pre_cond post_cond 1 "NeLamUAlg").
-Proof.
-intros * ? (Γ&A&[? (?&[? [->]]&?)%termGen']).
-do 2 eexists ; split ; tea.
-eapply (typing_wk (ρ := wk1 _ _)).
-1: eapply t0
 
 Section Soundness.
 

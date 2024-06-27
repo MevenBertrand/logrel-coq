@@ -1,6 +1,9 @@
 From MetaCoq.Utils Require Import MCString bytestring.
 From MetaCoq.Common Require Import uGraph BasicAst.
-From MetaCoq.Template Require Import All ReflectAst Checker Typing.
+From MetaCoq.Template Require Import ReflectAst Checker Typing Ast Loader TemplateMonad.
+
+From LogRel Require Import Utils.
+
 Import monad_utils.MCMonadNotation.
 Require Import MSets List.
 Open Scope bs.
@@ -131,7 +134,7 @@ Definition type_of_constructor@{t u} mdecl (c : inductive * nat) : TemplateMonad
   | Some idecl =>
       match nth_error (ind_ctors idecl) (Datatypes.snd c) with
       | None => tmFail ("constructor not found")
-      | Some cdecl => tmReturn (Template.Typing.type_of_constructor mdecl cdecl c [])
+      | Some cdecl => tmReturn (Template.Typing.type_of_constructor mdecl cdecl c nil)
       end
   end.
 
