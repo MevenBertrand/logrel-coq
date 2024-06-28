@@ -9,7 +9,7 @@ Open Scope bs.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening
   UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance
-  BundledAlgorithmicTyping AlgorithmicTyping AlgorithmicConvProperties TypeConstructorsInj
+  AlgorithmicTyping BundledAlgorithmicTyping AlgorithmicConvProperties TypeConstructorsInj
   Normalisation DeclarativeSubst Fundamental LogicalRelation.
 From LogRel Require Import Sections.
 From LogRel.LogicalRelation Require Import Induction Neutral Escape Reflexivity.
@@ -554,14 +554,27 @@ Section NeutralConversion.
   Lemma var0_wk1_id {Γ A t} : t[tRel 0 .: @wk1 Γ A >> tRel] = t.
   Proof. bsimpl. rewrite scons_eta'. now asimpl. Qed.
 
-  Lemma ne_conv_conv (Γ : context) (A m n : term) :
+  Lemma ne_conv_conv (Γ : context) (A A' m n : term) :
     [Γ |-[de] A] ->
+    isType A ->
     well_typed Γ m ->
     well_typed Γ n ->
-    [Γ |-[al] m ~ n ▹ A] ->
-    [Γ |-[al] m ≅ n : A].
+    [Γ |-[al] m ~ n ▹ A'] ->
+    [Γ |-[de] A' ≅ A] ->
+    [Γ |-[al] m ≅h n : A].
   Proof.
-    now intros * ??? [?%algo_conv_tm_complete]%algo_conv_sound.
+    intros * ???? [[]%algo_conv_wh Hconv]%dup ? ; tea.
+    eapply algo_conv_sound in Hconv as [[Hconv]%dup] ; tea.
+    eapply algo_conv_tm_complete, algo_conv_conv in Hconv ; cycle 1.
+    - eapply ctx_refl ; boundary.
+    - eassumption.
+    - boundary.
+    - boundary.
+    - destruct Hconv as [??????? hA hm hn] ; subst ; refold.
+      eapply red_whnf in hA as -> ; [| gen_typing].
+      eapply red_whnf in hm as -> ; [| gen_typing].
+      eapply red_whnf in hn as -> ; [| gen_typing].
+      assumption.
   Qed.
 
   Lemma conv_wh_conv_red (Γ : context) (A A' m n : term) :
@@ -679,19 +692,348 @@ Section NeutralConversion.
 
 End NeutralConversion.
 
+Lemma LamCongUAlg_prem0 Γ T A t A' t' :
+  isType T ->
+  [Γ |-[ de ] tLambda A t : T] × [Γ |-[ de ] tLambda A' t' : T] ->
+  ∑ A'' B, [× T = tProd A'' B, [Γ ,, A'' |- t : B] & [Γ ,, A'' |- t' : B]].
+Proof.
+  intros ? [[? [[B [->]] Hconv]]%termGen' [? [[B' [->]] Hconv']]%termGen'].
+  eapply red_ty_compl_prod_l in Hconv as (A''&B''&[Hred]).
+  eapply redty_sound, red_whnf in Hred as ->.
+  2: gen_typing.
+  eapply prod_ty_inj in Hconv' as [].
+  do 2 eexists ; split.
+  - reflexivity.
+  - econstructor ; [eapply stability1 ; [..|eassumption]|..] ; tea.
+    now boundary.
+  - econstructor ; [eapply stability1 ; [..|eassumption]|..] ; tea.
+    now boundary.
+Qed.
+
+
+Lemma LamNeUAlg_prem0 Γ T A t n' :
+  isType T ->
+  [Γ |-[ de ] tLambda A t : T] × [Γ |-[ de ] n' : T] ->
+  ∑ A'' B, [× T = tProd A'' B, [Γ ,, A'' |- t : B] & [Γ ,, A'' |- eta_expand n' : B]].
+Proof.
+  intros ? [[? [[B [->]] Hconv]]%termGen' Hn].
+  eapply red_ty_compl_prod_l in Hconv as (A''&B''&[Hred]).
+  eapply redty_sound, red_whnf in Hred as ->.
+  2: gen_typing.
+  do 2 eexists ; split.
+
+  - reflexivity.
+  - econstructor ; [eapply stability1 ; [..|eassumption]|..] ; tea.
+    now boundary.
+  - now eapply typing_eta'.
+Qed.
+
+Lemma NeLamUAlg_prem0 Γ T n A' t' :
+  isType T ->
+  [Γ |-[ de ] n : T] × [Γ |-[ de ] tLambda A' t' : T] ->
+  ∑ A'' B, [× T = tProd A'' B, [Γ ,, A'' |- eta_expand n : B] & [Γ ,, A'' |- t' : B]].
+Proof.
+  intros ? [Hn [? [[B [->]] Hconv]]%termGen'].
+  eapply red_ty_compl_prod_l in Hconv as (A''&B''&[Hred]).
+  eapply redty_sound, red_whnf in Hred as ->.
+  2: gen_typing.
+  do 2 eexists ; split.
+
+  - reflexivity.
+  - now eapply typing_eta'.
+  - econstructor ; [eapply stability1 ; [..|eassumption]|..] ; tea.
+    now boundary.
+Qed.
+
+Lemma PairCongUAlg_prem0 Γ T A B p q A' B' p' q' :
+  isType T ->
+  [Γ |-[ de ] tPair A B p q : T] × [Γ |-[ de ] tPair A' B' p' q' : T] ->
+  ∑ A'' B'', (T = tSig A'' B'') × ([Γ |- p : A''] × [Γ |- p' : A'']).
+Proof.
+  intros ? [[? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'].
+  eapply red_ty_compl_sig_l in Hconv as (A''&B''&[Hred]).
+  eapply redty_sound, red_whnf in Hred as ->.
+  2: gen_typing.
+  eapply sig_ty_inj in Hconv' as [].
+  do 2 eexists ; split ; [..|split].
+  - reflexivity.
+  - now econstructor.
+  - now econstructor.
+Qed.
+
+Lemma PairCongUAlg_prem1 Γ A B p q A' B' p' q' A'' B'' :
+  [Γ |-[ de ] tPair A B p q : tSig A'' B''] × [Γ |-[ de ] tPair A' B' p' q' : tSig A'' B''] ->
+  [Γ |-[de] p ≅ p' : A''] ->
+  [Γ |- q : B''[(tFst (tPair A B p q))..]] × [Γ |- q' : B''[(tFst (tPair A B p q))..]].
+Proof.
+  intros * [[? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'] ?.
+  eapply sig_ty_inj in Hconv as [].
+  eapply sig_ty_inj in Hconv' as [].
+  
+  assert [Γ |-[de] p' : A]
+    by (econstructor ; tea ; etransitivity ; tea ; now symmetry).
+  assert [Γ |-[ de ] p ≅ tFst (tPair A B p q) : A] by
+    (econstructor ; symmetry ; now econstructor).
+
+  split.
+  all: econstructor ; tea.
+  all: eapply typing_subst1 ; tea.
+  etransitivity.
+  all: eapply TermConv ; refold ; tea.
+  3: etransitivity ; tea.
+  all: now symmetry.
+Qed.
+
+Lemma PairNeUAlg_prem0 Γ T A B p q n' :
+  isType T ->
+  [Γ |-[ de ] tPair A B p q : T] × [Γ |-[ de ] n' : T] ->
+  ∑ A'' B'', (T = tSig A'' B'') × ([Γ |- p : A''] × [Γ |- tFst n' : A'']).
+Proof.
+  intros ? [[? [[->] [Hconv Hconv']%dup]]%termGen' ?].
+  eapply red_ty_compl_sig_l in Hconv as (?&?&[Hred ]).
+  eapply redty_sound, red_whnf in Hred as ->.
+  2: gen_typing.
+  eapply sig_ty_inj in Hconv' as [].
+  do 2 eexists ; split ; [..|split].
+  - reflexivity.
+  - now econstructor.
+  - now econstructor.
+Qed.
+
+Lemma PairNeUAlg_prem1 Γ A B p q n' A'' B'' :
+  [Γ |-[ de ] tPair A B p q : tSig A'' B''] × [Γ |-[ de ] n' : tSig A'' B''] ->
+  [Γ |-[de] p ≅ tFst n' : A''] ->
+  [Γ |- q : B''[(tFst (tPair A B p q))..]] × [Γ |- tSnd n' : B''[(tFst (tPair A B p q))..]].
+Proof.
+  intros * [[? [[->] Hconv]]%termGen'?] ?.
+  eapply sig_ty_inj in Hconv as [].
+  
+  assert [Γ |-[ de ] p ≅ tFst (tPair A B p q) : A] by
+    (econstructor ; symmetry ; now econstructor).
+
+  split.
+  - econstructor ; tea.
+    now eapply typing_subst1.
+  - econstructor.
+    1: now econstructor.
+    eapply typing_subst1.
+    2: constructor ; boundary.
+    etransitivity ; tea.
+    econstructor.
+    all: now symmetry.
+Qed.
+
+Lemma NePairUAlg_prem0 Γ T n A' B' p' q' :
+  isType T ->
+  [Γ |-[ de ] n : T] × [Γ |-[ de ] tPair A' B' p' q' : T] ->
+  ∑ A'' B'', (T = tSig A'' B'') × ([Γ |- tFst n : A''] × [Γ |- p' : A'']).
+Proof.
+  intros ? [? [? [[->] [Hconv Hconv']%dup]]%termGen'].
+  eapply red_ty_compl_sig_l in Hconv as (?&?&[Hred ]).
+  eapply redty_sound, red_whnf in Hred as ->.
+  2: gen_typing.
+  eapply sig_ty_inj in Hconv' as [].
+  do 2 eexists ; split ; [..|split].
+  - reflexivity.
+  - now econstructor.
+  - now econstructor.
+Qed.
+
+Lemma NePairUAlg_prem1 Γ n A' B' p' q' A'' B'' :
+  [Γ |-[ de ] n : tSig A'' B''] × [Γ |-[ de ] tPair A' B' p' q' : tSig A'' B''] ->
+  [Γ |-[de] tFst n ≅ p' : A''] ->
+  [Γ |- tSnd n : B''[(tFst n)..]] × [Γ |- q' : B''[(tFst n)..]].
+Proof.
+  intros * [? [? [[->] Hconv]]%termGen'] ?.
+  eapply sig_ty_inj in Hconv as [].
+
+  split.
+  - econstructor ; tea.
+  - econstructor ; tea.
+    eapply typing_subst1 ; tea.
+    econstructor.
+    all: now symmetry.
+Qed.
+
+Lemma AppCongUAlg_bridge Γ T m n t u :
+  [Γ |-[al] m ~ n ▹ T] ->
+  well_typed Γ (tApp m t) × well_typed Γ (tApp n u) ->
+  ∑ A B,
+    [T ⤳* tProd A B] ×
+    [× [Γ |-[ de ] m ≅ n : tProd A B],
+           forall T', [Γ |-[ de ] m : T'] -> [Γ |-[ de ] tProd A B ≅ T']
+          & forall T', [Γ |-[ de ] n : T'] -> [Γ |-[ de ] tProd A B ≅ T']].
+Proof.
+  intros Hal [[? [? [(A&B&[-> Hm])]]%termGen'] [? [? [(A'&B'&[->])]]%termGen']].
+  eapply algo_conv_sound in Hal as [? Hpri].
+  2-3: now eexists.
+  epose proof Hm as Hconv%Hpri.
+  eapply red_ty_compl_prod_r in Hconv as (?&?&[]).
+  do 2 eexists ; split ; [..|split].
+  - now eapply redty_sound. 
+  - econstructor ; tea.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+Qed.
+
+Lemma NatElimCongUAlg_bridge Γ T P hz hs n P' hz' hs' n' :
+  [Γ |-[al] n ~ n' ▹ T] ->
+  well_typed Γ (tNatElim P hz hs n) × well_typed Γ (tNatElim P' hz' hs' n') ->
+  [T ⤳* tNat] ×
+    [× [Γ |-[ de ] n ≅ n' : tNat],
+           forall T', [Γ |-[ de ] n : T'] -> [Γ |-[ de ] tNat ≅ T']
+          & forall T', [Γ |-[ de ] n' : T'] -> [Γ |-[ de ] tNat ≅ T']].
+Proof.
+  intros Hal [[? [? [[-> ??? Hn]]]%termGen'] [? [? [[->]]]%termGen']].
+  eapply algo_conv_sound in Hal as [? Hpri].
+  2-3: now eexists.
+  epose proof Hn as Hconv%Hpri.
+  eapply red_ty_compl_nat_r in Hconv.
+  split ; [..|split].
+  - now eapply redty_sound. 
+  - econstructor ; tea.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+Qed.
+
+Lemma EmptyElimCongUAlg_bridge Γ T P n P' n' :
+  [Γ |-[al] n ~ n' ▹ T] ->
+  well_typed Γ (tEmptyElim P n) × well_typed Γ (tEmptyElim P' n') ->
+  [T ⤳* tEmpty] ×
+    [× [Γ |-[ de ] n ≅ n' : tEmpty],
+           forall T', [Γ |-[ de ] n : T'] -> [Γ |-[ de ] tEmpty ≅ T']
+          & forall T', [Γ |-[ de ] n' : T'] -> [Γ |-[ de ] tEmpty ≅ T']].
+Proof.
+  intros Hal [[? [? [[-> ? Hn]]]%termGen'] [? [? [[->]]]%termGen']].
+  eapply algo_conv_sound in Hal as [? Hpri].
+  2-3: now eexists.
+  epose proof Hn as Hconv%Hpri.
+  eapply red_ty_compl_empty_r in Hconv.
+  split ; [..|split].
+  - now eapply redty_sound. 
+  - econstructor ; tea.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+Qed.
+
+Lemma FstCongUAlg_bridge Γ T m n :
+  [Γ |-[al] m ~ n ▹ T] ->
+  well_typed Γ (tFst m) × well_typed Γ (tFst n) ->
+  ∑ A B,
+    [T ⤳* tSig A B] ×
+    [× [Γ |-[ de ] m ≅ n : tSig A B],
+           forall T', [Γ |-[ de ] m : T'] -> [Γ |-[ de ] tSig A B ≅ T']
+          & forall T', [Γ |-[ de ] n : T'] -> [Γ |-[ de ] tSig A B ≅ T']].
+Proof.
+  intros Hal [[? [? [(A&B&[-> Hm])]]%termGen'] [? [? [(A'&B'&[->])]]%termGen']].
+  eapply algo_conv_sound in Hal as [? Hpri].
+  2-3: now eexists.
+  epose proof Hm as Hconv%Hpri.
+  eapply red_ty_compl_sig_r in Hconv as (?&?&[]).
+  do 2 eexists ; split ; [..|split].
+  - now eapply redty_sound. 
+  - econstructor ; tea.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+Qed.
+
+Lemma SndCongUAlg_bridge Γ T m n :
+  [Γ |-[al] m ~ n ▹ T] ->
+  well_typed Γ (tSnd m) × well_typed Γ (tSnd n) ->
+  ∑ A B,
+    [T ⤳* tSig A B] ×
+    [× [Γ |-[ de ] m ≅ n : tSig A B],
+           forall T', [Γ |-[ de ] m : T'] -> [Γ |-[ de ] tSig A B ≅ T']
+          & forall T', [Γ |-[ de ] n : T'] -> [Γ |-[ de ] tSig A B ≅ T']].
+Proof.
+  intros Hal [[? [? [(A&B&[-> Hm])]]%termGen'] [? [? [(A'&B'&[->])]]%termGen']].
+  eapply algo_conv_sound in Hal as [? Hpri].
+  2-3: now eexists.
+  epose proof Hm as Hconv%Hpri.
+  eapply red_ty_compl_sig_r in Hconv as (?&?&[]).
+  do 2 eexists ; split ; [..|split].
+  - now eapply redty_sound. 
+  - econstructor ; tea.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+Qed.
+
+Lemma IdElimCongUAlg_bridge Γ T A x P hr y e A' x' P' hr' y' e' :
+  [Γ |-[al] e ~ e' ▹ T] ->
+  well_typed Γ (tIdElim A x P hr y e) × well_typed Γ (tIdElim A' x' P' hr' y' e') ->
+  ∑ A'' x'' y'', [T ⤳* tId A'' x'' y''] ×
+    [× [Γ |-[ de ] e ≅ e' : tId A'' x'' y''],
+           forall T', [Γ |-[ de ] e : T'] -> [Γ |-[ de ] tId A'' x'' y'' ≅ T']
+          & forall T', [Γ |-[ de ] e' : T'] -> [Γ |-[ de ] tId A'' x'' y'' ≅ T']].
+Proof.
+  intros Hal [[? [? [[-> ????? He]]]%termGen'] [? [? [[->]]]%termGen']].
+  eapply algo_conv_sound in Hal as [? Hpri].
+  2-3: now eexists.
+  epose proof He as Hconv%Hpri.
+  eapply red_ty_compl_id_r in Hconv as (?&?&?&[]).
+  do 3 eexists.
+  split ; [..|split].
+  - now eapply redty_sound. 
+  - econstructor ; tea.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+  - intros.
+    etransitivity ; eauto.
+    symmetry.
+    now eapply RedConvTyC.
+Qed.
+
 Section Soundness.
 
   Let PEq (t u : term) :=
-    (forall Γ, [Γ |-[de] t] -> [Γ |-[de] u] -> [Γ |-[al] t ≅ u]) ×
-    (forall Γ A, [Γ |-[de] t : A] -> [Γ |-[de] u : A] -> [Γ |-[al] t ≅ u : A]).
+    (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[al] t ≅ u]) ×
+    (forall Γ A, [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[al] t ≅ u : A]).
 
   Let PRedEq (t u : term) :=
-    (forall Γ, [Γ |-[de] t] -> [Γ |-[de] u] -> [Γ |-[al] t ≅h u]) ×
-    (forall Γ A, isType A -> [Γ |-[de] t : A] -> [Γ |-[de] u : A] -> [Γ |-[al] t ≅h u : A]).
+    (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[al] t ≅h u]) ×
+    (forall Γ A, isType A -> [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[al] t ≅h u : A]).
 
   Let PNeEq (t u : term) :=
-    forall Γ A A', [Γ |-[de] t : A] -> [Γ |-[de] u : A'] ->
-    ∑ A'', [× [Γ |-[al] t ~ u ▹ A''], [Γ |-[de] A'' ≅ A] & [Γ |-[de] A'' ≅ A']].
+    forall Γ, well_typed Γ t × well_typed Γ u ->
+    ∑ A'', [Γ |-[al] t ~ u ▹ A''].
 
   Lemma uconv_sound :
     UAlgoConvInductionConcl PEq PRedEq PNeEq.
@@ -699,492 +1041,334 @@ Section Soundness.
     subst PEq PRedEq PNeEq.
     unfold UAlgoConvInductionConcl.
     apply UAlgoConvInduction.
+    
     - intros * Ht Hu Ht' [Hty Htm].
       split.
-      + intros.
+      + intros * Hconcl.
+        eapply typeConvRed_prem2 in Hconcl ; tea.
+        now econstructor.
+      + intros * [Hconcl []]%dup.
+        assert [Γ |-[de] A] as [[? ? wh]%type_normalisation]%dup by boundary.
+        eapply termConvRed_prem3 in Hconcl ; tea.
         econstructor ; eauto.
-        eapply Hty.
-        all: now eapply subject_reduction_raw_ty.
-      + intros.
-        assert [Γ |-[de] A] as [? red]%type_normalisation by boundary.
-        eapply subject_reduction_type in red as [] ; refold.
-        2: boundary.
-        econstructor ; eauto.
-        eapply Htm.
-        * eapply type_isType ; tea.
-          boundary.
-        * eapply subject_reduction_raw ; tea.
-          gen_typing.
-        * eapply subject_reduction_raw ; tea.
-          gen_typing.
+        eapply Htm ; eauto.
+        eapply type_isType ; tea.
+        now eapply  subject_reduction_raw_ty.
+
     - split.
       + now econstructor.
-      + intros * ? [? [[] ]]%termGen'.  
+      + intros * ? [[? [[] ]]%termGen' _].
+
     - intros * HA [IHA_ty IHA_tm] HB [IHB_ty IHB_tm].
       split.
-      + intros * [HtyA HtyB]%prod_ty_inv [HtyA' HtyB']%prod_ty_inv.
-        assert [Γ |-[al] A ≅ A'] as Hconv_al by eauto.
-        pose proof Hconv_al as Hconv_de.
-        eapply algo_conv_sound in Hconv_de ; tea.
-        econstructor ; eauto.
-        apply IHB_ty ; tea.
-        now eapply stability1.
-      + intros * ? [? [[-> ] Hred%red_ty_compl_univ_l]]%termGen' [? [[-> ] ]]%termGen'.
-        assert [Γ |-[al] A ≅ A' : U] as Hconv_al by eauto.
-        eapply redty_sound, red_whnf in Hred as ->.
+      + intros ? [Hconcl]%dup.
+        eapply typePiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+        eapply IHA_ty, algo_conv_sound, typePiCongAlg_prem1 in Hpre0 ; tea.
+        now econstructor.
+
+      + intros ? T ? [Hconcl [[Hty]%dup]]%dup.
+
+        eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
         2: gen_typing.
-        pose proof Hconv_al as Hconv_de.
-        eapply algo_conv_sound in Hconv_de ; tea.
-        econstructor ; tea.
-        eapply IHB_tm ; tea.
-        eapply stability1 ; tea.
-        all: gen_typing.
+
+        eapply termPiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+
+        eapply IHA_tm, algo_conv_sound, termPiCongAlg_prem1 in Hpre0 ; eauto.
+        now econstructor.
+        
     - split.
       1: now econstructor.
-      intros * ? _ [? [? Hred]]%termGen'.
-      cbn in * ; subst.
-      eapply red_ty_compl_univ_l, redty_sound, red_whnf in Hred as ->.
+      intros ? T ? [Hty].
+
+      assert (T = U) as ->.
+      {
+        eapply termGen' in Hty as (?&->&?%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
+        gen_typing.
+      }
       constructor.
-      now gen_typing.
+
     - split.
-      + intros * Hz _.
-        inversion Hz ; subst ; refold.
-        eapply termGen' in H as [? [? Hconv]].
-        cbn in * ; subst.
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      + intros * ? _ [? [? Hred]]%termGen'.
-        cbn in * ; subst.
-        eapply red_ty_compl_nat_l, redty_sound, red_whnf in Hred as ->.
+      
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hty].
+        assert (T = tNat) as ->.
+        {
+          eapply termGen' in Hty as (?&->&?%red_ty_compl_nat_l%redty_sound%red_whnf) ; tea.
+          gen_typing.
+        }
         constructor.
-        now gen_typing.
-    - intros * Ht [_ IHt].
-      split.
-      + intros * Hs _.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[-> _] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      + intros * ? [? [[-> ?] Hred]]%termGen' [? [[-> ?] _]]%termGen'.
-        eapply red_ty_compl_nat_l, redty_sound, red_whnf in Hred as ->.
-        2: now gen_typing.
+
+    - split.
+    
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hconcl [Hty]]%dup.
+        assert (T = tNat) as ->.
+        {
+          eapply termGen' in Hty as (?&[->]&?%red_ty_compl_nat_l%redty_sound%red_whnf) ; tea.
+          gen_typing.
+        }
+
+        eapply termSuccCongAlg_prem0 in Hconcl.
         now constructor.
+
     - split.
       1: now econstructor.
-      intros * ? _ [? [? Hred]]%termGen'.
-      cbn in * ; subst.
-      eapply red_ty_compl_univ_l, redty_sound, red_whnf in Hred as ->.
+      intros ? T ? [Hty].
+      assert (T = U) as ->.
+      {
+        eapply termGen' in Hty as (?&->&?%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
+        gen_typing.
+      }
       constructor.
-      now gen_typing.
-    - intros * Ht [_ IHt].
+
+    - intros * ? [].
       split.
-      + intros * Hs _.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[* [->]] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      + intros ? T ? [? [[B [->]] Hconv]]%termGen' [? [[B' [->]] Hconv']]%termGen'.
-        eapply red_ty_compl_prod_l in Hconv as (A''&B''&[Hred]).
-        eapply redty_sound, red_whnf in Hred as ->.
-        2: gen_typing.
-        eapply prod_ty_inj in Hconv' as [].
+    
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hconv]%dup.
+        eapply LamCongUAlg_prem0 in Hconv as (?&?&[->]); tea.
+        
         econstructor.
         1-2: now constructor.
-        eapply algo_conv_tm_expand ; [..|eapply IHt].
+        eapply algo_conv_tm_expand ; eauto.
         1: reflexivity.
         1-2: eapply redalg_one_step, eta_expand_beta.
-        all: econstructor ; [eapply stability1 ; [..| eassumption] | ..] ; tea ; boundary.
-    - intros * Hne Ht [_ IHt].
+
+    - intros * ?? [].
       split.
-      + intros * Hs _.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[* [->]] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      + intros ? T ? [? [[B [->]] Hconv]]%termGen' Hn.
-        eapply red_ty_compl_prod_l in Hconv as (A''&B''&[Hred]).
-        eapply redty_sound, red_whnf in Hred as ->.
-        2: gen_typing.
+    
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hconv]%dup.
+        eapply LamNeUAlg_prem0 in Hconv as (?&?&[->]); tea.
+        
         econstructor.
         1-2: now constructor.
-        eapply algo_conv_tm_expand ; [..|eapply IHt].
-        * reflexivity.
-        * eapply redalg_one_step, eta_expand_beta.
-        * reflexivity.
-        * econstructor ; [eapply stability1 ; [..| eassumption] | ..] ; tea ; boundary.
-        * now eapply typing_eta'.
-    - intros * Hne Ht [_ IHt].
+        eapply algo_conv_tm_expand ; eauto.
+        1,3: reflexivity.
+        eapply redalg_one_step, eta_expand_beta.
+
+
+    - intros * ?? [].
       split.
-      + intros * _ Hs.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[* [->]] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      + intros ? T ? Hn [? [[B [->]] Hconv]]%termGen'.
-        eapply red_ty_compl_prod_l in Hconv as (A''&B''&[Hred]).
-        eapply redty_sound, red_whnf in Hred as ->.
-        2: gen_typing.
+    
+      + intros * [_ Hz%type_isType].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [Hconv]%dup.
+        eapply NeLamUAlg_prem0 in Hconv as (?&?&[->]); tea.
+        
         econstructor.
         1-2: now constructor.
-        eapply algo_conv_tm_expand ; [..|eapply IHt].
-        * reflexivity.
-        * reflexivity.
-        * eapply redalg_one_step, eta_expand_beta.
-        * now eapply typing_eta'.
-        * econstructor ; [eapply stability1 ; [..| eassumption] | ..] ; tea ; boundary.
+        eapply algo_conv_tm_expand ; eauto.
+        1,2: reflexivity.
+        eapply redalg_one_step, eta_expand_beta.
+
     - intros * HA [IHA_ty IHA_tm] HB [IHB_ty IHB_tm].
       split.
-      + intros * [HtyA HtyB]%sig_ty_inv [HtyA' HtyB']%sig_ty_inv.
-        assert [Γ |-[al] A ≅ A'] as Hconv_al by eauto.
-        pose proof Hconv_al as Hconv_de.
-        eapply algo_conv_sound in Hconv_de ; tea.
-        econstructor ; eauto.
-        apply IHB_ty ; tea.
-        now eapply stability1.
-      + intros * ? [? [[-> ] Hred%red_ty_compl_univ_l]]%termGen' [? [[-> ] ]]%termGen'.
-        assert [Γ |-[al] A ≅ A' : U] as Hconv_al by eauto.
-        eapply redty_sound, red_whnf in Hred as ->.
+      + intros ? [Hconcl]%dup.
+        eapply typeSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+        eapply IHA_ty, algo_conv_sound, typeSigCongAlg_prem1 in Hpre0 ; tea.
+        now econstructor.
+
+      + intros ? T ? [Hconcl [[Hty]%dup]]%dup.
+
+        eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
         2: gen_typing.
-        pose proof Hconv_al as Hconv_de.
-        eapply algo_conv_sound in Hconv_de ; tea.
-        econstructor ; tea.
-        eapply IHB_tm ; tea.
-        eapply stability1 ; tea.
-        all: gen_typing.
+
+        eapply termSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+
+        eapply IHA_tm, algo_conv_sound, termSigCongAlg_prem1 in Hpre0 ; eauto.
+        now econstructor.
+
     - intros * Hp [_ IHp] Hq [_ IHq].
       split.
-      + intros * Hs _.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[* ->] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      + intros ? T ? [? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'.
-        eapply red_ty_compl_sig_l in Hconv as (A''&B''&[Hred]).
-        eapply redty_sound, red_whnf in Hred as ->.
-        2: gen_typing.
-        eapply sig_ty_inj in Hconv' as [].
-        assert [Γ |-[de] p' : A]
-          by (econstructor ; tea ; etransitivity ; tea ; now symmetry).
-        assert [Γ |-[al] p ≅ p' : A] as ?%algo_conv_sound by eauto ; tea.
+
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros * ? [Hconcl [[Hty]%dup]]%dup.
+
+        eapply PairCongUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+
+        eapply IHp, algo_conv_sound, PairCongUAlg_prem1 in Hpre0 ; eauto.
         econstructor.
         1-2: now constructor.
-        * eapply algo_conv_tm_expand ; [..|eapply IHp].
-          1: reflexivity.
-          1-2: eapply redalg_one_step ; constructor.
-          all: now econstructor.
-        * assert [Γ |-[ de ] p ≅ tFst (tPair A B p q) : A] by
-            (econstructor ; symmetry ; now econstructor).
-          eapply algo_conv_tm_expand ; [..|eapply IHq].
-          1: reflexivity.
-          1-2: eapply redalg_one_step ; constructor.
-          all: econstructor ; tea.
-          all: eapply typing_subst1 ; tea.
+
+        all: eapply algo_conv_tm_expand.
+        all: solve [eapply redalg_one_step ; now constructor | reflexivity | eauto].
+
+      - intros * ? Hp [_ IHp] Hq [_ IHq].
+        split.
+  
+        + intros * [Hz%type_isType _].
+          2: constructor.
+          inversion Hz ; inv_whne.
+  
+        + intros * ? [Hconcl [[Hty]%dup]]%dup.
+  
+          eapply PairNeUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+  
+          eapply IHp, algo_conv_sound, PairNeUAlg_prem1 in Hpre0 ; eauto.
           econstructor.
-          1: etransitivity ; tea.
-          1: now symmetry.
-          etransitivity ; tea.
-          now symmetry.
-    - intros * Hne Hp [_ IHp] Hq [_ IHq].
+          1-2: now constructor.
+  
+          all: eapply algo_conv_tm_expand.
+          all: solve [eapply redalg_one_step ; now constructor | reflexivity | eauto].
+
+    - intros * ? Hp [_ IHp] Hq [_ IHq].
       split.
-      { intros * Hs _.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[* ->] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
+
+      + intros * [_ Hz%type_isType].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros * ? [Hconcl [[Hty]%dup]]%dup.
+
+        eapply NePairUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+
+        eapply IHp, algo_conv_sound, NePairUAlg_prem1 in Hpre0 ; eauto.
+        econstructor.
         1-2: now constructor.
-        now cbn in *.
-      }
-      intros ? T ? [? [[->] Hconv]]%termGen' Hn.
-      eapply red_ty_compl_sig_l in Hconv as (A''&B''&[Hred]).
-      eapply redty_sound, red_whnf in Hred as ->.
-      2: gen_typing.
-      assert [Γ |-[de] tFst n' : A] by
-        now eapply wfTermConv ; refold ; [econstructor|..].
-      assert [Γ |-[al] p ≅ tFst n' : A] as ?%algo_conv_sound by eauto ; tea.
-      econstructor.
-      1-2: now constructor.
-      + eapply algo_conv_tm_expand ; [..|eapply IHp].
-        1,3: reflexivity.
-        1: eapply redalg_one_step ; constructor.
-        all: now econstructor.
-      + assert [Γ |-[ de ] p ≅ tFst (tPair A B p q) : A] by
-          (econstructor ; symmetry ; now econstructor).
-        eapply algo_conv_tm_expand ; [..|eapply IHq].
-        * reflexivity.
-        * eapply redalg_one_step ; constructor.
-        * reflexivity.
-        * econstructor ; tea.
-          now eapply typing_subst1.
-        * econstructor.
-          1: now econstructor.
-          eapply typing_subst1.
-          2: econstructor ; boundary.
-          etransitivity ; tea.
-          now econstructor ; symmetry.
-    - intros * Hne Hp [_ IHp] Hq [_ IHq].
-      split.
-      { intros * _ Hs.
-        inversion Hs ; subst ; refold.
-        eapply termGen' in H as [? [[* ->] Hconv]].
-        unshelve eapply ty_conv_inj in Hconv.
-        1-2: now constructor.
-        now cbn in *.
-      }
-      intros ? T ? Hn [? [[->] Hconv]]%termGen'.
-      eapply red_ty_compl_sig_l in Hconv as (A''&B''&[Hred]).
-      eapply redty_sound, red_whnf in Hred as ->.
-      2: gen_typing.
-      assert [Γ |-[de] tFst n : A'] by
-        now eapply wfTermConv ; refold ; [econstructor|..].
-      assert [Γ |-[al] tFst n ≅ p' : A'] as ?%algo_conv_sound by eauto ; tea.
-      econstructor.
-      1-2: now constructor.
-      + eapply algo_conv_tm_expand ; [..|eapply IHp].
-        1,2: reflexivity.
-        1: eapply redalg_one_step ; constructor.
-        all: now econstructor.
-      + (* assert [Γ |-[ de ] p ≅ tFst (tPair A B p q) : A''] by
-          (econstructor ; symmetry ; now econstructor). *)
-        eapply algo_conv_tm_expand ; [..|eapply IHq].
-        * reflexivity.
-        * reflexivity.
-        * eapply redalg_one_step ; constructor.
-        * now econstructor.
-        * econstructor ; tea.
-          eapply typing_subst1 ; tea.
-          now econstructor ; symmetry.
+
+        all: eapply algo_conv_tm_expand.
+        all: solve [eapply redalg_one_step ; now constructor | reflexivity | eauto].
+        
     - intros * HA [IHA_ty IHA_tm] Hx [_ IHx_tm] Hy [_ IHy_tm].
       split.
-      + intros * [HtyA [Htyx Htyy]]%id_ty_inv [HtyA' [Htyx' Htyy']]%id_ty_inv.
-        assert [Γ |-[al] A ≅ A'] as [Hconv_al Hconv_de]%dup by eauto.
-        eapply algo_conv_sound in Hconv_de ; tea.
-        econstructor ; eauto.
-        * eapply IHx_tm ; tea ; now econstructor.
-        * eapply IHy_tm ; tea ; now econstructor.
-      + intros * ? [? [[-> ] Hred%red_ty_compl_univ_l]]%termGen' [? [[-> ] ]]%termGen'.
-        assert [Γ |-[al] A ≅ A'] as ?%algo_conv_sound by (eapply IHA_ty ; gen_typing).
-        2-3: gen_typing.
+
+      + intros ? [Hconcl]%dup.
+        eapply typeIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+        eapply IHA_ty, algo_conv_sound in Hpre0 as [Hpost0]%dup; eauto.
+        eapply typeIdCongAlg_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto. 
+        eapply IHx_tm, algo_conv_sound, typeIdCongAlg_prem2 in Hpre1 as [Hpre2]%dup; eauto.
+        now econstructor.
+
+      + intros ? T ? [Hconcl [[Hty]%dup]]%dup.
+
+        eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
+        2: gen_typing.
+
+        eapply termIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+        eapply IHA_tm, algo_conv_sound in Hpre0 as [Hpost0]%dup; eauto.
+        eapply termIdCongAlg_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto. 
+        eapply IHx_tm, algo_conv_sound, termIdCongAlg_prem2 in Hpre1 as [Hpre2]%dup; eauto.
+        now econstructor.
+
+    - split.
+  
+      + intros * [Hz%type_isType _].
+        2: constructor.
+        inversion Hz ; inv_whne.
+
+      + intros ? T ? [[? [[->] Hconv]]%termGen' _].
+        eapply red_ty_compl_id_l in Hconv as (?&?&?&[Hred]).
         eapply redty_sound, red_whnf in Hred as ->.
         2: gen_typing.
-        econstructor ; eauto.
-        * eapply IHx_tm ; tea ; now econstructor.
-        * eapply IHy_tm ; tea ; now econstructor.
-    - intros *.
-      split.
-      { intros * Hs _.
-      inversion Hs ; subst ; refold.
-      eapply termGen' in H as [? [[* ->] Hconv]].
-      unshelve eapply ty_conv_inj in Hconv.
-      1-2: now constructor.
-      now cbn in *.
-      }
-      intros ? T ? [? [[->] Hconv]]%termGen' _.
-      eapply red_ty_compl_id_l in Hconv as (?&?&?&[Hred]).
-      eapply redty_sound, red_whnf in Hred as ->.
-      2: gen_typing.
-      econstructor.
+        econstructor.
+      
     - intros * Hconv IH.
       split.
-      + intros * Hm Hn.
-        edestruct IH as [? []].
-        * eapply neutral_ty_inv in Hm.
-          2: now eapply algo_uconv_wh in Hconv as [].
-          eassumption.
-        * eapply neutral_ty_inv in Hn.
-          2: now eapply algo_uconv_wh in Hconv as [].
-          eassumption.
-        * now econstructor.
-      + intros * ? Hm Hn.
-        edestruct IH as [? [IHconv ]] ; tea.
-        epose proof IHconv as []%algo_conv_sound.
-        2-3: now eexists.
-        eapply ne_conv_conv in IHconv.
-        2: boundary.
-        2-3: econstructor ; tea ; now symmetry.
-        eapply algo_conv_conv in IHconv ; tea.
-        2: eapply ctx_refl ; boundary.
-        2-3: now econstructor.
-        inversion IHconv as [??????? hA hm hn] ; subst ; refold.
-        eapply red_whnf in hA as -> ; [|gen_typing].
-        eapply red_whnf in hm as -> ; [|eapply algo_uconv_wh in Hconv as [] ; gen_typing].
-        eapply red_whnf in hn as -> ; [|eapply algo_uconv_wh in Hconv as [] ; gen_typing].
-        assumption.
-    - intros * [? [[decl [-> ? Hdecl]] ]]%termGen' [? [[? [->]] ]]%termGen'.
-      eapply in_ctx_inj in Hdecl ; tea ; subst.
-      eexists ; split.
-      1: econstructor ; tea.
-      all: now symmetry.
-    - intros * Hm IHm Ht [_ IHt] ? T T' [? [(A&B&[->])]]%termGen' [? [(A'&B'&[->])]]%termGen'.
-      edestruct IHm as [T'' [? Hconv Hconv']] ; tea.
-      eapply red_ty_compl_prod_r in Hconv as (?&?&[Hred]).
-      eapply red_ty_compl_prod_r in Hconv' as (A''&B''&[Hred']).
-      eapply redty_sound, whred_det in Hred' ; [..|eapply Hred].
-      2-3: now constructor.
-      inversion Hred' ; subst ; clear Hred'.
-      assert [Γ |-[ al ] t ≅ u : A''] as [? ?%algo_conv_sound]%dup by
-        (eapply IHt ; econstructor ; tea).
-      2-3: now econstructor.
-      eexists ; split.
-      + do 2 (econstructor ; tea).
-        2: now constructor.
-        now eapply redty_sound.
-      + etransitivity ; tea.
-        eapply typing_subst1 ; tea.
-        constructor.
-        boundary.
-      + etransitivity ; tea.
-        eapply typing_subst1.
-        2: eassumption.
-        econstructor ; tea.
-        now symmetry.
-    - intros * Hn IHn Hp [IHP _] Hz [_ IHz] HS [_ IHS] ? T T'
-        [? [[->]]]%termGen' [? [[->]]]%termGen'.
-      edestruct IHn as [T'' [Hconvn Hconv Hconv']] ; tea.
-      eapply red_ty_compl_nat_r in Hconv.
-      eapply red_ty_compl_nat_r in Hconv'.
-      assert [Γ,, tNat |-[al] P ≅ P'] as [? ?%algo_conv_sound]%dup by (now eapply IHP) ; tea.
-      eexists ; split.
-      1: econstructor ; tea.
-      + econstructor ; tea.
-        2: now constructor.
-        now eapply redty_sound.
-      + eapply IHz ; tea.
-        econstructor ; tea.
-        symmetry.
-        eapply typing_subst1 ; tea.
-        do 2 constructor.
-        boundary.
-      + eapply IHS ; tea.
-        econstructor ; tea.
-        symmetry.
-        eapply elimSuccHypTy_conv ; tea.
-        boundary.
-      + now symmetry.
-      + etransitivity.
-        2: eassumption.
-        eapply typing_subst1 ; tea.
-        eapply algo_conv_sound in Hconvn as [].
-        2-3: now eexists.
+      
+      + intros * [Hconcl]%dup.
+        eapply algo_uconv_wh in Hconv as [].
+        eapply typeNeuConvAlg_prem2 in Hconcl ; tea.
+        edestruct IH ; tea.
         now econstructor.
-    - intros * Hn IHn Hp [IHP _] ? T T'
-        [? [[->]]]%termGen' [? [[->]]]%termGen'.
-      edestruct IHn as [T'' [Hconvn Hconv Hconv']] ; tea.
-      eapply red_ty_compl_empty_r in Hconv.
-      eapply red_ty_compl_empty_r in Hconv'.
-      assert [Γ,, tEmpty |-[al] P ≅ P'] as [? ?%algo_conv_sound]%dup by (now eapply IHP) ; tea.
-      eexists ; split.
-      1: econstructor ; tea.
-      + econstructor ; tea.
-        2: now constructor.
-        now eapply redty_sound.
-      + now symmetry.
-      + etransitivity.
-        2: eassumption.
-        eapply typing_subst1 ; tea.
-        eapply algo_conv_sound in Hconvn as [].
-        2-3: now eexists.
-        now econstructor.
-    - intros * Hm IHm * [? [(A&B&[->])]]%termGen' [? [(A'&B'&[->])]]%termGen'.
-      edestruct IHm as [T'' [? Hconv Hconv']] ; tea.
-      eapply red_ty_compl_sig_r in Hconv as (?&?&[Hred]).
-      eapply red_ty_compl_sig_r in Hconv' as (A''&B''&[Hred']).
-      eapply redty_sound, whred_det in Hred' ; [..|eapply Hred].
-      2-3: now constructor.
-      injection Hred' ; intros ; subst ; clear Hred'.
-      eexists ; split.
-      + do 2 (econstructor ; tea).
-        2: now constructor.
-        now eapply redty_sound.
-      + now transitivity A.
-      + now transitivity A'.
-    - intros * Hm IHm * [? [(A&B&[->])]]%termGen' [? [(A'&B'&[->])]]%termGen'.
-      edestruct IHm as [T'' [Hconvm Hconv Hconv']] ; tea.
-      eapply red_ty_compl_sig_r in Hconv as (?&?&[Hred]).
-      eapply red_ty_compl_sig_r in Hconv' as (A''&B''&[Hred']).
-      eapply redty_sound, whred_det in Hred' ; [..|eapply Hred].
-      2-3: now constructor.
-      injection Hred' ; intros ; subst ; clear Hred'.
-      eexists ; split.
-      + do 2 (econstructor ; tea).
-        2: now constructor.
-        now eapply redty_sound.
-      + etransitivity ; tea.
-        eapply typing_subst1 ; tea.
-        eapply TermConv ; refold.
-        1: now do 2 econstructor.
-        now symmetry.
-      + etransitivity ; tea.
-        eapply typing_subst1 ; tea.
-        eapply algo_conv_sound in Hconvm as [].
-        2-3: now eexists.
-        do 2 econstructor ; tea.
-        now eapply RedConvTyC.
-    - intros * Hn IHn HP [IHP _] Hr [_ IHr] ? T T' [? [[->]]]%termGen' [? [[->]]]%termGen'.
-      edestruct IHn as [T'' [[Hconvn Hconvn']%dup Hconv Hconv']] ; tea.
-      eapply red_ty_compl_id_r in Hconv as (?&?&?&[Hred]).
-      eapply red_ty_compl_id_r in Hconv' as (A''&x''&y''&[Hred']).
-      eapply redty_sound, whred_det in Hred' ; [..|eapply Hred].
-      2-3: constructor.
-      inversion Hred' ; subst ; clear Hred'.
-      eapply algo_conv_sound in Hconvn' as [].
-      2-3: now eexists.
-      assert [Γ |-[de] A' ≅ A] by
-        (etransitivity ; tea ; now symmetry).
-      assert [Γ |-[ de ] x' ≅ x : A'].
-      {
-        etransitivity ; tea.
-        1: now symmetry.
-        econstructor ; tea.
-        now symmetry.
-      }
-      eassert [(Γ,, A),, tId A⟨wk1 A⟩ x⟨wk1 A⟩ (tRel 0) |-[ al ] P ≅ P'] as [? ?%algo_conv_sound]%dup.
-      {
-        eapply IHP.
-        1: boundary.
-        eapply stability ; tea.
-        eapply idElimMotiveCtxConv ; tea.
-        2-3: now boundary.
-        eapply ctx_refl ; boundary.
-      }
-      eexists ; split.
-      1: econstructor ; tea.
-      + econstructor ; tea.
-        2: now constructor.
-        now eapply redty_sound.
-      + eapply IHr ; tea.
-        econstructor ; tea.
-        eapply typing_subst2.
-        4: now symmetry.
-        * boundary.
-        * now econstructor.
-        * cbn ; rewrite 2!wk1_ren_on, 2! shift_subst_eq.
-          econstructor.
-          1: econstructor ; tea.
-          econstructor ; tea.
-          econstructor.
-          boundary.
-      + eauto.
-      + etransitivity ; [|eauto].
-        eapply typing_subst2 ; tea.
-        * boundary.
-        * etransitivity.
-          1: now symmetry.
-          now econstructor.
-        * cbn ; rewrite 2!wk1_ren_on, 2! shift_subst_eq.
-          econstructor ; tea.
-          eauto.
-      + boundary.
-      + eapply stability.
-        1: boundary.
-        eapply idElimMotiveCtxConv ; tea.
-        1: eapply ctx_refl ; boundary.
-        1: boundary.
-        now eapply idElimMotiveCtx.
+
+      + intros * ? [Hconcl []]%dup.
+        pose proof Hconv as []%algo_uconv_wh.
+        eapply termNeuConvAlg_prem0 in Hconcl as [] ; tea.
+        edestruct IH as [? IHconv] ; eauto.
+        epose proof IHconv as []%algo_conv_sound ; tea.
+        eapply ne_conv_conv in IHconv ; eauto.
+        boundary.
+
+    - intros * [[? [? [[decl [-> ? Hdecl]] ]]%termGen'] _].
+      eexists.
+      now econstructor.
+
+    - intros * ? IH ? [_] ? [Hconcl]%dup.
+
+      eapply neuAppCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply AppCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1 []]%dup]); eauto.
+      eapply neuAppCongAlg_prem1 in Hpre1 ; eauto.
+      eexists ; econstructor ; eauto.
+      econstructor ; tea.
+      constructor.
+
+    - intros * ? IH ? [IHP] ? [_ IHz] ? [_ IHs] ? [Hconcl]%dup.
+
+      eapply neuNatElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply NatElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuNatElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply IHP in Hpre1 as [Hpos1]%dup ; eauto.
+      eapply algo_conv_sound in Hpos1 as [Hpos1]%dup ; eauto.
+      eapply neuNatElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
+      eapply IHz in Hpre2 as [Hpos2]%dup ; eauto.
+      eapply algo_conv_sound in Hpos2 as [Hpos2]%dup ; eauto.
+      eapply neuNatElimCong_prem3 in Hpos2 as [Hpre3 []]%dup ; eauto.
+      eapply IHs in Hpre3 as Hpos3 ; eauto.
+      eexists ; econstructor ; tea.
+      econstructor ; eauto.
+      now econstructor.
+
+    - intros * ? IH ? [IHP] ? [Hconcl]%dup.
+
+      eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply EmptyElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuEmptyElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply IHP in Hpre1 as [Hpos1]%dup ; eauto.
+      eexists.
+      repeat (econstructor ; eauto).
+
+    - intros * ? IH ? [Hconcl]%dup.
+
+      eapply neuFstCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply FstCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1 []]%dup]); eauto.
+      eexists ; econstructor ; eauto.
+      econstructor ; tea.
+      constructor.
+
+    - intros * ? IH ? [Hconcl]%dup.
+
+      eapply neuSndCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply SndCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1 []]%dup]); eauto.
+      eexists ; econstructor ; eauto.
+      econstructor ; tea.
+      constructor.
+
+    - intros * ? IH ? [IHP] ? [_ IHr]  ? [Hconcl]%dup.
+
+      eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply IdElimCongUAlg_bridge in Hpost0 as [? (?&?&?&[Hpost0]%dup)]; eauto.
+      eapply neuIdElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply IHP in Hpre1 as [Hpos1]%dup ; eauto.
+      eapply algo_conv_sound in Hpos1 as [Hpos1]%dup ; eauto.
+      eapply neuIdElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
+      eapply IHr in Hpre2 as [Hpos2]%dup ; eauto.
+      eexists ; econstructor ; tea.
+      econstructor ; eauto.
+      now econstructor.
   Qed.
 
 End Soundness.
@@ -1231,7 +1415,7 @@ Section Completeness.
       split ; [now econstructor|..] ;
       intros Hne ; now inversion Hne].
     - intros ; now prod_hyp_splitter.
-    - intros * whf whg ? [[IHconv IHne]] ? Hf Hg.
+    - intros * whf whg ? [[IHconv IHne]] [Hf Hg].
       eapply fun_isFun in Hf ; tea.
       eapply fun_isFun in Hg ; tea.
       destruct Hf, Hg.
@@ -1241,26 +1425,26 @@ Section Completeness.
         inversion IHconv ; subst.
         econstructor ; tea.
         all: eapply eta_expand_beta_inv ; tea.
-        all: now eapply algo_uconv_wh in H3 as [].
+        all: now eapply algo_uconv_wh in H2 as [].
       + split.
         2: intros Hne ; inversion Hne.
         econstructor ; tea.
         inversion IHconv ; subst.
         econstructor ; tea.
         eapply eta_expand_beta_inv ; tea.
-        now eapply algo_uconv_wh in H3 as [].
+        now eapply algo_uconv_wh in H2 as [].
       + split.
         2: intros ? Hne ; inversion Hne.
         econstructor ; tea.
         inversion IHconv ; subst.
         econstructor ; tea.
         eapply eta_expand_beta_inv ; tea.
-        now eapply algo_uconv_wh in H3 as [].
+        now eapply algo_uconv_wh in H2 as [].
       + split.
         1: econstructor.
         2: intros _ _.
         all: eapply whne_app_inv, IHne ; econstructor ; now eapply whne_ren.
-    - intros * whp whq ? [[IHconv IHne]] ? [[IHconv' IHne']] ? Hp Hq.
+    - intros * whp whq ? [[IHconv IHne]] ? [[IHconv' IHne']] [Hp Hq].
       eapply sig_isPair in Hp ; tea.
       eapply sig_isPair in Hq ; tea.
       destruct Hp, Hq.
@@ -1270,33 +1454,33 @@ Section Completeness.
         * inversion IHconv ; subst.
           econstructor ; tea.
           all: eapply eta_expand_fst_inv ; tea.
-          all: now eapply algo_uconv_wh in H4 as [].
+          all: now eapply algo_uconv_wh in H3 as [].
         * inversion IHconv' ; subst.
           econstructor ; tea.
           all: eapply eta_expand_snd_inv ; tea.
-          all: now eapply algo_uconv_wh in H4 as [].
+          all: now eapply algo_uconv_wh in H3 as [].
       + split.
         2: intros Hne ; inversion Hne.
         econstructor ; tea.
         * inversion IHconv ; subst.
           econstructor ; tea.
           eapply eta_expand_fst_inv ; tea.
-          now eapply algo_uconv_wh in H4 as [].
+          now eapply algo_uconv_wh in H3 as [].
         * inversion IHconv' ; subst.
           econstructor ; tea.
           all: eapply eta_expand_snd_inv ; tea.
-          all: now eapply algo_uconv_wh in H4 as [].
+          all: now eapply algo_uconv_wh in H3 as [].
       + split.
         2: intros ? Hne ; inversion Hne.
         econstructor ; tea.
         * inversion IHconv ; subst.
           econstructor ; tea.
           eapply eta_expand_fst_inv ; tea.
-          now eapply algo_uconv_wh in H4 as [].
+          now eapply algo_uconv_wh in H3 as [].
         * inversion IHconv' ; subst.
           econstructor ; tea.
           all: eapply eta_expand_snd_inv ; tea.
-          all: now eapply algo_uconv_wh in H4 as [].
+          all: now eapply algo_uconv_wh in H3 as [].
       + split.
         1: econstructor.
         2: intros _ _.
