@@ -78,6 +78,8 @@ theories/Decidability/Soundness.v
 theories/Decidability/Completeness.v
 theories/Decidability/Termination.v
 theories/Decidability.v
+theories/Decidability/UntypedSoundness.v
+theories/Decidability/UntypedCompleteness.v
 
 theories/Sections.v
 theories/UntypedAlgorithmicConversion.v

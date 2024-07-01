@@ -2,7 +2,7 @@
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context Notations UntypedReduction Weakening DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
+From LogRel Require Import BasicAst Context Notations UntypedReduction Weakening DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
 From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel.Decidability Require Import Functions Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
@@ -64,14 +64,14 @@ Proof.
     eapply typeConvRed_prem2, IHA in Hconcl as [] ; eauto.
     2: now eapply type_isType.
     split ; [now eexists|..].
-    now intros [].
+    now intros [] ; cbn.
     
   - intros * ???? * wB' [Hconcl]%dup.
     apply compute_domain.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    2: now unshelve erewrite (whne_ty_view1 _).
+    2: now unshelve erewrite (whne_ty_view1 _) ; cbn ; cbn.
     
     eapply typePiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -84,28 +84,28 @@ Proof.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    now unshelve erewrite (whne_ty_view1 _).
+    now unshelve erewrite (whne_ty_view1 _) ; cbn ; cbn.
 
   - intros * wB' ?.
     apply compute_domain.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    now unshelve erewrite (whne_ty_view1 _).
+    now unshelve erewrite (whne_ty_view1 _) ; cbn.
   
   - intros * wB' ?.
     apply compute_domain.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    now unshelve erewrite (whne_ty_view1 _).
+    now unshelve erewrite (whne_ty_view1 _) ; cbn.
 
   - intros * ? ? ? ? * wB' [Hconcl]%dup.
     apply compute_domain.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    2: now unshelve erewrite (whne_ty_view1 _).
+    2: now unshelve erewrite (whne_ty_view1 _) ; cbn.
     
     eapply typeSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -118,7 +118,7 @@ Proof.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    2: now unshelve erewrite (whne_ty_view1 _).
+    2: now unshelve erewrite (whne_ty_view1 _) ; cbn.
 
     eapply typeIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -138,7 +138,7 @@ Proof.
     do 2 (unshelve erewrite whne_ty_view1 ; tea) ; cbn.
 
     eapply typeNeuConvAlg_prem2 in Hconcl as [Hpre0 []]%dup ; eauto.
-    now split ; [..| intros []].
+    now split ; [..| intros []] ; cbn.
 
   - intros ? n ? ? * wu' [Hconcl]%dup.
     apply compute_domain.

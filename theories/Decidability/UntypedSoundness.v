@@ -2,8 +2,7 @@
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context Notations UntypedReduction GenericTyping NormalForms.
-From LogRel Require Import AlgorithmicTyping UntypedAlgorithmicConversion.
+From LogRel Require Import Utils BasicAst Context Notations UntypedReduction GenericTyping NormalForms AlgorithmicTyping UntypedAlgorithmicConversion.
 From LogRel.Decidability Require Import Functions UntypedFunctions Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
@@ -42,7 +41,7 @@ Section ConversionSound.
       | H : (_,_,_) = (_,_,_) |- _ => injection H; clear H; intros; subst 
       end).
     all: try solve [now econstructor].
-    1-4: econstructor ; tea.
+    1-4: econstructor ; eauto.
     1-4: match goal with | H : whnf ?t |- whne ?t =>
       now destruct H ; simp build_nf_view3 build_ty_view1 in Heq ; try solve [inversion Heq]
       end.
@@ -50,7 +49,7 @@ Section ConversionSound.
     now constructor.
   Qed.
 
-  Corollary implem_conv_graph x r :
+  Corollary implem_uconv_graph x r :
     graph _uconv x r ->
     uconv_sound_type x r.
   Proof.

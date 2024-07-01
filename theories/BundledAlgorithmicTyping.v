@@ -8,7 +8,8 @@ Open Scope bs.
 Open Scope bool_scope.
 
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj.
+From LogRel Require Export Utils.
+From LogRel Require Import BasicAst Notations Context NormalForms Weakening UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj.
 
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 

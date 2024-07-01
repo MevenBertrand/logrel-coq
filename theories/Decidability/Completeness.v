@@ -335,6 +335,18 @@ Proof.
     all: inversion e.
 Qed.
 
+(* The combinator rec throws in a return branch with a type 
+  necessarily convertible to the exception errors type, but the syntactic 
+  mismatch between the 2 types prevents `rec_graph` from `apply`ing.
+  This tactic fixes the type in the return branch to what's expected
+  syntactically. *)
+  Ltac patch_rec_ret :=
+    try (unfold rec;
+    match goal with 
+    | |- orec_graph _ (_rec _ (fun _ : ?Bx => _)) ?hBa => 
+      let Ba := type of hBa in change Bx with Ba
+    end).
+
 Section ConversionComplete.
 
 Let PTyEq (Γ : context) (A B : term) :=
@@ -351,19 +363,6 @@ Let PTmRedEq (Γ : context) (A t u : term) :=
   graph _conv (tm_red_state;Γ;A;t;u) ok.
 
 Arguments PFun_instance_1 : simpl never.
-
-
-(* The combinator rec throws in a return branch with a type 
-  necessarily convertible to the exception errors type, but the syntactic 
-  mismatch between the 2 types prevents `rec_graph` from `apply`ing.
-  This tactic fixes the type in the return branch to what's expected
-  syntactically. *)
-Ltac patch_rec_ret :=
-  try (unfold rec;
-  match goal with 
-  | |- orec_graph _ (_rec _ (fun _ : ?Bx => _)) ?hBa => 
-    let Ba := type of hBa in change Bx with Ba
-  end).
 
 Lemma _implem_conv_complete :
   BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
@@ -622,13 +621,6 @@ Proof.
   all: try solve [case c ; constructor].
   all: reflexivity.
 Qed.
-
-Ltac patch_rec_ret :=
-  try (unfold rec;
-  match goal with 
-  | |- orec_graph _ (_rec _ (fun _ : ?Bx => _)) ?hBa => 
-    let Ba := type of hBa in change Bx with Ba
-  end).
 
 Let PTy Γ A := forall v, graph (typing conv) (wf_ty_state;Γ;v;A) ok.
 Let PInf Γ A t := forall v, graph (typing conv) (inf_state;Γ;v;t) (success A).

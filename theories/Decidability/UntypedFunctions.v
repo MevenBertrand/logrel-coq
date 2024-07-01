@@ -145,7 +145,7 @@ Equations uconv_tm : (term × term) -> M unit :=
   | (t,u) :=
     t' ← call_single wh_red t ;;[M0]
     u' ← call_single wh_red u ;;[M0]
-    id <*> rec (tm_red_state,t',u').
+    rec (tm_red_state,t',u').
     
 Equations uconv_tm_red : (term × term) -> M unit :=
   | (t,t') with (build_nf_view2 t t') :=
@@ -183,8 +183,7 @@ Equations uconv_tm_red : (term × term) -> M unit :=
         rec (tm_state,tFst t, t') ;;
         rec (tm_state,tSnd t,u') ;
     | refls A A' x x' := 
-      rec (tm_state,A,A') ;;
-      rec (tm_state,x,x') ;
+      ok ;
     | neutrals _ _ :=
       rec (ne_state,t,t') ;
     | mismatch _ _ := raise (head_mismatch None t t') ;

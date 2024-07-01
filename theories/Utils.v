@@ -138,7 +138,7 @@ End ReflexiveTransitiveClosure.
 Definition dup {A : Type} : A -> A × A := fun x => (x,x).
 
 Ltac tea := try eassumption.
-Ltac easy ::= solve [intuition eauto 3 with core crelations].
+#[global] Ltac easy ::= solve [intuition eauto 3 with core crelations].
 
 Ltac prod_splitter :=
   repeat match goal with

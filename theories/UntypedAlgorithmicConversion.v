@@ -582,7 +582,7 @@ Section NeutralConversion.
     whnf A' ->
     whnf m ->
     whnf n ->
-    [Γ |-[ al ] m ≅ n : A] ->
+    [Γ |-[al] m ≅ n : A] ->
     [Γ |-[al] m ≅h n : A'].
   Proof.
     intros hred hA hm hn hconv.
@@ -592,103 +592,6 @@ Section NeutralConversion.
     2: now eapply algo_conv_wh in hconv as [] ; gen_typing.
     eassumption.
   Qed.
-
-  (* Lemma conv_ne_complete_pos (Γ : context) (A A' m n : term) :
-    [A ⤳* A'] ->
-    isPosType A' ->
-    whne m ->
-    whne n ->
-    [Γ |-[ al ] m ≅ n : A] ->
-    ∑ A'', [Γ |-[al] m ~ n ▹ A''].
-  Proof.
-    intros redA hpos hnem hnen hconv.
-    eapply conv_wh_conv_red in hconv ; tea.
-    2-4: now gen_typing.
-    inversion hconv ; subst ; refold ; [..|easy].
-    all: try solve [now inversion hnem].
-    all: inversion hpos as [ | | | | ? hpos']; now inversion hpos'.
-  Qed.
-
-  Lemma conv_ne_complete (Γ : context) (A m n : term) :
-    [Γ |-[de] A] ->
-    whne m ->
-    whne n ->
-    [Γ |-[al] m ≅ n : A] ->
-    ∑ A', [Γ |-[al] m ~ n ▹ A'].
-  Proof.
-    intros * Hty.
-    eapply Fundamental in Hty as [? Hfund%reducibleTy].
-    revert m n.
-    pattern one, Γ, A, Hfund. apply LR_rect_TyUr ; clear Γ A VΓ Hfund.
-    - intros * [??? [_ ?%redty_red]] **.
-      eapply conv_ne_complete_pos ; tea.
-      now constructor.
-    - intros ? * [? [_ ?%redty_red] []] **.
-      eapply conv_ne_complete_pos ; tea.
-      now econstructor.
-    - intros ? ? ? ΠA IHdom IHcod m n hmne hnne Hconv ; cbn in *.
-      destruct ΠA  as [?? [] ??? []]; cbn in *.
-      eapply conv_wh_conv_red in Hconv ; tea.
-      2: now eapply redty_red.
-      2-4: now gen_typing.
-      unshelve edestruct IHcod.
-      + exact (Γ,, dom).
-      + exact (tRel var_zero).
-      + eapply wk1.
-      + econstructor ; boundary.
-      + exact (tApp m⟨↑⟩ (tRel 0)).
-      + exact (tApp n⟨↑⟩ (tRel 0)).
-      + eapply var0.
-        1: now rewrite wk1_ren_on.
-        boundary.
-      + econstructor ; now eapply whne_ren.
-      + econstructor ; now eapply whne_ren. 
-      + inversion Hconv ; subst ; refold.
-        2: now inversion H0 ; inversion H1.
-        replace cod[_] with cod ; tea.
-        bsimpl.
-        rewrite scons_eta'.
-        now bsimpl.
-      + inversion projT2 ; subst ; clear projT2 ; refold.
-        unshelve eapply algo_conv_str in H4 as [? []].
-        2: eapply wk1.
-        4-5: rewrite wk1_ren_on ; reflexivity.
-        inversion c ; subst ; refold ; clear c.
-        now eexists.
-  - intros ? * [[? ?%redty_red]] **.
-    eapply conv_ne_complete_pos ; tea.
-    now constructor.
-  - intros _ * [[? ?%redty_red]] * ?? Hconv.
-    eapply conv_ne_complete_pos ; tea.
-    now constructor.
-  - intros ? ? ? ΣA IHdom IHcod m n hmne hnne Hconv ; cbn in *.
-    destruct ΣA  as [?? [] ??? []]; cbn in *.
-    eapply conv_wh_conv_red in Hconv ; tea.
-    2: now eapply redty_red.
-    2-4: now gen_typing.
-    unshelve edestruct IHdom.
-    + exact Γ.
-    + eapply wk_id.
-    + exact (tFst m).
-    + exact (tFst n).
-    + boundary.
-    + now econstructor.
-    + now econstructor.
-    + inversion Hconv ; subst ; refold.
-      2: now inversion H0 ; inversion H1.
-      replace dom[_] with dom ; tea.
-      now bsimpl.
-    + inversion projT2 ; subst ; clear projT2 ; refold.
-      unshelve eapply algo_conv_str in H3 as [? []].
-      2: eapply wk_id.
-      4-5: rewrite wk_id_ren_on ; reflexivity.
-      inversion c ; subst ; refold ; clear c.
-      now eexists.
-  - intros ??? [??? ? red] ?? * ?? Hconv ; cbn in *.
-    eapply conv_ne_complete_pos ; tea.
-    1: now eapply red.
-    now constructor.
-  Qed. *)
 
 End NeutralConversion.
 

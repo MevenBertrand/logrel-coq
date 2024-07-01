@@ -2,7 +2,7 @@ From MetaCoq.Utils Require Import MCString bytestring.
 From MetaCoq.Common Require Import uGraph BasicAst.
 From MetaCoq.Template Require Import ReflectAst Checker Typing Ast Loader TemplateMonad.
 
-From LogRel Require Import Utils.
+From LogRel Require Export Utils.
 
 Import monad_utils.MCMonadNotation.
 Require Import MSets List.

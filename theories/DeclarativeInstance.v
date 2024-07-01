@@ -82,7 +82,7 @@ Section TypingWk.
       * eapply ihP; econstructor; tea; now econstructor.
       * eapply typing_meta_conv.
         1: now eapply ihhz.
-        now erewrite subst_ren_wk_up.
+        now bsimpl.
       * rewrite wk_elimSuccHypTy.
         now eapply ihhs.
       * now eapply ihn.
@@ -196,7 +196,7 @@ Section TypingWk.
       * eapply convtm_meta_conv.
         1: now eapply ihhz.
         2: reflexivity.
-        now erewrite subst_ren_wk_up.
+        now bsimpl.
       * rewrite wk_elimSuccHypTy. 
         now eapply ihhs.
       * now eapply ihn.
@@ -206,7 +206,7 @@ Section TypingWk.
       * eapply ihP; constructor; tea; now constructor.
       * eapply typing_meta_conv.
         1: now eapply ihhz.
-        now erewrite subst_ren_wk_up.
+        now bsimpl.
       * rewrite wk_elimSuccHypTy.
         now eapply ihhs.
     - intros * ? ihP ? ihhz ? ihhs ? ihn **.
@@ -215,7 +215,7 @@ Section TypingWk.
       * eapply ihP; constructor; tea; now constructor.
       * eapply typing_meta_conv.
         1: now eapply ihhz.
-        now erewrite subst_ren_wk_up.
+        now bsimpl.
       * rewrite wk_elimSuccHypTy.
         now eapply ihhs.
       * now eapply ihn.
