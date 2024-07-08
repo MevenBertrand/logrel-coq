@@ -43,7 +43,7 @@ Section RedImplemComplete.
     Acc R (t,π).
   Proof.
     intros.
-    now eapply R_acc, typing_SN.
+    now eapply R_acc, typing_acc_cored.
   Qed.
 
   Lemma well_typed_zip Γ t π :

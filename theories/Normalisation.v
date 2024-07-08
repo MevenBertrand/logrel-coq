@@ -186,7 +186,7 @@ Import DeclarativeTypingProperties.
 
 Record cored t t' : Prop := { _ : [t' ⤳ t] }.
 
-Theorem typing_SN Γ t :
+Theorem typing_acc_cored Γ t :
   well_formed Γ t ->
   Acc cored t.
 Proof.

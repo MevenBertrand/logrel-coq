@@ -80,7 +80,7 @@ Proof.
   + intros * ? [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
+    eapply termGen' in Hty as (?&[->]& ->%red_ty_compl_univ_l').
     2: gen_typing.
 
     eapply termPiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
@@ -108,7 +108,7 @@ Proof.
     intros ? T ? [[Hty] Hpre0]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_nat_l%redty_sound%red_whnf) ; tea.
+    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_nat_l') ; tea.
     2: gen_typing.
     eapply termSuccCongAlg_prem0 in Hpre0.
     patch_rec_ret ; econstructor ; [now eapply IH_tm|..].
@@ -169,7 +169,7 @@ Proof.
   + intros * ? [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
+    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l') ; tea.
     2: gen_typing.
 
     eapply termSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
@@ -236,7 +236,7 @@ Proof.
     + intros ? ?? [Hconcl [[Hty]%dup]]%dup.
       unfold graph.
       simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-      eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l%redty_sound%red_whnf) ; tea.
+      eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l') ; tea.
       2: gen_typing.
       eapply termIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
       econstructor ; [now eapply IHA_tm|..] ; cbn.
@@ -323,21 +323,21 @@ Proof.
 
   - intros * ? IH ? [Hconcl]%dup.
     unfold graph.
-    simp _uconv uconv_ne ; cbn.
+    simp _uconv uconv_ne to_neutral_diag ; cbn.
     eapply neuFstCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IH|..] ; cbn.
     now constructor.
 
   - intros * ? IH ? [Hconcl]%dup.
     unfold graph.
-    simp _uconv uconv_ne ; cbn.
+    simp _uconv uconv_ne to_neutral_diag ; cbn.
     eapply neuSndCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IH|..] ; cbn.
     now constructor.
 
   - intros * ? IH ? [IHP] ? [_ IHe] ? [Hconcl]%dup.
     unfold graph.
-    simp _uconv uconv_ne ; cbn.
+    simp _uconv uconv_ne to_neutral_diag ; cbn.
     eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     econstructor ; [now eapply IH|..] ; cbn.
     eapply implem_uconv_graph, uconv_sound in IH as [? Hpost0] ; tea.

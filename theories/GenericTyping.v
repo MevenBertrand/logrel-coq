@@ -1155,7 +1155,6 @@ Section GenericConsequences.
     fold ren_term. bsimpl; rewrite scons_eta'; now asimpl.
   Qed.
 
-
   Lemma lambda_cong {Γ A A' B B' t t'} :
     [Γ |- A] ->
     [Γ |- A'] ->

@@ -52,7 +52,8 @@ Equations build_nf_view2 (t t' : term) : nf_view2 t t' :=
     | _ := anomaly _ _ } ;
   | nf_view1_type eEmpty with (build_nf_view1 t') := {
     | nf_view1_type eEmpty := emptys ;
-    | nf_view1_type _ := mismatch _ _ ; 
+    | nf_view1_type _ := mismatch _ _ ;
+    | nf_view1_ne _ := mismatch _ _ ; 
     | _ := anomaly _ _ } ;
   | nf_view1_type (eSig A B) with (build_nf_view1 t') := {
     | nf_view1_type (eSig A' B') := sigs A A' B B' ;
@@ -191,38 +192,42 @@ Equations uconv_tm_red : (term × term) -> M unit :=
   }.
 
 Equations uconv_ne : (term × term) -> M unit :=
-  | (tRel n , tRel n')
+  | (t,t') with t, t', to_neutral_diag t t' :=
+  {
+  | _, _, Some (ne_view1_rel n, ne_view1_rel n')
       with n =? n' :=
       { | false := raise (variable_mismatch n n') ;
         | true := ok ;
       } ;
       
-  | (tApp n t , tApp n' t') :=
+  | _, _, Some (ne_view1_dest n (eApp t), ne_view1_dest n' (eApp t')) :=
     rec (ne_state,n,n') ;;
     rec (tm_state,t,t') ;
 
-| (tNatElim P hz hs n,tNatElim P' hz' hs' n') :=
-  rec (ne_state,n,n') ;;
-  rec (tm_state,P,P') ;;
-  rec (tm_state,hz,hz') ;;
-  rec (tm_state,hs,hs')
-
-| (tEmptyElim P n,tEmptyElim P' n') :=
-  rec (ne_state,n,n') ;;
-  rec (tm_state,P,P')
-
-| (tFst n , tFst n') :=
-  rec (ne_state,n,n')
-
-| (tSnd n , tSnd n') :=
-  rec (ne_state,n,n')
-
-| (tIdElim A x P hr y e, tIdElim A' x' P' hr' y' e') :=
-    rec (ne_state,e,e') ;;
+  | _, _, Some (ne_view1_dest n (eNatElim P hz hs), ne_view1_dest n' (eNatElim P' hz' hs')) :=
+    rec (ne_state,n,n') ;;
     rec (tm_state,P,P') ;;
-    rec (tm_state,hr,hr')
+    rec (tm_state,hz,hz') ;;
+    rec (tm_state,hs,hs')
 
-| (n,n') := raise (destructor_mismatch n n').
+  | _, _, Some (ne_view1_dest n (eEmptyElim P), ne_view1_dest n' (eEmptyElim P')) :=
+    rec (ne_state,n,n') ;;
+    rec (tm_state,P,P')
+
+  | _, _, Some (ne_view1_dest n eFst, ne_view1_dest n' eFst) :=
+    rec (ne_state,n,n')
+
+  | _, _, Some (ne_view1_dest n eSnd, ne_view1_dest n' eSnd) :=
+    rec (ne_state,n,n')
+
+  | _, _, Some (ne_view1_dest n (eIdElim A x P hr y), ne_view1_dest n' (eIdElim A' x' P' hr' y')) :=
+      rec (ne_state,n,n') ;;
+      rec (tm_state,P,P') ;;
+      rec (tm_state,hr,hr')
+
+  | t, t', Some (_,_) := raise (destructor_mismatch t t')
+  | _, _, None := undefined
+}.
 
 Equations _uconv : ∇ _ : uconv_state × term × term, Sing wh_red  ⇒ exn errors ♯ unit :=
   (* | (ty_state,ts) := uconv_ty ts;

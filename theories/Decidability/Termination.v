@@ -71,7 +71,7 @@ Proof.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    2: now unshelve erewrite (whne_ty_view1 _) ; cbn ; cbn.
+    2: now unshelve erewrite (whne_ty_view1 _) ; cbn.
     
     eapply typePiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -84,7 +84,7 @@ Proof.
     simp _conv conv_ty_red.
     destruct wB'.
     all: simp build_nf_ty_view2 ; cbn ; try easy.
-    now unshelve erewrite (whne_ty_view1 _) ; cbn ; cbn.
+    now unshelve erewrite (whne_ty_view1 _) ; cbn.
 
   - intros * wB' ?.
     apply compute_domain.
