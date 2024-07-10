@@ -187,46 +187,45 @@ Equations uconv_tm_red : (term × term) -> M unit :=
       ok ;
     | neutrals _ _ :=
       rec (ne_state,t,t') ;
-    | mismatch _ _ := raise (head_mismatch None t t') ;
+    | mismatch _ _ := raise head_mismatch ;
     | anomaly _ _ := undefined ;
   }.
 
 Equations uconv_ne : (term × term) -> M unit :=
-  | (t,t') with t, t', to_neutral_diag t t' :=
+  uconv_ne (t,t') with build_ne_view2 t t' :=
   {
-  | _, _, Some (ne_view1_rel n, ne_view1_rel n')
-      with n =? n' :=
-      { | false := raise (variable_mismatch n n') ;
-        | true := ok ;
-      } ;
+  | ne_rels n n' with n =? n' :=
+    { | false := raise variable_mismatch ;
+      | true := ok ;
+    } ;
       
-  | _, _, Some (ne_view1_dest n (eApp t), ne_view1_dest n' (eApp t')) :=
+  | ne_apps n t n' t' :=
     rec (ne_state,n,n') ;;
     rec (tm_state,t,t') ;
 
-  | _, _, Some (ne_view1_dest n (eNatElim P hz hs), ne_view1_dest n' (eNatElim P' hz' hs')) :=
+  | ne_nats n P hz hs n' P' hz' hs' :=
     rec (ne_state,n,n') ;;
     rec (tm_state,P,P') ;;
     rec (tm_state,hz,hz') ;;
     rec (tm_state,hs,hs')
 
-  | _, _, Some (ne_view1_dest n (eEmptyElim P), ne_view1_dest n' (eEmptyElim P')) :=
+  | ne_emptys n P n' P' :=
     rec (ne_state,n,n') ;;
     rec (tm_state,P,P')
 
-  | _, _, Some (ne_view1_dest n eFst, ne_view1_dest n' eFst) :=
+  | ne_fsts n n' :=
     rec (ne_state,n,n')
 
-  | _, _, Some (ne_view1_dest n eSnd, ne_view1_dest n' eSnd) :=
+  | ne_snds n n' :=
     rec (ne_state,n,n')
 
-  | _, _, Some (ne_view1_dest n (eIdElim A x P hr y), ne_view1_dest n' (eIdElim A' x' P' hr' y')) :=
+  | ne_ids A x P hr y n A' x' P' hr' y' n' :=
       rec (ne_state,n,n') ;;
       rec (tm_state,P,P') ;;
-      rec (tm_state,hr,hr')
+      rec (tm_state,hr,hr') ;
 
-  | t, t', Some (_,_) := raise (destructor_mismatch t t')
-  | _, _, None := undefined
+  | ne_mismatch _ _ => raise destructor_mismatch ;
+  | ne_anomaly _ _ => undefined
 }.
 
 Equations _uconv : ∇ _ : uconv_state × term × term, Sing wh_red  ⇒ exn errors ♯ unit :=

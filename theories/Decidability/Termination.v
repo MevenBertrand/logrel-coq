@@ -142,20 +142,23 @@ Proof.
 
   - intros ? n ? ? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu' as [n'| | | | | |].
-    all: simp _conv conv_ne to_neutral_diag ; cbn ; try easy.
-    destruct (Nat.eqb_spec n n') ; cbn.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [n'|] ; cbn ; try easy.
+    edestruct (Nat.eqb_spec n n') ; cbn.
     2: easy.
     erewrite ctx_access_complete ; tea.
-    now econstructor.
+    now cbn.
 
   - intros * Hm ? ?? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu'.
-    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
 
     eapply neuAppCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
+    split ; [eauto|intros [] ; cbn ; [|easy]].
 
     intros [Hpost1]%implem_conv_graph ; eauto.
     1: now eapply algo_conv_wh in Hm as [].
@@ -165,8 +168,10 @@ Proof.
 
   - intros * Hn ? ?? ?? ?? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu'.
-    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
 
     eapply neuNatElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -188,8 +193,10 @@ Proof.
 
   - intros * Hn ? ?? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu'.
-    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
 
     eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -203,8 +210,10 @@ Proof.
 
   - intros * Hn ? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu'.
-    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
 
     eapply neuFstCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -216,8 +225,10 @@ Proof.
     
   - intros * Hn ? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu'.
-    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
 
     eapply neuSndCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     split ; [eauto | intros [] ; cbn ; [|easy]].
@@ -229,8 +240,10 @@ Proof.
 
   - intros * _ * _ * _ * Hn ? ?? ?? ?? * wu' [Hconcl]%dup.
     apply compute_domain.
-    destruct wu'.
-    all: simp _conv conv_ne to_neutral_diag ; cbn; try exact I.
+    simp _conv conv_ne build_ne_view2 ; cbn.
+    unshelve erewrite (whne_nf_view1) ; tea ; cbn.
+    destruct (whne_ne_view1 wu') as [|? []] ; cbn in * ; try easy.
+    inversion wu' ; subst.
 
     eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     split ; [eauto | intros [] ; cbn ; [|easy]].

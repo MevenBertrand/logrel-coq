@@ -323,21 +323,21 @@ Proof.
 
   - intros * ? IH ? [Hconcl]%dup.
     unfold graph.
-    simp _uconv uconv_ne to_neutral_diag ; cbn.
+    simp _uconv uconv_ne ; cbn.
     eapply neuFstCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IH|..] ; cbn.
     now constructor.
 
   - intros * ? IH ? [Hconcl]%dup.
     unfold graph.
-    simp _uconv uconv_ne to_neutral_diag ; cbn.
+    simp _uconv uconv_ne ; cbn.
     eapply neuSndCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IH|..] ; cbn.
     now constructor.
 
   - intros * ? IH ? [IHP] ? [_ IHe] ? [Hconcl]%dup.
     unfold graph.
-    simp _uconv uconv_ne to_neutral_diag ; cbn.
+    simp _uconv uconv_ne ; cbn.
     eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     econstructor ; [now eapply IH|..] ; cbn.
     eapply implem_uconv_graph, uconv_sound in IH as [? Hpost0] ; tea.

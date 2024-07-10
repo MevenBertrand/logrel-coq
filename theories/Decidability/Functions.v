@@ -16,134 +16,261 @@ Obligation Tactic := idtac.
 Definition ok {M} `{Monad M} : M unit := ret tt.
 
 Inductive errors : Type :=
-  | variable_not_in_context (n : nat) (Γ : context) : errors
-  | head_mismatch (T : option term) (t t' : term) : errors
-  | variable_mismatch (n n' : nat) : errors
-  | destructor_mismatch (t t' : term) : errors
+  | variable_not_in_context : errors
+  | head_mismatch : errors
+  | variable_mismatch : errors
+  | destructor_mismatch : errors
   | conv_error : errors
   | type_error : errors.
 
-#[export]Existing Instance OrecEffectExn.
-#[export]Existing Instance MonadExn | 1.
-#[export]Existing Instance MonadRaiseExn.
+Section Views.
 
-Equations ctx_access (Γ : context) (n : nat) : exn errors term :=
-  ctx_access ε _ := raise (A := term) (variable_not_in_context n ε) ; (** The context does not contain the variable! *)
-  ctx_access (_,,d) 0 := ret (d⟨↑⟩) ;
-  ctx_access (Γ,,_) (S n') := d ← (ctx_access Γ n') ;; ret d⟨↑⟩.
+  Variant ty_entry : term -> Type :=
+    | eSort s : ty_entry (tSort s)
+    | eProd A B : ty_entry (tProd A B)
+    | eNat : ty_entry tNat
+    | eEmpty : ty_entry tEmpty
+    | eSig A B : ty_entry (tSig A B)
+    | eId A x y : ty_entry (tId A x y).
 
-Definition eq_sort (s s' : sort) : exn errors unit := ok.
+  Variant nat_entry : term -> Type :=
+    | eZero : nat_entry tZero
+    | eSucc t : nat_entry (tSucc t).
 
-Variant ty_entry : term -> Type :=
-  | eSort s : ty_entry (tSort s)
-  | eProd A B : ty_entry (tProd A B)
-  | eNat : ty_entry tNat
-  | eEmpty : ty_entry tEmpty
-  | eSig A B : ty_entry (tSig A B)
-  | eId A x y : ty_entry (tId A x y).
+  Variant dest_entry : Type :=
+    | eEmptyElim (P : term)
+    | eNatElim (P : term) (hs hz : term)
+    | eApp (u : term)
+    | eFst
+    | eSnd
+    | eIdElim (A x P hr y : term).
 
-Variant nat_entry : term -> Type :=
-  | eZero : nat_entry tZero
-  | eSucc t : nat_entry (tSucc t).
+  Definition zip1 (t : term) (e : dest_entry) : term :=
+    match e with
+      | eEmptyElim P => (tEmptyElim P t)
+      | eNatElim P hs hz => (tNatElim P hs hz t)
+      | eApp u => (tApp t u)
+      | eFst => tFst t
+      | eSnd => tSnd t
+      | eIdElim A x P hr y => tIdElim A x P hr y t
+    end.
 
-Variant dest_entry : Type :=
-  | eEmptyElim (P : term)
-  | eNatElim (P : term) (hs hz : term)
-  | eApp (u : term)
-  | eFst
-  | eSnd
-  | eIdElim (A x P hr y : term).
+  Variant tm_view1 : term -> Type :=
+    | tm_view1_type {t} : ty_entry t -> tm_view1 t
+    | tm_view1_fun A t : tm_view1 (tLambda A t)
+    | tm_view1_rel n : tm_view1 (tRel n)
+    | tm_view1_nat {t} : nat_entry t -> tm_view1 t
+    | tm_view1_sig A B a b : tm_view1 (tPair A B a b)
+    | tm_view1_id A x : tm_view1 (tRefl A x)
+    | tm_view1_dest t (s : dest_entry) : tm_view1 (zip1 t s).
 
-Definition zip1 (t : term) (e : dest_entry) : term :=
-  match e with
-    | eEmptyElim P => (tEmptyElim P t)
-    | eNatElim P hs hz => (tNatElim P hs hz t)
-    | eApp u => (tApp t u)
-    | eFst => tFst t
-    | eSnd => tSnd t
-    | eIdElim A x P hr y => tIdElim A x P hr y t
-  end.
+  Definition build_tm_view1 t : tm_view1 t :=
+    match t with
+    | tRel n => tm_view1_rel n
+    | tSort s => tm_view1_type (eSort s)
+    | tProd A B => tm_view1_type (eProd A B)
+    | tLambda A t => tm_view1_fun A t
+    | tApp t u => tm_view1_dest t (eApp u)
+    | tNat => tm_view1_type (eNat)
+    | tZero => tm_view1_nat (eZero)
+    | tSucc t => tm_view1_nat (eSucc t)
+    | tNatElim P hs hz t => tm_view1_dest t (eNatElim P hs hz)
+    | tEmpty => tm_view1_type (eEmpty)
+    | tEmptyElim P t => tm_view1_dest t (eEmptyElim P)
+    | tSig A B => tm_view1_type (eSig A B)
+    | tPair A B a b => tm_view1_sig A B a b
+    | tFst t => tm_view1_dest t eFst
+    | tSnd t => tm_view1_dest t eSnd
+    | tId A x y => tm_view1_type (eId A x y)
+    | tRefl A x => tm_view1_id A x
+    | tIdElim A x P hr y e => tm_view1_dest e (eIdElim A x P hr y)
+    end.
 
-Variant tm_view1 : term -> Type :=
-  | tm_view1_type {t} : ty_entry t -> tm_view1 t
-  | tm_view1_fun A t : tm_view1 (tLambda A t)
-  | tm_view1_rel n : tm_view1 (tRel n)
-  | tm_view1_nat {t} : nat_entry t -> tm_view1 t
-  | tm_view1_sig A B a b : tm_view1 (tPair A B a b)
-  | tm_view1_id A x : tm_view1 (tRefl A x)
-  | tm_view1_dest t (s : dest_entry) : tm_view1 (zip1 t s).
+  Variant ne_view1 : term -> Type :=
+    | ne_view1_rel n : ne_view1 (tRel n)
+    | ne_view1_dest t s : ne_view1 (zip1 t s).
 
-Definition build_tm_view1 t : tm_view1 t :=
-  match t with
-  | tRel n => tm_view1_rel n
-  | tSort s => tm_view1_type (eSort s)
-  | tProd A B => tm_view1_type (eProd A B)
-  | tLambda A t => tm_view1_fun A t
-  | tApp t u => tm_view1_dest t (eApp u)
-  | tNat => tm_view1_type (eNat)
-  | tZero => tm_view1_nat (eZero)
-  | tSucc t => tm_view1_nat (eSucc t)
-  | tNatElim P hs hz t => tm_view1_dest t (eNatElim P hs hz)
-  | tEmpty => tm_view1_type (eEmpty)
-  | tEmptyElim P t => tm_view1_dest t (eEmptyElim P)
-  | tSig A B => tm_view1_type (eSig A B)
-  | tPair A B a b => tm_view1_sig A B a b
-  | tFst t => tm_view1_dest t eFst
-  | tSnd t => tm_view1_dest t eSnd
-  | tId A x y => tm_view1_type (eId A x y)
-  | tRefl A x => tm_view1_id A x
-  | tIdElim A x P hr y e => tm_view1_dest e (eIdElim A x P hr y)
-  end.
+  Variant nf_view1 : term -> Type :=
+    | nf_view1_type {t} : ty_entry t -> nf_view1 t
+    | nf_view1_fun A t : nf_view1 (tLambda A t)
+    | nf_view1_nat {t} : nat_entry t -> nf_view1 t
+    | nf_view1_sig A B a b : nf_view1 (tPair A B a b)
+    | nf_view1_id A x : nf_view1 (tRefl A x)
+    | nf_view1_ne {t} : ne_view1 t -> nf_view1 t.
 
-Variant ne_view1 : term -> Type :=
-  | ne_view1_rel n : ne_view1 (tRel n)
-  | ne_view1_dest t s : ne_view1 (zip1 t s).
+  Definition build_nf_view1 t : nf_view1 t :=
+    match t with
+    | tRel n => nf_view1_ne (ne_view1_rel n)
+    | tSort s => nf_view1_type (eSort s)
+    | tProd A B => nf_view1_type (eProd A B)
+    | tLambda A t => nf_view1_fun A t
+    | tApp t u => nf_view1_ne (ne_view1_dest t (eApp u))
+    | tNat => nf_view1_type (eNat)
+    | tZero => nf_view1_nat (eZero)
+    | tSucc t => nf_view1_nat (eSucc t)
+    | tNatElim P hs hz t => nf_view1_ne (ne_view1_dest t (eNatElim P hs hz))
+    | tEmpty => nf_view1_type (eEmpty)
+    | tEmptyElim P t => nf_view1_ne (ne_view1_dest t (eEmptyElim P))
+    | tSig A B => nf_view1_type (eSig A B)
+    | tPair A B a b => nf_view1_sig A B a b
+    | tFst t => nf_view1_ne (ne_view1_dest t eFst)
+    | tSnd t => nf_view1_ne (ne_view1_dest t eSnd)
+    | tId A x y => nf_view1_type (eId A x y)
+    | tRefl A x => nf_view1_id A x
+    | tIdElim A x P hr y e => nf_view1_ne (ne_view1_dest e (eIdElim A x P hr y))
+    end.
 
-Variant nf_view1 : term -> Type :=
-  | nf_view1_type {t} : ty_entry t -> nf_view1 t
-  | nf_view1_fun A t : nf_view1 (tLambda A t)
-  | nf_view1_nat {t} : nat_entry t -> nf_view1 t
-  | nf_view1_sig A B a b : nf_view1 (tPair A B a b)
-  | nf_view1_id A x : nf_view1 (tRefl A x)
-  | nf_view1_ne {t} : ne_view1 t -> nf_view1 t.
+  Variant ty_view1 : term -> Type :=
+    | ty_view1_ty {t} : ty_entry t -> ty_view1 t
+    | ty_view1_small {t} : ne_view1 t -> ty_view1 t
+    | ty_view1_anomaly {t} : ty_view1 t.
 
-Definition build_nf_view1 t : nf_view1 t :=
-  match t with
-  | tRel n => nf_view1_ne (ne_view1_rel n)
-  | tSort s => nf_view1_type (eSort s)
-  | tProd A B => nf_view1_type (eProd A B)
-  | tLambda A t => nf_view1_fun A t
-  | tApp t u => nf_view1_ne (ne_view1_dest t (eApp u))
-  | tNat => nf_view1_type (eNat)
-  | tZero => nf_view1_nat (eZero)
-  | tSucc t => nf_view1_nat (eSucc t)
-  | tNatElim P hs hz t => nf_view1_ne (ne_view1_dest t (eNatElim P hs hz))
-  | tEmpty => nf_view1_type (eEmpty)
-  | tEmptyElim P t => nf_view1_ne (ne_view1_dest t (eEmptyElim P))
-  | tSig A B => nf_view1_type (eSig A B)
-  | tPair A B a b => nf_view1_sig A B a b
-  | tFst t => nf_view1_ne (ne_view1_dest t eFst)
-  | tSnd t => nf_view1_ne (ne_view1_dest t eSnd)
-  | tId A x y => nf_view1_type (eId A x y)
-  | tRefl A x => nf_view1_id A x
-  | tIdElim A x P hr y e => nf_view1_ne (ne_view1_dest e (eIdElim A x P hr y))
-  end.
+  Definition build_ty_view1 t : ty_view1 t :=
+    match (build_nf_view1 t) with
+    | nf_view1_type e => ty_view1_ty e
+    | nf_view1_ne s => ty_view1_small s
+    | nf_view1_fun _ _ 
+    | nf_view1_nat _ 
+    | nf_view1_sig _ _ _ _ 
+    | nf_view1_id _ _ => ty_view1_anomaly
+    end.
 
-Variant ty_view1 : term -> Type :=
-  | ty_view1_ty {t} : ty_entry t -> ty_view1 t
-  | ty_view1_small {t} : ne_view1 t -> ty_view1 t
-  | ty_view1_anomaly {t} : ty_view1 t.
+    Inductive nf_ty_view2 : term -> term -> Type :=
+    | ty_sorts (s1 s2 : sort) : nf_ty_view2 (tSort s1) (tSort s2)
+    | ty_prods (A A' B B' : term) :
+        nf_ty_view2 (tProd A B) (tProd A' B')
+    | ty_nats : nf_ty_view2 tNat tNat
+    | ty_emptys : nf_ty_view2 tEmpty tEmpty
+    | ty_sigs (A A' B B' : term) : nf_ty_view2 (tSig A B) (tSig A' B')
+    | ty_ids A A' x x' y y' : nf_ty_view2 (tId A x y) (tId A' x' y')
+    | ty_neutrals (n n' : term) : nf_ty_view2 n n'
+    | ty_mismatch (t u : term) : nf_ty_view2 t u
+    | ty_anomaly (t u : term) : nf_ty_view2 t u.
 
-Definition build_ty_view1 t : ty_view1 t :=
-  match (build_tm_view1 t) with
-  | tm_view1_type e => ty_view1_ty e
-  | tm_view1_rel n => ty_view1_small (ne_view1_rel n)
-  | tm_view1_dest t s => ty_view1_small (ne_view1_dest t s)
-  | tm_view1_fun _ _
-  | tm_view1_nat _
-  | tm_view1_sig _ _ _ _
-  | tm_view1_id _ _ => ty_view1_anomaly
-  end.
+  Equations build_nf_ty_view2 (A A' : term) : nf_ty_view2 A A' :=
+    build_nf_ty_view2 A A' with (build_ty_view1 A), (build_ty_view1 A') := {
+      (** Matching types *)
+      | ty_view1_ty (eSort s1), ty_view1_ty (eSort s2) :=
+          ty_sorts s1 s2 ;
+      | ty_view1_ty (eProd A B), ty_view1_ty (eProd A' B') :=
+          ty_prods A A' B B' ;
+      | ty_view1_ty eNat, ty_view1_ty eNat :=
+          ty_nats;
+      | ty_view1_ty eEmpty, ty_view1_ty eEmpty :=
+          ty_emptys;
+      | ty_view1_ty (eSig A B), ty_view1_ty (eSig A' B') :=
+          ty_sigs A A' B B'
+      | ty_view1_ty (eId A x y), ty_view1_ty (eId A' x' y') :=
+          ty_ids A A' x x' y y'
+      | ty_view1_small _, ty_view1_small _ :=
+          ty_neutrals _ _ ;
+      (** Mismatching sorts *)
+      | ty_view1_ty _, ty_view1_ty _ :=
+          ty_mismatch _ _ ;
+      | ty_view1_small _, ty_view1_ty _ :=
+          ty_mismatch _ _ ;
+      | ty_view1_ty _, ty_view1_small _ :=
+          ty_mismatch _ _ ;
+      (** Anomaly *)
+      | ty_view1_anomaly,_ := ty_anomaly _ _ ;
+      | _, ty_view1_anomaly := ty_anomaly _ _;
+    }.
+
+  Inductive nf_view3 : term -> term -> term -> Type :=
+  | types {A A'} (s : sort) : nf_ty_view2 A A' -> nf_view3 (tSort s) A A'
+  | functions A B t t' : nf_view3 (tProd A B) t t'
+  | zeros : nf_view3 tNat tZero tZero
+  | succs t t' : nf_view3 tNat (tSucc t) (tSucc t')
+  | pairs A B t t' : nf_view3 (tSig A B) t t'
+  | refls A x y A' x' A'' x'' : nf_view3 (tId A x y) (tRefl A' x') (tRefl A'' x'')
+  | neutrals (A n n' : term) : nf_view3 A n n'
+  | mismatch (A t u : term) : nf_view3 A t u
+  | anomaly (A t u : term) : nf_view3 A t u.
+
+  Equations build_nf_view3 T t t' : nf_view3 T t t' :=
+    build_nf_view3 T t t' with (build_ty_view1 T) := {
+    (** Matching typed *)
+    | ty_view1_ty (eSort s) := types s (build_nf_ty_view2 t t') ;
+    (** Functions *)
+    | ty_view1_ty (eProd A B) := functions A B _ _ ;
+    (** Naturals *)
+    | ty_view1_ty eNat with (build_nf_view1 t), (build_nf_view1 t') :=
+      {
+        | nf_view1_nat eZero, nf_view1_nat eZero :=
+          zeros ;
+        | nf_view1_nat (eSucc u), nf_view1_nat (eSucc u') :=
+          succs u u' ;
+        | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
+        | nf_view1_nat _, nf_view1_nat _ :=
+            mismatch _ _ _ ;
+        | nf_view1_ne _, nf_view1_nat _ :=
+            mismatch _ _ _ ;
+        | nf_view1_nat _, nf_view1_ne _ :=
+            mismatch _ _ _ ;
+        | _, _ := anomaly _ _ _ ;
+      } ;
+    (** Inhabitants of the empty type must be neutrals *)
+    | ty_view1_ty eEmpty with (build_nf_view1 t), (build_nf_view1 t') :=
+    {
+      | nf_view1_ne _, nf_view1_ne _ := 
+        neutrals _ _ _ ;
+      | _, _ := anomaly _ _ _ ;
+    }
+    (** Pairs *)
+    | ty_view1_ty (eSig A B) := pairs A B _ _ ;
+    (** Identity witnesses *)
+    | ty_view1_ty (eId A x y) with (build_nf_view1 t), (build_nf_view1 t') :=
+      {
+        | nf_view1_id A' x', nf_view1_id A'' x'' := refls A x y A' x' A'' x'' ;
+        | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
+        | nf_view1_ne _, nf_view1_id _ _ :=
+            mismatch _ _ _ ;
+        | nf_view1_id _ _, nf_view1_ne _ :=
+            mismatch _ _ _ ;
+        | _, _ := anomaly _ _ _ ;
+      }
+    (** Neutral type *)
+    | ty_view1_small _ with (build_nf_view1 t), (build_nf_view1 t') :=
+      {
+        | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
+        | _, _ := anomaly _ _ _ ;
+      }
+    (** The type is not a type *)
+    | ty_view1_anomaly := anomaly _ _ _ ;
+    }.
+
+  Inductive ne_view2 : term -> term -> Type :=
+    | ne_rels (n n' : nat) : ne_view2 (tRel n) (tRel n')
+    | ne_apps f u f' u' : ne_view2 (tApp f u) (tApp f' u')
+    | ne_nats n P hz hs n' P' hz' hs' : ne_view2 (tNatElim P hz hs n) (tNatElim P' hz' hs' n')
+    | ne_emptys n P n' P' : ne_view2 (tEmptyElim P n) (tEmptyElim P' n')
+    | ne_fsts p p' : ne_view2 (tFst p) (tFst p')
+    | ne_snds p p' : ne_view2 (tSnd p) (tSnd p')
+    | ne_ids A x P hr y e A' x' P' hr' y' e' : ne_view2 (tIdElim A x P hr y e) (tIdElim A' x' P' hr' y' e')
+    | ne_mismatch (t u : term) : ne_view2 t u
+    | ne_anomaly (t u : term) : ne_view2 t u.
+
+  Equations build_ne_view2 (t t' : term) : ne_view2 t t' :=
+    build_ne_view2 t t' with (build_nf_view1 t), (build_nf_view1 t') := {
+      | nf_view1_ne v, nf_view1_ne v' with v, v' := {
+          | ne_view1_rel n, ne_view1_rel n' := ne_rels n n' ;
+          | ne_view1_dest f (eApp u), ne_view1_dest f' (eApp u') := ne_apps f u f' u' ;
+          | ne_view1_dest n (eNatElim P hz hs), ne_view1_dest n' (eNatElim P' hz' hs') :=
+              ne_nats n P hz hs n' P' hz' hs' ;
+          | ne_view1_dest n (eEmptyElim P), ne_view1_dest n' (eEmptyElim P') :=
+              ne_emptys n P n' P' ;
+          | ne_view1_dest p eFst, ne_view1_dest p' eFst :=
+              ne_fsts p p' ;
+          | ne_view1_dest p eSnd, ne_view1_dest p' eSnd :=
+              ne_snds p p' ;
+          | ne_view1_dest e (eIdElim A x P hr y), ne_view1_dest e' (eIdElim A' x' P' hr' y') :=
+              ne_ids A x P hr y e A' x' P' hr' y' e' ;
+          | _, _ := ne_mismatch _ _ ;
+      }
+      | _, _ := ne_anomaly _ _
+    }.
+
+End Views.
 
 Definition stack := list dest_entry.
 
@@ -153,6 +280,16 @@ Fixpoint zip t (π : stack) :=
   | cons s π => zip (zip1 t s) π
   end.
 
+#[export]Existing Instance OrecEffectExn.
+#[export]Existing Instance MonadExn | 1.
+#[export]Existing Instance MonadRaiseExn.
+
+Equations ctx_access (Γ : context) (n : nat) : exn errors term :=
+  ctx_access ε _ := raise variable_not_in_context ; (** The context does not contain the variable! *)
+  ctx_access (_,,d) 0 := ret (d⟨↑⟩) ;
+  ctx_access (Γ,,_) (S n') := d ← (ctx_access Γ n') ;; ret d⟨↑⟩.
+
+Definition eq_sort (s s' : sort) : exn errors unit := ok.
 
 (* Introduce the following in PartialFun *)
 
@@ -251,110 +388,6 @@ Definition wh_red : ∇(t : term), [Sing wh_red_stack]⇒ term :=
 
 Definition wh_red_fuel n t := fueled wh_red n t.
 
-Inductive nf_ty_view2 : term -> term -> Type :=
-  | ty_sorts (s1 s2 : sort) : nf_ty_view2 (tSort s1) (tSort s2)
-  | ty_prods (A A' B B' : term) :
-      nf_ty_view2 (tProd A B) (tProd A' B')
-  | ty_nats : nf_ty_view2 tNat tNat
-  | ty_emptys : nf_ty_view2 tEmpty tEmpty
-  | ty_sigs (A A' B B' : term) : nf_ty_view2 (tSig A B) (tSig A' B')
-  | ty_ids A A' x x' y y' : nf_ty_view2 (tId A x y) (tId A' x' y')
-  | ty_neutrals (n n' : term) : nf_ty_view2 n n'
-  | ty_mismatch (t u : term) : nf_ty_view2 t u
-  | ty_anomaly (t u : term) : nf_ty_view2 t u.
-
-Equations build_nf_ty_view2 (A A' : term) : nf_ty_view2 A A' :=
-  build_nf_ty_view2 A A' with (build_ty_view1 A), (build_ty_view1 A') := {
-    (** Matching types *)
-    | ty_view1_ty (eSort s1), ty_view1_ty (eSort s2) :=
-        ty_sorts s1 s2 ;
-    | ty_view1_ty (eProd A B), ty_view1_ty (eProd A' B') :=
-        ty_prods A A' B B' ;
-    | ty_view1_ty eNat, ty_view1_ty eNat :=
-        ty_nats;
-    | ty_view1_ty eEmpty, ty_view1_ty eEmpty :=
-        ty_emptys;
-    | ty_view1_ty (eSig A B), ty_view1_ty (eSig A' B') :=
-        ty_sigs A A' B B'
-    | ty_view1_ty (eId A x y), ty_view1_ty (eId A' x' y') :=
-        ty_ids A A' x x' y y'
-    | ty_view1_small _, ty_view1_small _ :=
-        ty_neutrals _ _ ;
-    (** Mismatching sorts *)
-    | ty_view1_ty _, ty_view1_ty _ :=
-        ty_mismatch _ _ ;
-    | ty_view1_small _, ty_view1_ty _ :=
-        ty_mismatch _ _ ;
-    | ty_view1_ty _, ty_view1_small _ :=
-        ty_mismatch _ _ ;
-    (** Anomaly *)
-    | ty_view1_anomaly,_ := ty_anomaly _ _ ;
-    | _, ty_view1_anomaly := ty_anomaly _ _;
-  }.
-
-Inductive nf_view3 : term -> term -> term -> Type :=
-| types {A A'} (s : sort) : nf_ty_view2 A A' -> nf_view3 (tSort s) A A'
-| functions A B t t' : nf_view3 (tProd A B) t t'
-| zeros : nf_view3 tNat tZero tZero
-| succs t t' : nf_view3 tNat (tSucc t) (tSucc t')
-| pairs A B t t' : nf_view3 (tSig A B) t t'
-| refls A x y A' x' A'' x'' : nf_view3 (tId A x y) (tRefl A' x') (tRefl A'' x'')
-| neutrals (A n n' : term) : nf_view3 A n n'
-| mismatch (A t u : term) : nf_view3 A t u
-| anomaly (A t u : term) : nf_view3 A t u.
-
-Equations build_nf_view3 T t t' : nf_view3 T t t' :=
-  build_nf_view3 T t t' with (build_ty_view1 T) := {
-  (** Matching typed *)
-  | ty_view1_ty (eSort s) := types s (build_nf_ty_view2 t t') ;
-  (** Functions *)
-  | ty_view1_ty (eProd A B) := functions A B _ _ ;
-  (** Naturals *)
-  | ty_view1_ty eNat with (build_nf_view1 t), (build_nf_view1 t') :=
-    {
-      | nf_view1_nat eZero, nf_view1_nat eZero :=
-        zeros ;
-      | nf_view1_nat (eSucc u), nf_view1_nat (eSucc u') :=
-        succs u u' ;
-      | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
-      | nf_view1_nat _, nf_view1_nat _ :=
-          mismatch _ _ _ ;
-      | nf_view1_ne _, nf_view1_nat _ :=
-          mismatch _ _ _ ;
-      | nf_view1_nat _, nf_view1_ne _ :=
-          mismatch _ _ _ ;
-      | _, _ := anomaly _ _ _ ;
-    } ;
-  (** Inhabitants of the empty type must be neutrals *)
-  | ty_view1_ty eEmpty with (build_nf_view1 t), (build_nf_view1 t') :=
-  {
-    | nf_view1_ne _, nf_view1_ne _ :=
-      neutrals _ _ _ ;
-    | _, _ := anomaly _ _ _ ;
-  }
-  (** Pairs *)
-  | ty_view1_ty (eSig A B) := pairs A B _ _ ;
-  (** Identity witnesses *)
-  | ty_view1_ty (eId A x y) with (build_nf_view1 t), (build_nf_view1 t') :=
-    {
-      | nf_view1_id A' x', nf_view1_id A'' x'' := refls A x y A' x' A'' x'' ;
-      | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
-      | nf_view1_ne _, nf_view1_id _ _ :=
-          mismatch _ _ _ ;
-      | nf_view1_id _ _, nf_view1_ne _ :=
-          mismatch _ _ _ ;
-      | _, _ := anomaly _ _ _ ;
-    }
-  (** Neutral type *)
-  | ty_view1_small _ with (build_nf_view1 t), (build_nf_view1 t') :=
-    {
-      | nf_view1_ne _, nf_view1_ne _ := neutrals _ _ _ ;
-      | _, _ := anomaly _ _ _ ;
-    }
-  (** The type is not a type *)
-  | ty_view1_anomaly := anomaly _ _ _ ;
-  }.
-
 Variant conv_state : Type :=
   | ty_state (** Conversion of arbitrary types *)
   | ty_red_state (** Comparison of types in weak-head normal forms *)
@@ -423,7 +456,7 @@ Equations conv_ty_red : conv_stmt ty_red_state :=
       rec (ty_state;Γ;tt;A;A') ;;
       rec (tm_state;Γ;A;x;x') ;;
       rec (tm_state;Γ;A;y;y')
-    | ty_mismatch _ _ := raise (head_mismatch None T T') ;
+    | ty_mismatch _ _ := raise (head_mismatch) ;
     | ty_anomaly _ _ := undefined ;
   }.
 
@@ -454,7 +487,7 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
         rec (tm_state;Γ;A;y;y')
     | types _ (ty_neutrals _ _) :=
         rec (ne_state;Γ;tt;t;u) ;; ok ;
-    | types s (ty_mismatch _ _) := raise (head_mismatch (Some (tSort s)) t u) ;
+    | types s (ty_mismatch _ _) := raise head_mismatch ;
     | types _ (ty_anomaly _ _) := undefined ;
     | functions A B t u :=
         rec (tm_state;Γ,,A;B;eta_expand t;eta_expand u) (* ::: (tm_red_state;Γ;tProd A B;t;u) ;*) ;
@@ -467,36 +500,29 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
     | refls A x y A' x' A'' x'' := ok ;
     | neutrals _ _ _ :=
       rec (ne_state;Γ;tt;t;u) ;; ok ;
-    | mismatch _ _ _ := raise (head_mismatch (Some A) t u) ;
+    | mismatch _ _ _ := raise head_mismatch ;
     | anomaly _ _ _ := undefined ;
   }.
 
-Equations to_neutral_diag (t u : term) : option (ne_view1 t × ne_view1 u) :=
-  | t, u with build_nf_view1 t, build_nf_view1 u =>
-  {
-    | nf_view1_ne te, nf_view1_ne ue => Some (te, ue)
-    | _ , _ => None
-  }.
-
 Equations conv_ne : conv_stmt ne_state :=
-  | (Γ;inp; t; t') with t, t', to_neutral_diag t t' :=
+  | (Γ;inp; t; t') with (build_ne_view2 t t') :=
   {
-    | _, _, Some (ne_view1_rel n, ne_view1_rel n') with n =? n' :=
-    { | false := raise (variable_mismatch n n') ;
-      | true with (ctx_access Γ n) :=
+    | ne_rels n n' with n =? n' :=
+    { | false := raise variable_mismatch ;
+      | true with (ctx_access Γ n) := 
         {
         | exception e => undefined ;
         | success d => ret d (* ::: (ne_state;Γ;inp;tRel n; tRel n')*)
         }
     } ;
-    | _, _, Some (ne_view1_dest n (eApp t), ne_view1_dest n' (eApp t')) =>
+    | ne_apps n t n' t' =>
       T ← rec (ne_red_state;Γ;tt;n;n') ;;
       match T with
       | tProd A B =>
         rec (tm_state;Γ;A;t;t') ;; ret B[t..]
       |  _ => undefined (** the whnf of the type of an applied neutral must be a Π type!*)
       end ;
-    | _, _, Some (ne_view1_dest n (eNatElim P hz hs), ne_view1_dest n' (eNatElim P' hz' hs')) =>
+    | ne_nats n P hz hs n' P' hz' hs' =>
       rn ← rec (ne_red_state;Γ;tt;n;n') ;;
       match rn with
       | tNat =>
@@ -506,7 +532,7 @@ Equations conv_ne : conv_stmt ne_state :=
           ret P[n..]
       | _ => undefined
       end ;
-    | _, _, Some (ne_view1_dest n (eEmptyElim P), ne_view1_dest n' (eEmptyElim P')) =>
+    | ne_emptys n P n' P' =>
       rn ← rec (ne_red_state;Γ;tt;n;n') ;;
       match rn with
       | tEmpty =>
@@ -514,19 +540,19 @@ Equations conv_ne : conv_stmt ne_state :=
           ret P[n..]
       | _ => undefined
       end ;
-    | _, _, Some (ne_view1_dest n eFst, ne_view1_dest n' eFst) =>
+    | ne_fsts n n' =>
       T ← rec (ne_red_state;Γ;tt;n;n') ;;
       match T with
       | tSig A B => ret A
       | _ => undefined (** the whnf of the type of a projected neutral must be a Σ type!*)
       end ;
-    | _, _, Some (ne_view1_dest n eSnd, ne_view1_dest n' eSnd) =>
+    | ne_snds n n' =>
       T ← rec (ne_red_state;Γ;tt;n;n') ;;
       match T with
       | tSig A B => ret B[(tFst n)..]
       | _ => undefined (** the whnf of the type of a projected neutral must be a Σ type!*)
-      end ;
-    | _, _, Some (ne_view1_dest n (eIdElim A x P hr y), ne_view1_dest n' (eIdElim A' x' P' hr' y')) =>
+      end ; 
+    | ne_ids A x P hr y n A' x' P' hr' y' n' =>
       T ← rec (ne_red_state;Γ;tt;n;n') ;;
       match T with
       | tId _ _ _ =>
@@ -535,7 +561,8 @@ Equations conv_ne : conv_stmt ne_state :=
         ret P[n .: y..]
       | _ => undefined
       end ;
-    | w, w', _ => raise (destructor_mismatch w w')
+    | ne_mismatch _ _ => raise destructor_mismatch ;
+    | ne_anomaly _ _ => undefined
   }.
 
 Equations conv_ne_red : conv_stmt ne_red_state :=
@@ -631,7 +658,7 @@ Equations typing_wf_ty : typing_stmt wf_ty_state :=
   | (Γ;_;t) with t := {
     | tRel n with (ctx_access Γ n) :=
         {
-          | exception _ := raise (variable_not_in_context n Γ) ;
+          | exception _ := raise variable_not_in_context ;
           | success d := ret d
         } ;
     | tSort s := raise type_error ;
