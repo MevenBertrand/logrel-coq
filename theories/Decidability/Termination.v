@@ -386,7 +386,7 @@ Proof.
     apply compute_domain.
     simp _conv conv_tm_red build_nf_view3 build_nf_ty_view2.
     eapply id_isId in wu' ; tea.
-    destruct wu' as [|(?&?&->)] ; cbn ; try exact I.
+    destruct wu' ; cbn ; eauto.
     now unshelve erewrite (whne_nf_view1 _) ; cbn.
 
   - intros * Hm IH Hpos ? wu' [Hconcl []]%dup. 
@@ -423,7 +423,7 @@ Proof.
     + eapply id_isId in wu' ; tea.
       cbn ; simp build_nf_view3.
       unshelve erewrite whne_nf_view1 ; tea.
-      destruct wu' as [|(?&?&->)]; try solve [cbn ; easy].
+      destruct wu' ; try solve [cbn ; easy].
       unshelve erewrite whne_nf_view1 ; tea.
       cbn.
       split ; [..|now intros [] ; cbn].

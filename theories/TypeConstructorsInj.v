@@ -1028,10 +1028,12 @@ Qed.
 Lemma id_isId Γ t {A x y} :
   [Γ |-[de] t : tId A x y] ->
   whnf t ->
-  whne t + ∑ A' x', t = tRefl A' x'.
+  isId t.
 Proof.
-  intros Hty wh; destruct wh; try easy.
-  all: eapply termGen' in Hty; cbn in *; exfalso.
+  intros Hty wh; destruct wh.
+  all: try now econstructor.
+  all: eapply termGen' in Hty; cbn in *.
+  all: exfalso.
   all: prod_hyp_splitter ; try easy; subst.
   all:
     match goal with
@@ -1039,7 +1041,6 @@ Proof.
     end; try econstructor.
   all: now cbn in Hconv.
 Qed.
-
 
 Lemma neutral_isNeutral Γ A t :
   [Γ |-[de] t : A] ->

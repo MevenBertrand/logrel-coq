@@ -404,6 +404,66 @@ Proof.
     now eapply escapeEqzero.
 Qed.
 
+Definition id_hd_view (Γ : context) {t t' : term} (nft : isId t) (nft' : isId t') : Type :=
+  match nft, nft' with
+    | @ReflId A a, @ReflId A' a' => [Γ |- A ≅ A'] × [Γ |- a ≅ a' : A]
+    | NeId _, NeId _ => True
+    | _, _ => False
+  end.
+
+Lemma isId_refl A a (n : isId (tRefl A a)) : n = ReflId.
+Proof.
+  refine (
+  match n as n' in isId k return
+    (match k as k' return (isId k' -> Type) with | tRefl _ _ => fun n'' => n'' = ReflId | _ => fun _ => True end n')
+  with | ReflId => _ | _ => _ end).
+  1: easy.
+  dependent inversion w ; cbn ; easy.
+Qed.
+
+Lemma isId_ne t (n : isId t) : whne t -> ∑ w, n = NeId w.
+Proof.
+  intros w.
+  inversion w ; subst ; clear w.
+  all: dependent inversion n ; subst.
+  all: eexists ; reflexivity.
+Qed.
+
+Lemma id_conv_inj : forall (Γ : context) (A x y t t' : term) (nft : isId t) (nft' : isId t'),
+  [Γ |-[de] t ≅ t' : tId A x y] ->
+  id_hd_view Γ nft nft'.
+Proof.
+  intros * Hconv.
+  eapply Fundamental in Hconv as [HΓ Hid _ _ Hconv].
+  eapply Escape.reducibleTmEq in Hconv.
+  set (HTred := Escape.reducibleTy _ Hid) in *.
+  clearbody HTred.
+  clear Hid.
+  unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
+  1: exact one.
+  1: now eapply LRId', Induction.invLRId.
+  cbn in *.
+  clear - Hconv.
+  
+  destruct Hconv as [u u' ? ? _ p] ; cbn in *.
+  assert (t = u) as <- by (eapply red_whnf ; gen_typing).
+  assert (t' = u') as <- by (eapply red_whnf ; gen_typing).
+  destruct p as [? | ? ? [[net net']]] ; cbn in *.
+
+  - Escape.escape.
+    rewrite (isId_refl _ _ nft), (isId_refl _ _ nft') ; cbn.
+    split.
+    + etransitivity ; eauto.
+      now symmetry.
+    + econstructor ; eauto.
+      etransitivity ; eauto.
+      now symmetry.
+
+  - eapply isId_ne in net as [? ->], net' as [? ->] ; cbn.
+    easy.
+
+Qed.
+
 Import DeclarativeTypingProperties AlgorithmicTypingProperties.
 
 Lemma ty_mismatch_hd_view Γ T V (tT : isType T) (tV : isType V) :
@@ -437,7 +497,8 @@ Qed.
 Lemma mismatch_hd_view Γ A t u (tA : isType A) :
   whnf t -> whnf u ->
   build_nf_view3 A t u = mismatch A t u ->
-  (∑ (nft : isNat t) (nfu : isNat u), A = tNat × nat_hd_view Γ nft nfu = False) + ∑ A' x y, A = tId A' x y.
+  (∑ (nft : isNat t) (nfu : isNat u), A = tNat × nat_hd_view Γ nft nfu = False) +
+  (∑ (nft : isId t) (nfu : isId u) A' x y, A = tId A' x y × id_hd_view Γ nft nfu = False).
 Proof.
   intros wt wu.
   destruct tA ; cbn.
@@ -455,8 +516,15 @@ Proof.
   - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
     all: solve [intros [=]].
 
-  - right.
-    do 3 eexists ; reflexivity.
+  - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
+    all: try solve [intros [=]]. 
+    all: destruct n ; cbn ; try solve [intros [=]].
+    all: (intros _ ; right ; do 5 eexists).
+    all: split ; [reflexivity|..].
+    Unshelve.
+    all: try solve [constructor].
+    5-8: econstructor ; eapply whne_can ; tea ; solve [now apply zip_can | intros c ; inversion c].
+    all: now cbn.
     
   - unshelve erewrite whne_ty_view1 ; tea ; cbn.
     destruct (build_nf_view1 t) ; cbn ; try solve [intros [=]].
@@ -771,11 +839,12 @@ Proof.
   - destruct pre as [w ?? []].
     eapply type_isType in w.
     2: boundary.
-    unshelve eapply mismatch_hd_view in e as [(?&?&[->])|] ; tea.
+    unshelve eapply mismatch_hd_view in e as [(?&?&[->])|(?&?&?&?&?&[->])] ; tea.
     + unshelve eintros ?%nat_conv_inj ; tea.
       now rewrite e in H.
 
-    + admit.
+    + unshelve eintros ?%id_conv_inj ; tea.
+      now rewrite e in H.
 
   - destruct (Nat.eqb_spec n n') ; cbn.
     + destruct pre as [_ [? [? [(?& []) ?]]%termGen']] ; subst.

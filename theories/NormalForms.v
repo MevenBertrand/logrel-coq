@@ -83,6 +83,10 @@ Inductive isPair : term -> Type :=
   | PairPair {A B a b} : isPair (tPair A B a b)
   | NePair {p} : whne p -> isPair p.
 
+Inductive isId : term -> Type :=
+  | ReflId {A a} : isId (tRefl A a)
+  | NeId {n} : whne n -> isId n.
+
 Definition isPosType_isType t (i : isPosType t) : isType t.
 Proof. destruct i; now constructor. Defined.
 
@@ -110,8 +114,14 @@ Definition isNat_whnf t (i : isNat t) : whnf t :=
   | NeNat n => whnf_whne n
   end.
 
-#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isPair_whnf : gen_typing.
-#[global] Hint Constructors isPosType isType isFun isNat : gen_typing.
+Definition isId_whnf t (i : isId t) : whnf t :=
+  match i with
+  | ReflId => whnf_tRefl
+  | NeId n => whnf_whne n
+  end.
+
+#[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isPair_whnf isId_whnf : gen_typing.
+#[global] Hint Constructors isPosType isType isFun isNat isId : gen_typing.
 
 (** ** Canonical forms *)
 
@@ -220,6 +230,19 @@ Section RenWhnf.
       now eapply whne_ren.
   Qed.
 
+  Lemma isId_ren p : isId (p⟨ρ⟩) <~> isId p.
+  Proof.
+    split.
+    - remember p⟨ρ⟩ as p'.
+      intros Hid.
+      induction Hid in p, Heqp' |- * ; cbn.
+      all: push_renaming ; econstructor ; eauto.
+      all: now eapply whne_ren ; cbn.
+    - induction 1 ; cbn.
+      all: econstructor.
+      now eapply whne_ren.
+  Qed.
+
   Lemma isCanonical_ren t : isCanonical (t⟨ρ⟩) <~> isCanonical t.
   Proof.
     split.
@@ -229,4 +252,4 @@ Section RenWhnf.
 
 End RenWhnf.
 
-#[global] Hint Resolve whne_ren whnf_ren isType_ren isPosType_ren isFun_ren isCanonical_ren : gen_typing.
+#[global] Hint Resolve whne_ren whnf_ren isType_ren isPosType_ren isFun_ren isId_ren isCanonical_ren : gen_typing.
