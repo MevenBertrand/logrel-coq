@@ -3,7 +3,7 @@ From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import BasicAst Context Notations UntypedReduction DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
-From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj DeclarativeNeutralConv AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import UntypedAlgorithmicConversion.
 From LogRel Require Import Utils. (* at the end, to get the right easy tactic… *)
 From LogRel.Decidability Require Import Functions UntypedFunctions Soundness UntypedSoundness Completeness.

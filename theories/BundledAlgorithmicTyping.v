@@ -9,7 +9,7 @@ Open Scope bool_scope.
 
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Export Utils.
-From LogRel Require Import BasicAst Notations Context NormalForms Weakening UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj.
+From LogRel Require Import BasicAst Notations Context NormalForms Weakening UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj DeclarativeNeutralConv.
 
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 
@@ -70,14 +70,14 @@ Section Invariants.
   Lemma typeConvRed_prem2 : $run (constructor_premise_preserve pre_cond post_cond 2 "typeConvRed").
   Proof.
     intros * HA HB [].
-    eapply subject_reduction_type, RedConvTyC in HA, HB ; tea.
+    eapply subject_reduction_type, reddecl_conv in HA, HB ; tea.
     split ; boundary.
   Qed.
 
   Lemma typeConvRed_concl : $run (constructor_concl_preserve pre_cond post_cond "typeConvRed").
   Proof.
     intros * HA HB IHA' [? ?].
-    eapply subject_reduction_type, RedConvTyC in HA, HB ; tea.
+    eapply subject_reduction_type, reddecl_conv in HA, HB ; tea.
     do 2 etransitivity ; tea.
     all: now econstructor.
   Qed.
@@ -390,7 +390,7 @@ Section Invariants.
 
   Lemma neuConvRed_concl : $run (constructor_concl_preserve pre_cond post_cond "neuConvRed").
   Proof.
-    eintros * [] ?%subject_reduction_type%RedConvTyC ? [].
+    eintros * [] ?%subject_reduction_type%reddecl_conv ? [].
     2: boundary.
     split.
     - now econstructor.
@@ -407,7 +407,7 @@ Section Invariants.
   Lemma termConvRed_prem3 : $run (constructor_premise_preserve pre_cond post_cond 3 "termConvRed").
   Proof.
     eintros * HA Ht Hu [].
-    eapply subject_reduction_type, RedConvTyC in HA.
+    eapply subject_reduction_type, reddecl_conv in HA.
     2: boundary.
     eapply subject_reduction in Ht ; tea.
     eapply subject_reduction in Hu ; tea.
@@ -419,7 +419,7 @@ Section Invariants.
   Lemma termConvRed_concl : $run (constructor_concl_preserve pre_cond post_cond "termConvRed").
   Proof.
     eintros * HA Ht Hu ? [].
-    eapply subject_reduction_type, RedConvTyC in HA.
+    eapply subject_reduction_type, reddecl_conv in HA.
     2: boundary.
     eapply subject_reduction, RedConvTeC in Ht ; tea.
     eapply subject_reduction, RedConvTeC in Hu ; tea.
@@ -1341,7 +1341,7 @@ Section BundledTyping.
       destruct IH as [? IH] ; tea.
       split ; [eauto|..].
       econstructor ; tea.
-      eapply subject_reduction_type, RedConvTyC in HA.
+      eapply subject_reduction_type, reddecl_conv in HA.
       1: eassumption.
       now boundary.
     - intros * ? IHt HA ?.

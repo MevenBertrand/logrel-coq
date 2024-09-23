@@ -1,7 +1,7 @@
 (** * LogRel.TypeUniqueness: all types for a term are convertible. *)
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction
-  GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping
+  GenericTyping DeclarativeTyping DeclarativeNeutralConv AlgorithmicTyping
   BundledAlgorithmicTyping AlgorithmicTypingProperties.
 
 Import DeclarativeTypingProperties AlgorithmicTypingData BundledTypingData AlgorithmicTypingProperties.

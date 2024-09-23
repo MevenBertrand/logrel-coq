@@ -6,7 +6,7 @@ From LogRel.Decidability Require Import Functions Soundness.
 
 From LogRel Require TermNotations.
 
-Import DeclarativeTypingProperties.
+Import DeclarativeTypingData.
 
 #[local] Definition infer (Γ : context) (t : term) : Fueled (exn errors term) :=
   (fueled (typing tconv) 1000 (inf_state;Γ;tt;t)).

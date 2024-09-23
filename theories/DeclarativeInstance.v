@@ -444,7 +444,7 @@ Qed.
 
 #[export] Instance RedTermTrans Γ A : Transitive (red_tm Γ A).
 Proof.
-  intros t u r [] []; split.
+  intros t u r [] []; split.
   + assumption.
   + now etransitivity.
   + now eapply TermTrans.
@@ -452,7 +452,7 @@ Qed.
 
 #[export] Instance RedTypeTrans Γ : Transitive (red_ty Γ).
 Proof.
-  intros t u r [] []; split.
+  intros t u r [] []; split.
   + assumption.
   + now etransitivity.
   + now eapply TypeTrans.
@@ -460,8 +460,10 @@ Qed.
 
 (** ** Bundling the properties together in an instance *)
 
-Module DeclarativeTypingProperties.
+Module WeakDeclarativeTypingProperties.
   Export DeclarativeTypingData.
+
+  #[export] Instance ConvNeuConv_WeakDecl : ConvNeuConv de := ConvNeuConvDecl.
 
   #[export, refine] Instance WfCtxDeclProperties : WfContextProperties (ta := de) := {}.
   Proof.
@@ -645,4 +647,4 @@ Module DeclarativeTypingProperties.
 
   #[export] Instance DeclarativeTypingProperties : GenericTypingProperties de _ _ _ _ _ _ _ _ _ _ := {}.
 
-End DeclarativeTypingProperties.
+End WeakDeclarativeTypingProperties.

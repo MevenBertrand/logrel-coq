@@ -10,7 +10,7 @@ From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening
   UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance
   AlgorithmicTyping BundledAlgorithmicTyping AlgorithmicConvProperties TypeConstructorsInj
-  Normalisation DeclarativeSubst Fundamental LogicalRelation.
+  DeclarativeNeutralConv Normalisation DeclarativeSubst Fundamental LogicalRelation.
 From LogRel Require Import Sections.
 From LogRel.LogicalRelation Require Import Induction Neutral Escape Reflexivity.
 From LogRel.Substitution Require Import Escape Poly.
@@ -138,63 +138,6 @@ Definition UAlgoConvInductionConcl :=
     let t := type of UAlgoConvInduction in
     let t' := remove_steps t in
     exact t').
-
-(* 
-(** ** Bundles *)
-
-Definition bnu : tag.
-Proof.
-constructor.
-Qed.
-
-Record ConvTypeUBun Γ A B :=
-{
-  bun_uconv_ty_ctx : [|-[de] Γ] ;
-  bun_uconv_ty_l : [Γ |-[de] A] ;
-  bun_uconv_ty_r : [Γ |-[de] B] ;
-  bun_uconv_ty : [A ≅ B]
-}.
-
-Record ConvTypeRedUBun Γ A B :=
-{
-  bun_uconv_ty_red_ctx : [|-[de] Γ] ;
-  bun_uconv_ty_red_l : [Γ |-[de] A] ;
-  bun_uconv_ty_red_wh_l : isType A ;
-  bun_uconv_ty_red_r : [Γ |-[de] B] ;
-  bun_uconv_ty_red_wh_r : isType B ;
-  bun_uconv_ty_red : [A ≅h B]
-}.
-
-Record ConvTermUBun Γ A t u :=
-{
-  bun_uconv_tm_ctx : [|-[de] Γ] ;
-  bun_uconv_tm_ty : [Γ |-[de] A] ;
-  bun_uconv_tm_l : [Γ |-[de] t : A] ;
-  bun_uconv_tm_r : [Γ |-[de] u : A] ;
-  bun_uconv_tm : [t ≅ u]
-}.
-
-Record ConvTermRedUBun Γ A t u :=
-{
-  bun_uconv_tm_red_ctx : [|-[de] Γ] ;
-  bun_uconv_tm_red_ty : [Γ |-[de] A] ;
-  bun_uconv_tm_red_wh_ty : isType A ;
-  bun_uconv_tm_red_l : [Γ |-[de] t : A] ;
-  bun_uconv_tm_red_wh_l : whnf t ;
-  bun_uconv_tm_red_r : [Γ |-[de] u : A] ;
-  bun_uconv_tm_red_wh_r : whnf u ;
-  bun_uconv_tm_red : [t ≅h u]
-}.
-
-Record ConvNeuUBun Γ A m n :=
-{
-  bun_uconv_ne_ctx : [|-[de] Γ] ;
-  bun_uconv_ne_l : [Γ |-[de] m : A] ;
-  bun_uconv_ne_wh_l : whne m ;
-  bun_uconv_ne_r : well_typed (ta := de) Γ n ;
-  bun_uconv_ne_wh_r : whne n ;
-  bun_uconv_ne : [m ~ n]
-}. *)
 
 (** ** Relation to weak-head normal forms *)
 

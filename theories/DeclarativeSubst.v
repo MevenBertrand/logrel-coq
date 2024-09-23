@@ -12,7 +12,7 @@ However, it could be alternatively proven much earlier, by a direct induction. *
 
 Set Printing Primitive Projection Parameters.
 
-Import DeclarativeTypingProperties.
+Import WeakDeclarativeTypingProperties.
 
 Lemma typing_subst : WfDeclInductionConcl
   (fun _ => True)

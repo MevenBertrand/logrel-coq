@@ -63,6 +63,7 @@ theories/Fundamental.v
 theories/AlgorithmicTyping.v
 theories/DeclarativeSubst.v
 theories/TypeConstructorsInj.v
+theories/DeclarativeNeutralConv.v
 theories/Normalisation.v
 theories/Consequences.v
 

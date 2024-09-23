@@ -1,9 +1,7 @@
 (** * LogRel.AlgorithmicConvProperties: properties of algorithmic conversion. *)
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction
-  GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj Normalisation BundledAlgorithmicTyping Fundamental.
-From LogRel.LogicalRelation Require Import Escape.
-From LogRel.Substitution Require Import Properties Escape.
+  GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj DeclarativeNeutralConv Normalisation BundledAlgorithmicTyping.
 
 Import AlgorithmicTypingData BundledTypingData DeclarativeTypingProperties.
 
@@ -1779,6 +1777,8 @@ End IntermediateTypingProperties.
 (** We use the intermediate instance derived above, and the fundamental lemma. *)
 
 Import BundledIntermediateData IntermediateTypingProperties.
+
+From LogRel Require Import Substitution.Escape Fundamental.
 
 Lemma algo_conv_complete Γ A B :
   [Γ |-[de] A ≅ B] ->

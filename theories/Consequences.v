@@ -3,7 +3,7 @@ From Coq Require Import CRelationClasses.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction
   LogicalRelation Fundamental Validity LogicalRelation.Induction Substitution.Escape LogicalRelation.Irrelevance
-  GenericTyping DeclarativeTyping DeclarativeInstance TypeConstructorsInj Normalisation.
+  GenericTyping DeclarativeTyping DeclarativeNeutralConv TypeConstructorsInj Normalisation.
 
 
 Import DeclarativeTypingData DeclarativeTypingProperties.
@@ -69,9 +69,10 @@ Section NatCanonicityInduction.
     - intros ? ? _ [n].
       exists (S n) ; simpl.
       now econstructor.
-    - intros ? ? [? ? []].
+    - intros ? [? ?].
       exfalso.
-      now eapply no_neutral_empty_ctx.
+      eapply no_neutral_empty_ctx ; tea.
+      now eapply convneu_whne.
   Qed.
 
   Lemma _nat_canonicity {t} : [ε |- t : tNat] ->
