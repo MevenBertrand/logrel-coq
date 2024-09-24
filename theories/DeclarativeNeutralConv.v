@@ -211,6 +211,19 @@ Proof.
     all: now eapply TypeTrans.
 Qed.
 
+Lemma conv_neu_refl Γ A n :
+  whne n ->
+  [Γ |- n : A] ->
+  [Γ |- n ~ n : A].
+Proof.
+  intros wn Hty.
+  induction wn in A, Hty |- *.
+  all: eapply termGen' in Hty ; cbn in * ; prod_hyp_splitter ; subst.
+  all: eapply neuConvConv ; tea.
+  all: econstructor ; eauto.
+  all: now econstructor.
+Qed.
+
 Lemma conv_neu_sym Γ A m n :
   [Γ |- m ~ n : A] ->
   [Γ |- n ~ m : A].

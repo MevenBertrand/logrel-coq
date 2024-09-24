@@ -3,7 +3,8 @@ From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Context Notations UntypedReduction DeclarativeTyping DeclarativeInstance GenericTyping NormalForms Weakening.
-From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj DeclarativeNeutralConv AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
+
 From LogRel.Decidability Require Import Functions Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
@@ -16,36 +17,30 @@ Definition nat_hd_view (Γ : context) {t t' : term} (nft : isNat t) (nft' : isNa
   match nft, nft' with
     | ZeroNat, ZeroNat => True
     | @SuccNat u, @SuccNat u' => [Γ |-[de] u ≅ u' : tNat]
-    | NeNat _, NeNat _ => True
+    | NeNat _, NeNat _ => [Γ |-[de] t ~ t' : tNat ]
     | _, _ => False
   end.
 
 Lemma isNat_zero (n : isNat tZero) : n = ZeroNat.
 Proof.
-  refine (
-  match n as n' in isNat k return
-    (match k as k' return (isNat k' -> Type) with | tZero => fun n'' => n'' = ZeroNat | _ => fun _ => True end n')
-  with | ZeroNat => _ | _ => _ end).
-  1-2: easy.
-  dependent inversion w ; cbn ; easy.
+  depelim n.
+  1: easy.
+  inversion w.
 Qed.
 
 Lemma isNat_succ t (n : isNat (tSucc t)) : n = SuccNat.
 Proof.
-  refine (
-  match n as n' in isNat k return
-    (match k as k' return (isNat k' -> Type) with | tSucc _ => fun n'' => n'' = SuccNat | _ => fun _ => True end n')
-  with | SuccNat => _ | _ => _ end).
-  1-2: easy.
-  dependent inversion w ; cbn ; easy.
+  depelim n.
+  1: easy.
+  inversion w.
 Qed.
 
 Lemma isNat_ne t (n : isNat t) : whne t -> ∑ w, n = NeNat w.
 Proof.
   intros w.
-  inversion w ; subst ; clear w.
-  all: dependent inversion n ; subst.
-  all: eexists ; reflexivity.
+  depelim n.
+  1-2: now inversion w.
+  now eexists.
 Qed.
 
 Lemma nat_conv_inj : forall (Γ : context) (t t' : term) (nft : isNat t) (nft' : isNat t'),
@@ -86,11 +81,13 @@ Proof.
     eapply convtm_exp ; gen_typing.
 
   - cbn.
-    intros ?? [[]] nft nft' ; refold.
-    epose proof (isNat_ne _ nft) as [? ->] ; tea.
-    epose proof (isNat_ne _ nft') as [? ->] ; tea.
+    intros ?? [] nft nft' ; refold.
+    epose proof (isNat_ne _ nft) as [? ->].
+    1: now eapply conv_neu_ne in conv.
+    epose proof (isNat_ne _ nft') as [? ->].
+    1: now eapply conv_neu_ne in conv.
     cbn.
-    easy.
+    assumption.
 
 Qed.
 
@@ -100,7 +97,7 @@ Definition univ_hd_view (Γ : context) {T T' : term} (nfT : isType T) (nfT' : is
     | @ProdType A B, @ProdType A' B' => [Γ |-[de] A' ≅ A : U] × [Γ,, A' |-[de] B ≅ B' : U]
     | NatType, NatType => True
     | EmptyType, EmptyType => True
-    | NeType _, NeType _ => True
+    | NeType _, NeType _ => [Γ |- T ~ T' : U]
     | @SigType A B, @SigType A' B' => [Γ |-[de] A ≅ A' : U] × [Γ,, A |-[de] B ≅ B' : U]
     | @IdType A x y, @IdType A' x' y' => [× [Γ |-[de] A ≅ A' : U], [Γ |-[de] x ≅ x' : A] & [Γ |-[de] y ≅ y' : A]]
     | _, _ => False
@@ -404,34 +401,60 @@ Proof.
     now eapply escapeEqzero.
 Qed.
 
-Definition id_hd_view (Γ : context) {t t' : term} (nft : isId t) (nft' : isId t') : Type :=
+Lemma empty_conv_inj (Γ : context) (t t' : term) :
+  whne t -> whne t' ->
+  [Γ |-[de] t ≅ t' : tEmpty] ->
+  [Γ |-[de] t ~ t' : tEmpty].
+Proof.
+  intros * wt wt' Hconv.
+  eapply Fundamental in Hconv as [HΓ Hemp _ _ Hconv].
+  eapply Escape.reducibleTmEq in Hconv.
+  unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
+  2: now eapply Empty.emptyRed, Properties.soundCtx.
+  1: exact one.
+  clear Hemp.
+  cbn in *.
+  set (nRed := {| EmptyRedTy.red := redtywf_refl (wft_term (ty_empty (Properties.soundCtx HΓ))) |}) in *.
+  clearbody nRed.
+
+  destruct Hconv as [?? ?? redL redR ? Hp].
+  inversion Hp as [?? []]; subst.
+  erewrite red_whnf.
+  2: eapply redtm_sound, redR.
+  2: now econstructor.
+  erewrite (red_whnf t).
+  2: eapply redtm_sound, redL.
+  2: now econstructor.
+
+  assumption.
+
+Qed.
+
+Definition id_hd_view (Γ : context) (A x x' : term) {t t' : term} (nft : isId t) (nft' : isId t') : Type :=
   match nft, nft' with
     | @ReflId A a, @ReflId A' a' => [Γ |- A ≅ A'] × [Γ |- a ≅ a' : A]
-    | NeId _, NeId _ => True
+    | NeId _, NeId _ => [Γ |- t ~ t' : tId A x x']
     | _, _ => False
   end.
 
 Lemma isId_refl A a (n : isId (tRefl A a)) : n = ReflId.
 Proof.
-  refine (
-  match n as n' in isId k return
-    (match k as k' return (isId k' -> Type) with | tRefl _ _ => fun n'' => n'' = ReflId | _ => fun _ => True end n')
-  with | ReflId => _ | _ => _ end).
-  1: easy.
-  dependent inversion w ; cbn ; easy.
+  depelim n.
+  1: reflexivity.
+  inversion w ; cbn ; easy.
 Qed.
 
 Lemma isId_ne t (n : isId t) : whne t -> ∑ w, n = NeId w.
 Proof.
   intros w.
-  inversion w ; subst ; clear w.
-  all: dependent inversion n ; subst.
-  all: eexists ; reflexivity.
+  dependent inversion n ; subst.
+  1: inversion w.
+  now eexists.
 Qed.
 
 Lemma id_conv_inj : forall (Γ : context) (A x y t t' : term) (nft : isId t) (nft' : isId t'),
   [Γ |-[de] t ≅ t' : tId A x y] ->
-  id_hd_view Γ nft nft'.
+  id_hd_view Γ A x y nft nft'.
 Proof.
   intros * Hconv.
   eapply Fundamental in Hconv as [HΓ Hid _ _ Hconv].
@@ -448,7 +471,7 @@ Proof.
   destruct Hconv as [u u' ? ? _ p] ; cbn in *.
   assert (t = u) as <- by (eapply red_whnf ; gen_typing).
   assert (t' = u') as <- by (eapply red_whnf ; gen_typing).
-  destruct p as [? | ? ? [[net net']]] ; cbn in *.
+  destruct p as [? | ? ? []] ; cbn in *.
 
   - Escape.escape.
     rewrite (isId_refl _ _ nft), (isId_refl _ _ nft') ; cbn.
@@ -459,8 +482,42 @@ Proof.
       etransitivity ; eauto.
       now symmetry.
 
-  - eapply isId_ne in net as [? ->], net' as [? ->] ; cbn.
-    easy.
+  - edestruct (isId_ne ne) as [? ->] ; [now eapply conv_neu_ne in conv |..].
+    edestruct (isId_ne ne') as [? ->] ; [now eapply conv_neu_ne in conv |..].
+    cbn.
+    unfold IdRedTyPack.outTy in conv ; cbn in *.
+    destruct (Id.IdRedTy_inv (Induction.invLRId HTred)) as [eA ex ey].
+    rewrite <- eA, <- ex, <- ey in conv.
+    assumption.
+
+Qed.
+
+Lemma neu_conv_inj (Γ : context) (A t t' : term) :
+  whne A -> whne t -> whne t' ->
+  [Γ |-[de] t ≅ t' : A] ->
+  [Γ |-[de] t ~ t' : A].
+Proof.
+  intros * wA wt wt' Hconv.
+  eapply Fundamental in Hconv as [HΓ Hne _ _ Hconv].
+  eapply Escape.reducibleTmEq in Hconv.
+  unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
+  1: exact one.
+  1:{
+    eapply Neutral.neu.
+    2: eapply conv_neu_refl, neutral_ty_inv ; tea.
+    all: now eapply Escape.escapeTy.
+  }
+  cbn in *.
+
+  destruct Hconv as [?? redL redR ?] ; cbn in *.
+  erewrite red_whnf.
+  2: eapply redtm_sound, redR.
+  2: now econstructor.
+  erewrite (red_whnf t).
+  2: eapply redtm_sound, redL.
+  2: now econstructor.
+
+  assumption.
 
 Qed.
 
@@ -498,7 +555,7 @@ Lemma mismatch_hd_view Γ A t u (tA : isType A) :
   whnf t -> whnf u ->
   build_nf_view3 A t u = mismatch A t u ->
   (∑ (nft : isNat t) (nfu : isNat u), A = tNat × nat_hd_view Γ nft nfu = False) +
-  (∑ (nft : isId t) (nfu : isId u) A' x y, A = tId A' x y × id_hd_view Γ nft nfu = False).
+  (∑ (nft : isId t) (nfu : isId u) A' x y, A = tId A' x y × id_hd_view Γ A' x y nft nfu = False).
 Proof.
   intros wt wu.
   destruct tA ; cbn.
@@ -575,8 +632,8 @@ Qed.
   | (ty_red_state;Γ;_;T;V), (exception _) => ~ [Γ |-[de] T ≅ V]
   | (tm_state;Γ;A;t;u), (exception _) => ~ [Γ |-[de] t ≅ u : A]
   | (tm_red_state;Γ;A;t;u), (exception _) => ~ [Γ |-[de] t ≅ u : A]
-  | (ne_state;Γ;_;m;n), (exception _) => ~ ∑ T, [Γ |-[de] m ≅ n : T]
-  | (ne_red_state;Γ;_;m;n), (exception _) => ~ ∑ T, ([Γ |-[de] m ≅ n : T] × whnf T)
+  | (ne_state;Γ;_;m;n), (exception _) => ~ ∑ T, [Γ |-[de] m ~ n : T]
+  | (ne_red_state;Γ;_;m;n), (exception _) => ~ ∑ T, ([Γ |-[de] m ~ n : T] × whnf T)
   end.
 
 #[universes(polymorphic)]Definition conv_sound_pre
@@ -676,6 +733,9 @@ Proof.
     unshelve eintros Hty'%ty_conv_inj.
     1-2: now econstructor.
     cbn in Hty'.
+    unshelve eapply univ_conv_inj in Hty'.
+    1-2: now econstructor.
+    cbn in Hty'.
     eauto.
 
   - destruct pre as [wt wu [Ht Hu]].
@@ -762,7 +822,10 @@ Proof.
     intros [|] Hty ; cbn.
     + econstructor ; tea.
       gen_typing.
-    + intros ?.
+    + destruct s.
+      unshelve eintros ?%univ_conv_inj.
+      1-2: now econstructor.
+      cbn in *.
       eauto.
 
   - destruct s.
@@ -828,13 +891,28 @@ Proof.
   
   - destruct pre as [??? [pre [[]]%termNeuConvAlg_prem0%dup]%dup] ; tea.
     split ; [easy|..].
+    eapply whnf_view3_neutrals_can in e as [Wa Wn Wn'].
+    2: easy.
     intros [|] ; cbn.
-    + econstructor ; tea.
-      now eapply whnf_view3_neutrals_can in e as [].
+    + now econstructor.
     + intros Hnty Hty.
+      eapply whne_can in Wn, Wn' ; eauto.
       eapply Hnty.
-      now eexists. 
-    
+      exists A.
+      destruct Wa.
+      * destruct s.
+        unshelve eapply univ_conv_inj in Hty.
+        1-2: now econstructor.
+        now cbn in *.
+      * unshelve eapply nat_conv_inj in Hty.
+        1-2: now econstructor.
+        now cbn in *.
+      * unshelve eapply empty_conv_inj in Hty.
+        all: now cbn in *.
+      * unshelve eapply id_conv_inj in Hty.
+        1-2: now econstructor.
+        now cbn in *.
+      * now eapply neu_conv_inj in Hty.
   
   - destruct pre as [w ?? []].
     eapply type_isType in w.
@@ -852,21 +930,163 @@ Proof.
       1: econstructor.
       all: eassumption.
       
-    + admit.
+    + intros [? (?&[[= ->]])%neuConvGen].
+      eauto.
     
-  - admit.
+  - apply dup in pre as [pre [[] ]%neuAppCongAlg_prem0%dup] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    + intros [[Hpost]%dup] ; tea.
+      eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
+      eapply dup in pre as [pre [[? (?&[? [? [-> Hf]]]&?)%termGen'] _]].
+      eapply Hfu, red_ty_compl_prod_r in Hf as (?&?&[red%redty_sound]).
+      eapply red_whnf in red ; eauto ; subst.
+      edestruct neuAppCongAlg_prem1 ; eauto.
+
+      cbn.
+      split ; [eauto|..].
+      intros [|] ; cbn.
+      1: now econstructor.
+
+      intros Hneg [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+      apply Hneg.
+      eapply TermConv ; refold ; tea.
+      eapply prod_ty_inj, Hfu.
+      eauto using conv_neu_sound with boundary.
+
+    + intros Hneg [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+      apply Hneg.
+      eexists ; split ; eauto.
+      now constructor.
+ 
+  - apply dup in pre as [pre [[] ]%neuNatElimCong_prem0%dup] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+
+    intros [[Hpost]%dup] ; tea.
+    eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
+    eapply dup in pre as [pre [[? (?&[-> ??? Hn]&?)%termGen'] _]].
+    eapply Hfu, red_ty_compl_nat_r, redty_sound, red_whnf in Hn ; eauto ; subst.
+    eapply dup in pre as [pre [ []]%neuNatElimCong_prem1%dup] ; eauto.
+    cbn.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+
+    intros [? [Hpost1 ?]%algo_conv_sound%dup]%dup ; tea.
+    eapply neuNatElimCong_prem2, dup in Hpost1 as [Hpost1 []] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+    
+    intros [? [Hpost2 ?]%algo_conv_sound%dup]%dup ; tea.
+    eapply neuNatElimCong_prem3, dup in Hpost2 as [Hpost2 []] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+    
+    intros.
+    now econstructor.
+
+    Unshelve.
+    all: intros Hneg [? (?&?&?&?&[[= <- <- <-]])%neuConvGen] ; subst.
+    all: apply Hneg ; eauto.
+    eexists ; split ; gen_typing.
   
-  - admit.
+  - apply dup in pre as [pre [[] ]%neuEmptyElimCong_prem0%dup] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+
+    intros [[Hpost]%dup] ; tea.
+    eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
+    eapply dup in pre as [pre [[? (?&[-> ? Hn]&?)%termGen'] _]].
+    eapply Hfu, red_ty_compl_empty_r, redty_sound, red_whnf in Hn ; eauto ; subst.
+    eapply dup in pre as [pre [ []]%neuEmptyElimCong_prem1%dup] ; eauto.
+    cbn.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+    
+    intros.
+    now econstructor.
+
+    Unshelve.
+    all: intros Hneg [? (?&?&[[=]])%neuConvGen] ; subst.
+    all: apply Hneg ; eauto.
+    eexists ; split ; gen_typing.
   
-  - admit.
+  - apply dup in pre as [pre [[] ]%neuFstCongAlg_prem0%dup] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    
+    + intros [[Hpost]%dup] ; tea.
+      eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
+      eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
+      eapply Hfu, red_ty_compl_sig_r in Hp as (?&?&[red%redty_sound]).
+      eapply red_whnf in red ; eauto ; subst.
+      cbn.
+      now econstructor.
+
+    + intros Hneg [? (?&?&?&[[= <-]])%neuConvGen].
+      eapply Hneg.
+      eexists ; split ; gen_typing.
   
-  - admit.
+  - apply dup in pre as [pre [[] ]%neuSndCongAlg_prem0%dup] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    
+    + intros [[Hpost]%dup] ; tea.
+      eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
+      eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
+      eapply Hfu, red_ty_compl_sig_r in Hp as (?&?&[red%redty_sound]).
+      eapply red_whnf in red ; eauto ; subst.
+      cbn.
+      now econstructor.
+
+    + intros Hneg [? (?&?&?&[[= <-]])%neuConvGen].
+      eapply Hneg.
+      eexists ; split ; gen_typing.
   
-  - admit.
+  - apply dup in pre as [pre [[] ]%neuIdElimCong_prem0%dup] ; eauto.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+
+    intros [[Hpost]%dup] ; tea.
+    eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
+    eapply dup in pre as [pre [[? (?&[-> ????? He]&?)%termGen'] _]].
+    eapply Hfu, red_ty_compl_id_r in He as (?&?&?&[red%redty_sound]).
+    eapply red_whnf in red ; eauto ; subst.
+    eapply dup in pre as [pre [ []]%neuIdElimCong_prem1%dup] ; eauto.
+    cbn.
+    split ; [erewrite <- !wk1_ren_on ; easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+
+    intros [? ?%algo_conv_sound%dup]%dup.
+    2-3: now erewrite <- !wk1_ren_on.
+    eapply neuIdElimCong_prem2 in pre ; eauto.
+    2: now rewrite !wk1_ren_on.
+    split ; [easy|..].
+    intros [|] ; cbn.
+    2: shelve.
+    econstructor ; eauto.
+    now rewrite !wk1_ren_on.
+
+    Unshelve.
+    all: intros Hneg [? (?&?&?&?&?&?&[[= <- <- <-]])%neuConvGen] ; subst.
+    all: apply Hneg ; eauto.
+    + eexists ; split ; gen_typing.
+    + now erewrite <- !wk1_ren_on. 
+    
   
-  - admit.
-  
-  - admit.
+  - intros [? ?%neuConvGen].
+    destruct t ; cbn in * ; try solve [easy].
+    all: prod_hyp_splitter ; subst.
+    all: simp build_ne_view2 in e ; cbn in *.
+    all: congruence.
   
   - split ; [easy|..].
     intros [|] Hty ; cbn.
@@ -874,5 +1094,5 @@ Proof.
       now econstructor.
     + intros [? []].
       now eapply Hty.
-      
-Admitted.
+
+Qed.
