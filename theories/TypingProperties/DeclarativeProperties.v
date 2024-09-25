@@ -1,6 +1,8 @@
 (** * LogRel.DeclarativeProperties: basic properties of declarative typing, showing it is an instance of generic typing. *)
 From Coq Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping.
+From LogRel.TypingProperties Require Import PropertiesDefinition.
+
 
 Import DeclarativeTypingData.
 
@@ -19,8 +21,6 @@ Section TypingWk.
     [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩].
   Let PTmEq (Γ : context) (A t u : term) := forall Δ (ρ : Δ ≤ Γ), [|- Δ ] ->
     [Δ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩].
-
-
 
   Theorem typing_wk : WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq.
   Proof.
@@ -365,6 +365,28 @@ End Boundaries.
   boundary_red_tm_l
   boundary_red_ty_l : boundary.
 
+
+(** ** Typed reduction implies untyped reduction *)
+
+Section TypeErasure.
+  Import DeclarativeTypingData.
+
+Lemma redtmdecl_red Γ t u A : 
+  [Γ |- t ⤳* u : A] ->
+  [t ⤳* u].
+Proof.
+apply reddecl_red.
+Qed.
+
+Lemma redtydecl_red Γ A B : 
+  [Γ |- A ⤳* B] ->
+  [A ⤳* B].
+Proof.
+apply reddecl_red.
+Qed.
+
+End TypeErasure.
+
 (** ** Inclusion of the various reductions in conversion *)
 
 Definition RedConvC {Γ} {t u : term} {K} :
@@ -462,7 +484,7 @@ Qed.
 Module WeakDeclarativeTypingProperties.
   Export DeclarativeTypingData.
 
-  #[export] Instance ConvNeuConv_WeakDecl : ConvNeuConv de := ConvNeuConvDecl.
+  Import WeakDeclarativeTypingData.
 
   #[export, refine] Instance WfCtxDeclProperties : WfContextProperties (ta := de) := {}.
   Proof.

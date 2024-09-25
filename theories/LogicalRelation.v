@@ -1,7 +1,6 @@
 (** * LogRel.LogicalRelation: Definition of the logical relation *)
 From Coq Require Import CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
@@ -1313,13 +1312,3 @@ Notation "[ Γ ||-Id< l > A ]" := (IdRedTy Γ l A) (at level 0, Γ, l,  A at lev
 Notation "[ Γ ||-Id< l > A ≅ B | RA ]" := (IdRedTyEq (Γ:=Γ) (l:=l) (A:=A) RA B) (at level 0, Γ, l, A, B, RA at level 50).
 Notation "[ Γ ||-Id< l > t : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
 Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
-
-
-
-
-
-
-
-
-
-

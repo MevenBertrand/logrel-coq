@@ -19,15 +19,16 @@ theories/Syntax/UntypedReduction.v
 theories/Syntax/Sections.v
 theories/Syntax/All.v
 
-theories/TypingProperties/GenericTyping.v
+theories/GenericTyping.v
 theories/DeclarativeTyping.v
-theories/TypingProperties/Properties.v
+
+theories/TypingProperties/PropertiesDefinition.v
 theories/TypingProperties/DeclarativeProperties.v
-theories/TypingProperties/DeclarativeSubst.v
+theories/TypingProperties/SubstConsequences.v
 theories/TypingProperties/TypeConstructorsInj.v
-theories/TypingProperties/DeclarativeNeutralConv.v
-theories/TypingProperties/Normalisation.v
-theories/ConsistencyCanonicity.v
+theories/TypingProperties/NeutralConvProperties.v
+theories/TypingProperties/NormalisationConsequences.v
+theories/TypingProperties/LogRelConsequences.v
 
 theories/LogicalRelation.v
 theories/LogicalRelation/Induction.v

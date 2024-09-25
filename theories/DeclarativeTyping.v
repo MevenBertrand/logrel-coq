@@ -1,8 +1,7 @@
 (** * LogRel.DeclarativeTyping: specification of conversion and typing, in a declarative fashion. *)
 From Coq Require Import ssreflect.
 From smpl Require Import Smpl.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction.
+From LogRel Require Import Utils Syntax.All.
 
 Set Primitive Projections.
 
@@ -316,11 +315,68 @@ Section Definitions.
 
   Notation "[ Γ |- t ⤳* t' ∈ A ]" := (RedClosureDecl Γ A t t').
 
-  Record ConvNeuConvDecl (Γ : context) (A : term) (t u : term) := {
+(** ** Declarative neutral conversion *)
+
+(** We have two notions of "convertible neutrals". The first is relatively weak, and says only that
+  the two terms are neutral and are convertible (wrt. standard conversion). The good side is that
+  it can be shown to satisfy the interface of generic typing already. The bad side is that it does not
+  give us strong enough inversion principles. *)
+
+  Record WeakDeclNeutralConversion (Γ : context) (A : term) (t u : term) := {
     convnedecl_whne_l : whne t;
     convnedecl_whne_r : whne u;
     convnedecl_conv : [ Γ |- t ≅ u : A ];
   }.
+
+(** The second, much stronger notion compares neutrals only "structurally".
+  In particular, it does *not* embed transitivity.
+  The price is that at this stage we cannot show that it is transitive, yet – we need injectivity of
+  type constructors for that. So we defer that until that later point. *)
+
+  Inductive DeclNeutralConversion (Γ : context) : term -> term -> term -> Type :=
+
+  | neuConvRel T n : [|- Γ] -> in_ctx Γ n T -> [Γ |- tRel n ~ tRel n : T]
+
+  | neuConvApp A B n n' a a' :
+      [Γ |- n ~ n' : tProd A B] ->
+      [Γ |- a ≅ a' : A] ->
+      [Γ |- tApp n a ~ tApp n' a' : B[a..]]
+
+  | neuConvNat {P P' hz hz' hs hs' n n'} :
+      [Γ |- n ~ n' : tNat] ->
+      [Γ ,, tNat |- P ≅ P'] ->
+      [Γ |- hz ≅ hz' : P[tZero..]] ->
+      [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
+      [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]]
+
+  | neuConvEmpty {P P' e e'} :
+      [Γ ,, tEmpty |- P ≅ P'] ->
+      [Γ |- e ~ e' : tEmpty] ->
+      [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : P[e..]]
+
+  | neuConvFst {A B p p'} :
+      [Γ |- p ~ p' : tSig A B] ->
+      [Γ |- tFst p ~ tFst p' : A]
+
+  | neuConvSnd {A B p p'} :
+      [Γ |- p ~ p' : tSig A B] ->
+      [Γ |- tSnd p ~ tSnd p' : B[(tFst p)..]]
+
+  | neuConvId {A A' x x' P P' hr hr' y y' e e'} :
+      [Γ |- A ≅ A'] ->
+      [Γ |- x ≅ x' : A] ->
+      [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
+      [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
+      [Γ |- y ≅ y' : A] ->
+      [Γ |- e ~ e' : tId A x y] ->
+      [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]]
+
+  | neuConvConv {A B n n'} :
+      [Γ |- n ~ n' : A] ->
+      [Γ |- A ≅ B] ->
+      [Γ |- n ~ n' : B]
+
+  where "[ Γ |- m ~ n : A ]" := (DeclNeutralConversion Γ A m n).
 
 End Definitions.
 
@@ -341,13 +397,12 @@ Module DeclarativeTypingData.
 
   #[export] Instance WfContext_Decl : WfContext de := WfContextDecl.
   #[export] Instance WfType_Decl : WfType de := WfTypeDecl.
-  #[export] Instance Typing_Decl : Inferring de := TypingDecl.
-  #[export] Instance Inferring_Decl : Typing de := TypingDecl.
-  #[export] Instance InferringRed_Decl : InferringRed de := TypingDecl.
+  #[export] Instance Typing_Decl : Typing de := TypingDecl.
   #[export] Instance ConvType_Decl : ConvType de := ConvTypeDecl.
   #[export] Instance ConvTerm_Decl : ConvTerm de := ConvTermDecl.
   #[export] Instance RedType_Decl : RedType de := TypeRedClosure.
   #[export] Instance RedTerm_Decl : RedTerm de := TermRedClosure.
+  #[export] Instance ConvNeuConv_Decl : ConvNeuConv de := DeclNeutralConversion.
 
   Ltac fold_decl :=
     change WfContextDecl with (wf_context (ta := de)) in * ;
@@ -356,11 +411,22 @@ Module DeclarativeTypingData.
     change ConvTypeDecl with (conv_type (ta := de)) in * ;
     change ConvTermDecl with (conv_term (ta := de)) in * ;
     change TypeRedClosure with (red_ty (ta := de)) in *;
-    change TermRedClosure with (red_tm (ta := de)) in *.
+    change TermRedClosure with (red_tm (ta := de)) in *;
+    change DeclNeutralConversion with (conv_neu_conv (ta := de)) in *.
 
   Smpl Add fold_decl : refold.
 
 End DeclarativeTypingData.
+
+Module WeakDeclarativeTypingData.
+
+  Import DeclarativeTypingData.
+  #[export] Remove Hints DeclNeutralConversion : typeclass_instances.
+  #[export] Instance ConvNeuConv_WeakDecl : ConvNeuConv de := WeakDeclNeutralConversion.
+
+End WeakDeclarativeTypingData.
+
+Import DeclarativeTypingData.
 
 (** ** Induction principles *)
 
@@ -372,7 +438,6 @@ principle. We also use Ltac to generate the conclusion of the mutual induction
 proof, to alleviate the user from the need to write it down every time: they
 only need write the predicates to be proven. *)
 Section InductionPrinciples.
-  Import DeclarativeTypingData.
 
 Scheme 
     Minimality for WfContextDecl Sort Type with
@@ -420,22 +485,94 @@ End InductionPrinciples.
 
 Arguments WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq : rename.
 
-(** Typed reduction implies untyped reduction *)
-Section TypeErasure.
-  Import DeclarativeTypingData.
+(** ** Generation *)
 
-Lemma redtmdecl_red Γ t u A : 
-  [Γ |- t ⤳* u : A] ->
-  [t ⤳* u].
+(** The generation lemma (the name comes from the PTS literature), gives a 
+stronger inversion principle on typing derivations, that give direct access
+to the last non-conversion rule, and bundle together all conversions.
+
+Note that because we do not yet know that [Γ |- t : T] implies [Γ |- T],
+we cannot use reflexivity in the case where the last rule was not a conversion
+one, and we get the slightly clumsy disjunction of either an equality or a
+conversion proof. We get a better version of generation later on, once we have
+this implication. *)
+
+Definition termGenData (Γ : context) (t T : term) : Type :=
+  match t with
+    | tRel n => ∑ decl, [× T = decl, [|- Γ]& in_ctx Γ n decl]
+    | tProd A B =>  [× T = U, [Γ |- A : U] & [Γ,, A |- B : U]]
+    | tLambda A t => ∑ B, [× T = tProd A B, [Γ |- A] & [Γ,, A |- t : B]]
+    | tApp f a => ∑ A B, [× T = B[a..], [Γ |- f : tProd A B] & [Γ |- a : A]]
+    | tSort _ => False
+    | tNat => T = U
+    | tZero => T = tNat
+    | tSucc n => T = tNat × [Γ |- n : tNat]
+    |  tNatElim P hz hs n =>
+      [× T = P[n..], [Γ,, tNat |- P], [Γ |- hz : P[tZero..]], [Γ |- hs : elimSuccHypTy P] & [Γ |- n : tNat]]
+    | tEmpty => T = U
+    | tEmptyElim P e =>
+      [× T = P[e..], [Γ,, tEmpty |- P] & [Γ |- e : tEmpty]]
+    | tSig A B => [× T = U, [Γ |- A : U] & [Γ ,, A |- B : U]]
+    | tPair A B a b =>
+     [× T = tSig A B, [Γ |- A], [Γ,, A |- B], [Γ |- a : A] & [Γ |- b : B[a..]]]
+    | tFst p => ∑ A B, T = A × [Γ |- p : tSig A B]
+    | tSnd p => ∑ A B, T = B[(tFst p)..] × [Γ |- p : tSig A B]
+    | tId A x y => [× T = U, [Γ |- A : U], [Γ |- x : A] & [Γ |- y : A]]
+    | tRefl A x => [× T = tId A x x, [Γ |- A] & [Γ |- x : A]]
+    | tIdElim A x P hr y e => 
+      [× T = P[e .: y..], [Γ |- A], [Γ |- x : A], [Γ,, A,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P], [Γ |- hr : P[tRefl A x .: x..]], [Γ |- y : A] & [Γ |- e : tId A x y]]
+  end.
+
+(* Use `termGen` from later on instead after this file. *)
+Lemma _termGen Γ t A :
+  [Γ |- t : A] ->
+  ∑ A', (termGenData Γ t A') × ((A' = A) + [Γ |- A' ≅ A]).
 Proof.
-apply reddecl_red.
+  induction 1.
+  all: try (eexists ; split ; [..|left ; reflexivity] ; cbn ; by_prod_splitter).
+  + destruct IHTypingDecl as [? [? [-> | ]]].
+    * prod_splitter; tea; now right.
+    * prod_splitter; tea; right; now eapply TypeTrans.
 Qed.
 
-Lemma redtydecl_red Γ A B : 
-  [Γ |- A ⤳* B] ->
-  [A ⤳* B].
+Lemma prod_ty_inv Γ A B :
+  [Γ |- tProd A B] ->
+  [Γ |- A] × [Γ,, A |- B].
 Proof.
-apply reddecl_red.
+  intros Hty.
+  inversion Hty ; subst ; refold.
+  - easy.
+  - eapply _termGen in H as (?&[]&_) ; subst.
+    split ; now econstructor.
 Qed.
 
-End TypeErasure.
+Lemma sig_ty_inv Γ A B :
+  [Γ |- tSig A B] ->
+  [Γ |- A] × [Γ,, A |- B].
+Proof.
+  intros Hty.
+  inversion Hty ; subst ; refold.
+  - easy.
+  - eapply _termGen in H as (?&[]&_) ; subst.
+    split ; now econstructor.
+Qed.
+
+Lemma id_ty_inv Γ A x y :
+  [Γ |- tId A x y] ->
+  [× [Γ |- A], [Γ |- x : A] & [Γ |- y : A]].
+Proof.
+  intros Hty.
+  inversion Hty ; subst ; refold.
+  - easy.
+  - eapply _termGen in H as (?&[]&_) ; subst.
+    split ; try easy ; now econstructor.
+Qed.
+
+Lemma neutral_ty_inv Γ A :
+  [Γ |- A] -> whne A -> [Γ |- A : U].
+Proof.
+  intros Hty Hne.
+  inversion Hty ; subst ; refold.
+  1-6: inversion Hne.
+  easy.
+Qed.

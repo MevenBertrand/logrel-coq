@@ -1,6 +1,5 @@
 From Coq Require Import ssrbool.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Notations Utils BasicAst Context NormalForms Weakening GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Induction Irrelevance Transitivity Escape.
 
 Set Universe Polymorphism.

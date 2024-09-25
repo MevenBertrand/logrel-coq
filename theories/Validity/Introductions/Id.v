@@ -1,9 +1,6 @@
-From Coq Require Import ssrbool CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening GenericTyping LogicalRelation Validity.
-From LogRel.LogicalRelation Require Import Induction Escape Reflexivity Irrelevance Weakening Neutral Transitivity Reduction Application Universe Id EqRedRight NormalRed InstKripke.
-From LogRel.Substitution Require Import Irrelevance Properties Conversion SingleSubst Reflexivity Reduction.
-From LogRel.Substitution.Introductions Require Import Universe Var Poly.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel.LogicalRelation Require Import Induction Irrelevance Escape Reflexivity Weakening Neutral Transitivity Reduction Application Universe Id.
+From LogRel.Validity Require Import Validity Irrelevance Properties Conversion SingleSubst Reflexivity Reduction Universe Var.
 
 Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.

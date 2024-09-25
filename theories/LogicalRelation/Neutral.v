@@ -1,8 +1,5 @@
-(** * LogRel.Neutral: Reducibility of neutral types and terms. *)
-From Coq Require Import CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms UntypedReduction Weakening GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Reflexivity Escape Irrelevance Transitivity.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel.LogicalRelation Require Import Induction Reflexivity Irrelevance Escape.
 
 Set Universe Polymorphism.
 

@@ -1,7 +1,6 @@
 (** * LogRel.LogicalRelation.Irrelevance: symmetry and irrelevance of the logical relation. *)
 From Coq Require Import CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Notations Utils BasicAst Context NormalForms Weakening GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Induction ShapeView Reflexivity Escape.
 
 Set Universe Polymorphism.

@@ -1,7 +1,6 @@
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening GenericTyping LogicalRelation Validity.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Irrelevance Escape Reflexivity Weakening Neutral Induction.
-From LogRel.Substitution Require Import Irrelevance.
+From LogRel.Validity Require Import Validity Irrelevance.
 
 Set Universe Polymorphism.
 

@@ -1,7 +1,6 @@
 (** * LogRel.LogicalRelation.Escape: the logical relation implies conversion/typing. *)
 From Coq Require Import CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All LogicalRelation GenericTyping.
 From LogRel.LogicalRelation Require Import Induction.
 
 Set Universe Polymorphism.
