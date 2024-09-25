@@ -466,21 +466,181 @@ Section Boundary.
   Let PTyEq (Γ : context) (A B : term) := [Γ |- A] × [Γ |- B].
   Let PTmEq (Γ : context) (A t u : term) := [× [Γ |- A], [Γ |- t : A] & [Γ |- u : A]].
 
+
   Lemma boundary : WfDeclInductionConcl PCon PTy PTm PTyEq PTmEq.
   Proof.
     subst PCon PTy PTm PTyEq PTmEq.
-    red; prod_splitter; try now constructor.
-    - intros Γ A t H; apply Fundamental in H as [? VA _].
-      now eapply escapeTy.
-    - intros Γ A B H; apply Fundamental in H as [? VA VB _]; split.
-      + now eapply escapeTy.
-      + now eapply escapeTy.
-    - intros Γ A t u H; apply Fundamental in H as [? VA Vtu].
-      pose proof (ureflValidTm Vtu).
-      prod_splitter.
-      + now eapply escapeTy.
-      + now eapply escapeTm.
-      + now eapply escapeTm.
+    apply WfDeclInduction.
+    all: try easy.
+    - intros.
+      now eapply in_ctx_wf.
+    - intros.
+      now econstructor.
+    - intros.
+      now eapply typing_subst1, prod_ty_inv.
+    - intros; gen_typing.
+    - intros; gen_typing.
+    - intros.
+      now eapply typing_subst1.
+    - intros; gen_typing.
+    - intros.
+      now eapply typing_subst1.
+    - intros; gen_typing.
+    - intros. now eapply sig_ty_inv.
+    - intros.
+      eapply typing_subst1.
+      + now econstructor.
+      + now eapply sig_ty_inv.
+    - intros; now econstructor.
+    - intros; eapply typing_subst2; tea.
+      1: gen_typing.
+      cbn; now rewrite 2!wk1_ren_on, 2!shift_subst_eq.
+    - intros * ? _ ? [] ? [].
+      split.
+      all: constructor ; tea.
+      eapply stability1.
+      3: now symmetry.
+      all: eassumption.
+    - intros * ? _ ? [] ? []; split.
+      1: gen_typing.
+      constructor; tea.
+      eapply stability1. 
+      3: now symmetry.
+      all: tea.
+    - intros; prod_hyp_splitter; split; econstructor; tea; now eapply wfTermConv.
+    - intros * ? [].
+      split.
+      all: now econstructor.
+    - intros.
+      split.
+      + now eapply typing_subst1.
+      + econstructor ; tea.
+        now econstructor.
+      + now eapply typing_subst1.
+    - intros * ? _ ? [] ? [].
+      split.
+      + easy.
+      + now econstructor.
+      + econstructor ; tea.
+        eapply stability1.
+        4: eassumption.
+        all: econstructor ; tea.
+        now symmetry.
+    - intros * ? [] ? [].
+      split.
+      + eapply typing_subst1.
+        1: eassumption.
+        now eapply prod_ty_inv.
+      + now econstructor.
+      + econstructor.
+        1: now econstructor.
+        eapply typing_subst1.
+        1: now symmetry.
+        econstructor.
+        now eapply prod_ty_inv.
+    - intros * ? []; split; gen_typing.
+    - intros * ? [] ? [] ? [] ? []; split.
+      + now eapply typing_subst1.
+      + gen_typing.
+      + eapply ty_conv.
+        assert [Γ |-[de] tNat ≅ tNat] by now constructor.
+        1: eapply ty_natElim; tea; eapply ty_conv; tea. 
+        * eapply typing_subst1; tea; do 2 constructor; boundary.
+        * eapply elimSuccHypTy_conv ; tea.
+          now boundary.
+        * symmetry; now eapply typing_subst1.
+    - intros **; split; tea.
+      eapply ty_natElim; tea; constructor; boundary.   
+    - intros **.
+      assert [Γ |- tSucc n : tNat] by now constructor.
+      assert [Γ |- P[(tSucc n)..]] by now eapply typing_subst1.
+      split; tea.
+      2: eapply ty_simple_app.
+      1,5: now eapply ty_natElim.
+      2: tea.
+      1: now eapply typing_subst1.
+      replace (arr _ _) with (arr P P[tSucc (tRel 0)]⇑)[n..] by now bsimpl.
+      eapply ty_app; tea.
+    - intros * ? [] ? []; split.
+      + now eapply typing_subst1.
+      + gen_typing.
+      + eapply ty_conv.
+        assert [Γ |-[de] tEmpty ≅ tEmpty] by now constructor.
+        1: eapply ty_emptyElim; tea; eapply ty_conv; tea. 
+        * symmetry; now eapply typing_subst1.
+    - intros * ??? [] ? []; split; tea.
+      1: gen_typing.
+      constructor; tea.
+      eapply stability1.
+      3: symmetry; gen_typing.
+      all: gen_typing.
+    - intros * ? []; split; tea.
+      1: now eapply sig_ty_inv.
+      all: gen_typing.
+    - intros * ? _ ? _ ????; split; tea.
+      now do 2 econstructor.
+    - intros * ? []; split; tea.
+      1: eapply typing_subst1; [gen_typing| now eapply sig_ty_inv].
+      1: gen_typing.
+      econstructor. 1: now econstructor.
+      symmetry; eapply typing_subst1.
+      1: now eapply TermFstCong.
+      econstructor; now eapply sig_ty_inv.
+    - intros * ? _ ? _ ????.
+      assert [Γ |- tFst (tPair A B a b) : A] by now do 2 econstructor.
+      assert [Γ |- tFst (tPair A B a b) ≅ a : A] by now econstructor.
+      split.
+      + eapply typing_subst1; tea.
+      + now do 2 econstructor.
+      + econstructor; tea.
+        symmetry; eapply typing_subst1; tea.
+        now econstructor.
+    - intros; prod_hyp_splitter; split; tea; econstructor; tea.
+      all: eapply wfTermConv; tea; now econstructor.
+    - intros; prod_hyp_splitter; split.
+      all: econstructor; tea.
+      1: econstructor; tea; now eapply wfTermConv.
+      symmetry; now econstructor.
+    - intros; prod_hyp_splitter.
+      assert [|- Γ] by gen_typing.
+      assert [|- Γ,, A'] by now econstructor.
+      split.
+      1: eapply typing_subst2; tea; cbn; now rewrite 2!wk1_ren_on, 2!shift_subst_eq.
+      1: now econstructor.
+      econstructor.
+      1: econstructor; tea; try eapply wfTermConv; refold; tea.
+      + eapply stability0; tea.
+        2: eapply idElimMotiveCtxConv; tea; try now boundary + eapply ctx_refl.
+        1,2: eapply idElimMotiveCtx; tea; now eapply wfTermConv.
+      + eapply typing_subst2; tea.
+        cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq.
+        now econstructor.
+      + now econstructor.
+      + symmetry; eapply typing_subst2; tea.
+        cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq; tea.
+    - intros; prod_hyp_splitter.
+      assert [|- Γ] by gen_typing.
+      assert [Γ |- tRefl A' z : tId A x y].
+      1:{
+        econstructor.
+        1: econstructor; tea; now econstructor.
+        symmetry; econstructor; tea; etransitivity; tea; now symmetry.
+      }
+      split; tea.
+      + eapply typing_subst2; tea.
+        cbn; now rewrite 2!wk1_ren_on, 2!shift_subst_eq.
+      + econstructor; tea.
+      + econstructor; tea.
+        eapply typing_subst2; tea.
+        2: now econstructor.
+        cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq.
+        now econstructor.
+    - intros * ? [] ? [].
+      split ; gen_typing.
+    - intros * ? [].
+      split; gen_typing.
+    - intros * ?[]?[].
+      split; gen_typing.
   Qed.
 
 End Boundary.
