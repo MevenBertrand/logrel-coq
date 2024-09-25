@@ -151,34 +151,21 @@ End Nf.
 
 Section Normalisation.
 
-  Import Nf.
-
-  Theorem typing_nf : WfDeclInductionConcl
-    (fun _ => True)
-    (fun Γ A => True)
-    (fun Γ A t => True)
-    (fun Γ A B => WN A × WN B)
-    (fun Γ A t u => WN t × WN u).
-  Proof.
-    red.
-    prod_splitter.
-    all: intros * H%Fundamental.
-    - constructor.
-    - constructor.
-    - constructor.
-    - destruct H as [? ? ? H].
-      apply escapeEq in H as []; now split.
-    - destruct H as [? ?  H].
-      apply escapeTmEq in H as []; now split.
-  Qed.
-
-  Import DeclarativeTypingData.
+  Import Nf DeclarativeTypingData.
 
   Corollary normalisation {Γ A t} : [Γ |-[de] t : A] -> WN t.
-  Proof. now intros ?%TermRefl%typing_nf. Qed.
+  Proof. 
+    intros [???? H]%TermRefl%Fundamental.
+    eapply (escapeTmEq (ta := nf)) in H as [].
+    assumption.
+  Qed.
 
   Corollary type_normalisation {Γ A} : [Γ |-[de] A] -> WN A.
-  Proof. now intros ?%TypeRefl%typing_nf. Qed.
+  Proof. 
+    intros [??? H]%TypeRefl%Fundamental.
+    eapply (escapeEq (ta := nf)) in H as [].
+    assumption.
+  Qed.
 
 End Normalisation.
 
@@ -191,9 +178,9 @@ Theorem typing_acc_cored Γ t :
   Acc cored t.
 Proof.
   intros [[] Hty].
-  all: first [apply TypeRefl in Hty|apply TermRefl in Hty].
-  all: eapply typing_nf in Hty as [? _].
-  all: pose proof w as [wh red].
+  all: first [
+    apply type_normalisation in Hty as [wh red] |
+    apply normalisation in Hty as [wh red]].
   all: induction red.
   - econstructor.
     intros t' [red].
@@ -203,7 +190,6 @@ Proof.
     intros t'' [red'].
     eapply ored_det in red' as <-; [|exact o].
     apply IHred; tea.
-    eapply WN_exp; [tea|]; now apply WN_whnf.
   - econstructor.
     intros t' [red].
     exfalso.
@@ -212,5 +198,4 @@ Proof.
     intros t'' [red'].
     eapply ored_det in red' as <-; [|exact o].
     apply IHred; tea.
-    eapply WN_exp; [tea|]; now apply WN_whnf.
 Qed.

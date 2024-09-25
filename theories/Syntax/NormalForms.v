@@ -1,7 +1,8 @@
 (** * LogRel.NormalForms: definition of normal and neutral forms, and properties. *)
 From Coq Require Import ssrbool.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context.
+From Equations Require Import Equations. (* for depelim *)
+From LogRel Require Import AutoSubst.Extra Utils.
+From LogRel.Syntax Require Import BasicAst Context.
 
 (** ** Weak-head normal forms and neutrals. *)
 
@@ -122,6 +123,47 @@ Definition isId_whnf t (i : isId t) : whnf t :=
 
 #[global] Hint Resolve isPosType_isType isType_whnf isFun_whnf isNat_whnf isPair_whnf isId_whnf : gen_typing.
 #[global] Hint Constructors isPosType isType isFun isNat isId : gen_typing.
+
+Equations Derive Signature for isNat.
+
+Lemma isNat_zero (n : isNat tZero) : n = ZeroNat.
+Proof.
+  depelim n.
+  1: easy.
+  inversion w.
+Qed.
+
+Lemma isNat_succ t (n : isNat (tSucc t)) : n = SuccNat.
+Proof.
+  depelim n.
+  1: easy.
+  inversion w.
+Qed.
+
+Lemma isNat_ne t (n : isNat t) : whne t -> ∑ w, n = NeNat w.
+Proof.
+  intros w.
+  depelim n.
+  1-2: now inversion w.
+  now eexists.
+Qed.
+
+Derive Signature for isId.
+
+Lemma isId_refl A a (n : isId (tRefl A a)) : n = ReflId.
+Proof.
+  depelim n.
+  1: reflexivity.
+  inversion w ; cbn ; easy.
+Qed.
+
+Lemma isId_ne t (n : isId t) : whne t -> ∑ w, n = NeId w.
+Proof.
+  intros w.
+  dependent inversion n ; subst.
+  1: inversion w.
+  now eexists.
+Qed.
 
 (** ** Canonical forms *)
 

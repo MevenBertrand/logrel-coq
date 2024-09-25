@@ -1,4 +1,4 @@
-(** * LogRel.Consequences: important meta-theoretic consequences of normalization: canonicity of natural numbers and consistency. *)
+(** * LogRel.ConsistencyCanonicity: important meta-theoretic consequences of normalization: canonicity of natural numbers and consistency. *)
 From Coq Require Import CRelationClasses.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction

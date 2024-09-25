@@ -1,11 +1,7 @@
-(** * LogRel.DeclarativeSubst: stability of declarative typing by substitution. *)
+(** * LogRel.SubstConsequences: consequences of stability by substitution. *)
 From Coq Require Import CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction
-  GenericTyping DeclarativeTyping DeclarativeInstance.
-From LogRel Require Import LogicalRelation Validity Fundamental.
-From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Transitivity.
-From LogRel.Substitution Require Import Properties Irrelevance.
+From LogRel Require Import Utils Syntax.All DeclarativeTyping.
+From LogRel.TypingProperties Require Import GenericTyping DeclarativeProperties Properties.
 
 (** Currently, this is obtained as a consequence of the fundamental lemma.
 However, it could be alternatively proven much earlier, by a direct induction. *)
@@ -14,48 +10,9 @@ Set Printing Primitive Projection Parameters.
 
 Import WeakDeclarativeTypingProperties.
 
-Lemma typing_subst : WfDeclInductionConcl
-  (fun _ => True)
-  (fun Γ A => forall Δ σ, [|- Δ] -> [Δ |-s σ : Γ] -> [Δ |- A[σ]])
-  (fun Γ A t => forall Δ σ, [|- Δ] -> [Δ |-s σ : Γ] -> [Δ |- t[σ] : A[σ]])
-  (fun Γ A B => forall Δ σ σ', [|- Δ] -> [Δ |-s σ ≅ σ' : Γ] -> [Δ |- A[σ] ≅ B[σ']])
-  (fun Γ A t u => forall Δ σ σ', [|- Δ] -> [Δ |-s σ ≅ σ' : Γ] -> [Δ |- t[σ] ≅ u[σ'] : A[σ]]).
-Proof.
-  unshelve (repeat split ; [shelve|..]).
-  - intros Γ ? Ht * HΔ Hσ.
-    unshelve eapply Fundamental_subst in Hσ as [].
-    1,3: boundary.
-    apply Fundamental in Ht as [VΓ [VA _]].
-    unshelve eapply escape, VA ; tea.
-    unshelve eapply irrelevanceSubst ; eassumption.
-  - intros * Ht * HΔ Hσ.
-    unshelve eapply Fundamental_subst in Hσ as [].
-    1,3: boundary.
-    apply Fundamental in Ht as [VΓ [VA] [Vt]].
-    unshelve eapply escapeTerm, Vt ; tea.
-    unshelve eapply irrelevanceSubst ; eassumption.
-  - intros * Ht * HΔ Hσ.
-    unshelve eapply Fundamental_subst_conv in Hσ as [].
-    1,3: boundary.
-    apply Fundamental in Ht as [VΓ VA ? Vconv] ; cbn in *.
-    unshelve eapply escapeEq.
-    2: unshelve eapply VA ; tea ; irrValid.
-    cbn.
-    unshelve eapply transEq.
-    4: now apply Vconv.
-    2-3: unshelve eapply VB ; tea.
-    eapply urefl; now eapply irrelevanceSubstEq.
-  - intros * Ht * HΔ Hσ.
-    unshelve eapply Fundamental_subst_conv in Hσ as [].
-    1,3: boundary.
-    apply Fundamental in Ht as [VΓ VA Vtu] ; cbn in *.
-    unshelve eapply escapeEqTerm.
-    2: now unshelve eapply VA ; tea ; irrValid.
-    cbn. unshelve eapply Vtu.
-Qed.
-
-
 Section MoreSubst.
+
+  Context `{!TypingSubst (ta := de)}.
 
   Lemma ctx_refl Γ :
     [|- Γ] ->
@@ -137,7 +94,7 @@ Section MoreSubst.
     all: assert ([|- Γ]) by gen_typing.
     all: assert ([Γ |-s tRel : Γ]) as Hsubst by now eapply id_subst.
     3-4: apply subst_refl in Hsubst.
-    all: eapply typing_subst ; tea.
+    all: first [eapply ty_subst| eapply tm_subst | eapply ty_conv_subst | eapply tm_conv_subst] ; tea.
     all: econstructor ; cbn ; refold ; now asimpl.
   Qed.
 
@@ -161,7 +118,7 @@ Section MoreSubst.
     all : assert (Hsubst : [Γ ,, T |-s ↑ >> tRel : Γ])
             by (change (?x >> ?y) with y⟨x⟩; eapply well_subst_up; [boundary| now eapply id_subst]).
     3-4: apply subst_refl in Hsubst.
-    all: eapply typing_subst ; tea.
+    all: first [eapply ty_subst| eapply tm_subst | eapply ty_conv_subst | eapply tm_conv_subst] ; tea.
     all: econstructor ; cbn ; refold; bsimpl; try rewrite <- rinstInst'_term; tea.
   Qed.
 
@@ -200,80 +157,40 @@ Section MoreSubst.
     assert [|- Γ,, A] by gen_typing.
     repeat match goal with |- _ × _ => split end.
     all: intros * Hty.
-    all: eapply typing_subst in Hty ; tea.
+    4: eapply tm_conv_subst in Hty.
+    3: eapply ty_conv_subst in Hty.
+    2: eapply tm_subst in Hty.
+    1: eapply ty_subst in Hty.
     all: repeat (rewrite idSubst_term in Hty ; [..|reflexivity]).
     all: eassumption.
   Qed.
 
+  Lemma conv_well_subst (Γ Δ : context) :
+    [|- Γ] ->
+    [ |- Γ ≅ Δ] ->
+    [Γ |-s tRel : Δ].
+  Proof.
+    intros HΓ.
+    induction 1 as [| * ? HA] in HΓ |- *.
+    - now econstructor.
+    - assert [Γ |- A] by now inversion HΓ.
+      assert [|- Γ] by now inversion HΓ.
+      econstructor ; tea.
+      + eapply well_subst_ext, well_subst_up ; eauto.
+        reflexivity.
+      + eapply wfTermConv.
+        1: econstructor; [gen_typing| now econstructor].
+        rewrite <- rinstInst'_term; do 2 erewrite <- wk1_ren_on.
+        now eapply typing_wk.
+  Qed.
+
 End MoreSubst.
 
-Lemma elimSuccHypTy_ty Γ P :
-  [|- Γ] ->
-  [Γ,, tNat |- P] ->
-  [Γ |-[ de ] elimSuccHypTy P].
-Proof.
-  intros HΓ HP.
-  unfold elimSuccHypTy.
-  econstructor.
-  1: now econstructor.
-  eapply wft_simple_arr.
-  1: now eapply HP.
-  eapply typing_subst.
-  - now eapply HP.
-  - boundary.
-  - econstructor.
-    + bsimpl.
-      eapply well_subst_ext.
-      2: eapply well_subst_up.
-      3: eapply id_subst ; tea.
-      2: now econstructor.
-      now bsimpl.
-    + cbn.
-      econstructor.
-      eapply typing_meta_conv.
-      1: now do 2 econstructor ; tea ; econstructor.
-      reflexivity.
-Qed.
-
-Lemma elimSuccHypTy_conv Γ P P' :
-  [|- Γ] ->
-  [Γ,, tNat |- P] ->
-  [Γ,, tNat |- P ≅ P' ] ->
-  [Γ |- elimSuccHypTy P ≅ elimSuccHypTy P'].
-Proof.
-  intros.
-  unfold elimSuccHypTy.
-  constructor.
-  2: constructor.
-  1-2: now constructor.
-  eapply convty_simple_arr; tea.
-  eapply typing_substmap1; tea.
-  do 2 constructor; refine (wfVar _ (in_here _ _)).
-  constructor; boundary.
-Qed.
-
-Lemma conv_well_subst (Γ Δ : context) :
-  [|- Γ] ->
-  [ |- Γ ≅ Δ] ->
-  [Γ |-s tRel : Δ].
-Proof.
-  intros HΓ.
-  induction 1 as [| * ? HA] in HΓ |- *.
-  - now econstructor.
-  - assert [Γ |- A] by now inversion HΓ.
-    assert [|- Γ] by now inversion HΓ.
-    econstructor ; tea.
-    + eapply well_subst_ext, well_subst_up ; eauto.
-      reflexivity.
-    + eapply wfTermConv.
-      1: econstructor; [gen_typing| now econstructor].
-      rewrite <- rinstInst'_term; do 2 erewrite <- wk1_ren_on.
-      now eapply typing_wk.
-Qed.
-
-(* Stability and symmetry with redundant hypothesis on the well-formed contexts *)
+(** Stability and symmetry with redundant hypothesis on the well-formed contexts *)
 
 Section Stability0.
+
+  Context `{!TypingSubst (ta := de)}.
 
   Let PCon (Γ : context) := True.
   Let PTy (Γ : context) (A : term) := forall Δ,
@@ -291,19 +208,63 @@ Section Stability0.
     1: easy.
     all: intros ?? Hconv; eapply (conv_well_subst _) in Hconv ; tea.
     all: pose proof (Hconv' := Hconv); apply  subst_refl in Hconv'.
-    all: eapply typing_subst in Hty; tea.
+    4: eapply tm_conv_subst in Hty.
+    3: eapply ty_conv_subst in Hty.
+    2: eapply tm_subst in Hty.
+    1: eapply ty_subst in Hty.
+    all: tea.
     all: repeat (rewrite idSubst_term in Hty ; [..|reflexivity]).
     all: eassumption.
   Qed.
 
-  Definition convCtxSym0 {Γ Δ} : [|- Δ] -> [|-Γ] -> [|- Δ ≅ Γ] -> [|- Γ ≅ Δ].
+End Stability0.
+
+Section ElimSuccHyp.
+
+  Context `{!TypingSubst (ta := de)}.
+
+  Lemma elimSuccHypTy_ty Γ P :
+    [|- Γ] ->
+    [Γ,, tNat |- P] ->
+    [Γ |-[ de ] elimSuccHypTy P].
   Proof.
-    induction 3.
-    all: constructor; inversion H; inversion H0; subst; refold.
-    1: now eauto.
-    eapply stability0 ; tea.
-    1: now symmetry.
-    now eauto.
+    intros HΓ HP.
+    unfold elimSuccHypTy.
+    econstructor.
+    1: now econstructor.
+    eapply wft_simple_arr.
+    1: now eapply HP.
+    eapply ty_subst ; eauto.
+    1: boundary.
+    econstructor.
+    - bsimpl.
+      eapply well_subst_ext.
+      2: eapply well_subst_up.
+      3: eapply id_subst ; tea.
+      2: now econstructor.
+      now bsimpl.
+    - cbn.
+      econstructor.
+      eapply typing_meta_conv.
+      1: now do 2 econstructor ; tea ; econstructor.
+      reflexivity.
   Qed.
 
-End Stability0.
+  Lemma elimSuccHypTy_conv Γ P P' :
+    [|- Γ] ->
+    [Γ,, tNat |- P] ->
+    [Γ,, tNat |- P ≅ P' ] ->
+    [Γ |- elimSuccHypTy P ≅ elimSuccHypTy P'].
+  Proof.
+    intros.
+    unfold elimSuccHypTy.
+    constructor.
+    2: constructor.
+    1-2: now constructor.
+    eapply convty_simple_arr; tea.
+    eapply typing_substmap1; tea.
+    do 2 constructor; refine (wfVar _ (in_here _ _)).
+    constructor; boundary.
+  Qed.
+
+End ElimSuccHyp.

@@ -1,3 +1,4 @@
+(** * LogRel.PremisePreserve: MetaCoq meta-programming to generate enhanced induction principles with built-in premise preservation. *)
 From MetaCoq.Utils Require Import MCString bytestring.
 From MetaCoq.Common Require Import uGraph BasicAst.
 From MetaCoq.Template Require Import ReflectAst Checker Typing Ast Loader TemplateMonad.

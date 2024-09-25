@@ -1,7 +1,6 @@
 (** * LogRel.Context: definition of contexts and operations on them.*)
 From Coq Require Import ssreflect Morphisms Setoid.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst.
+From LogRel Require Import Utils BasicAst AutoSubst.Extra.
 
 Set Primitive Projections.
 

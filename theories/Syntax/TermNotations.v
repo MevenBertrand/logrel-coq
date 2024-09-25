@@ -1,6 +1,6 @@
 
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils Notations BasicAst Context.
+From LogRel Require Import Utils AutoSubst.Extra.
+From LogRel.Syntax Require Import Notations BasicAst Context.
 
 (** Custom notation for contexts *)
 Declare Custom Entry mlttctx.

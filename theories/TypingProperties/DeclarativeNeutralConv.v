@@ -9,57 +9,6 @@ Set Printing Primitive Projection Parameters.
 
 Import DeclarativeTypingData.
 
-Section NeutralConversion.
-
-  Disable Notation "[ _ |- _ ~ _ : _ ]" : typing_scope.
-
-  Inductive DeclNeutralConversion (Γ : context) : term -> term -> term -> Type :=
-
-  | neuConvRel T n : [|- Γ] -> in_ctx Γ n T -> [Γ |- tRel n ~ tRel n : T]
-
-  | neuConvApp A B n n' a a' :
-      [Γ |- n ~ n' : tProd A B] ->
-      [Γ |- a ≅ a' : A] ->
-      [Γ |- tApp n a ~ tApp n' a' : B[a..]]
-
-  | neuConvNat {P P' hz hz' hs hs' n n'} :
-      [Γ |- n ~ n' : tNat] ->
-      [Γ ,, tNat |- P ≅ P'] ->
-      [Γ |- hz ≅ hz' : P[tZero..]] ->
-      [Γ |- hs ≅ hs' : elimSuccHypTy P] ->
-      [Γ |- tNatElim P hz hs n ~ tNatElim P' hz' hs' n' : P[n..]]
-
-  | neuConvEmpty {P P' e e'} :
-      [Γ ,, tEmpty |- P ≅ P'] ->
-      [Γ |- e ~ e' : tEmpty] ->
-      [Γ |- tEmptyElim P e ~ tEmptyElim P' e' : P[e..]]
-
-  | neuConvFst {A B p p'} :
-      [Γ |- p ~ p' : tSig A B] ->
-      [Γ |- tFst p ~ tFst p' : A]
-
-  | neuConvSnd {A B p p'} :
-      [Γ |- p ~ p' : tSig A B] ->
-      [Γ |- tSnd p ~ tSnd p' : B[(tFst p)..]]
-
-  | neuConvId {A A' x x' P P' hr hr' y y' e e'} :
-      [Γ |- A ≅ A'] ->
-      [Γ |- x ≅ x' : A] ->
-      [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
-      [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
-      [Γ |- y ≅ y' : A] ->
-      [Γ |- e ~ e' : tId A x y] ->
-      [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]]
-
-  | neuConvConv {A B n n'} :
-      [Γ |- n ~ n' : A] ->
-      [Γ |- A ≅ B] ->
-      [Γ |- n ~ n' : B]
-
-  where "[ Γ |- m ~ n : A ]" := (DeclNeutralConversion Γ A m n).
-
-End NeutralConversion.
-
 #[local] Instance ConvNeuConv_Decl : ConvNeuConv de := DeclNeutralConversion.
 
 Ltac fold_neu :=
@@ -448,7 +397,6 @@ Proof.
     econstructor ; eauto.
     now eapply TypeSym.
 Qed.
-
 
 Module DeclarativeTypingProperties.
   

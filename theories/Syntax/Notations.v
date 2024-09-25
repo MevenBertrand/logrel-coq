@@ -1,5 +1,6 @@
 (** * LogRel.Notations: notations for conversion, typing and the logical relations. *)
-From LogRel Require Import Utils BasicAst Context.
+From LogRel Require Import Utils.
+From LogRel.Syntax Require Import BasicAst Context.
 From LogRel.AutoSubst Require Import Ast.
 
 (** We have several families of definitions. We discriminate them by using an opaque tag as a phantom type.

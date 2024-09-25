@@ -1,7 +1,7 @@
 (** * LogRel.Weakening: definition of well-formed weakenings, and some properties. *)
 From Coq Require Import Lia ssrbool.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms.
+From LogRel Require Import Utils AutoSubst.Extra.
+From LogRel.Syntax Require Import BasicAst Notations Context NormalForms.
 
 (** ** Raw weakenings *)
 

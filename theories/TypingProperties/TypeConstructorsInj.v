@@ -1125,7 +1125,7 @@ Proof.
         do 2 constructor.
         all: boundary.
   }
-  eapply convCtxSym0; tea.
+  symmetry ; tea.
   econstructor.
   1: econstructor; tea; now eapply ctx_refl.
   erewrite (wk1_irr (t:=A')), (wk1_irr (t:=x')) ; econstructor.

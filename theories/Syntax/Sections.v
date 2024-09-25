@@ -1,6 +1,6 @@
 From Coq Require Import Nat Morphisms.
-From LogRel.AutoSubst Require Import core unscoped.
-From LogRel Require Import Utils Extra Ast Weakening.
+From LogRel Require Import Utils AutoSubst.Extra.
+From LogRel.Syntax Require Import Weakening.
 
 Arguments id {_} _/.
 Arguments Datatypes.id {_} _/.
