@@ -2,6 +2,9 @@
 
 all: partial-fun logrel
 
+autosubst:
+	autosubst -s ucoq -v ge813 -p ./theories/AutoSubst/Ast_preamble ./theories/AutoSubst/Ast.sig -o ./theories/AutoSubst/Ast.v
+
 partial-fun:
 	@+$(MAKE) -C coq-partialfun all
 
@@ -21,4 +24,4 @@ force _CoqProject Makefile: ;
 %: Makefile.coq force
 	@+$(MAKE) -f Makefile.coq $@
 
-.PHONY: all clean force partial-fun logrel
+.PHONY: all clean force partial-fun logrel autosubst
