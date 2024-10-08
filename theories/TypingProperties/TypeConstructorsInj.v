@@ -620,7 +620,7 @@ Section WhClassification.
 
 End WhClassification.
 
-#[deprecated(note = "use another lemma instead")]Lemma idElimConv {Γ A x P hr y e A' x' P' hr' e' y' T A'' x'' y''}
+Lemma idElimConv {Γ A x P hr y e A' x' P' hr' e' y' T A'' x'' y''}
   `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}:
   well_typed (ta := de) Γ (tIdElim A x P hr y e) ->
   well_typed (ta := de) Γ (tIdElim A' x' P' hr' y' e') ->

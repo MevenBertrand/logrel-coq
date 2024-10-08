@@ -103,7 +103,7 @@ Section TypeConstructors.
   Qed.
 
 
-  Lemma ty_conv_inj : forall (Γ : context) (T T' : term) (nfT : isType T) (nfT' : isType T'),
+  Lemma _ty_conv_inj : forall (Γ : context) (T T' : term) (nfT : isType T) (nfT' : isType T'),
     [Γ |- T ≅ T'] ->
     type_hd_view Γ nfT nfT'.
   Proof.
@@ -191,10 +191,39 @@ Section TypeConstructors.
 End TypeConstructors.
 
 #[local, refine] Instance RedCompleteLogRel : TypeReductionComplete (ta := de) := {}.
-  Proof.
-    all: intros ; eauto using _red_ty_complete_l, _red_ty_complete_r.
+Proof.
+  all: intros ; eauto using _red_ty_complete_l, _red_ty_complete_r.
   Qed.
 
+#[local, refine] Instance TypeConstructorsInjLogRel : TypeConstructorsInj (ta := de) := {}.
+Proof.
+  intros.
+  now apply _ty_conv_inj.
+Qed.
+
+(** ** Completeness *)
+
+Section Completeness.
+
+  Context `{ta : tag}
+  `{!WfContext ta} `{!WfType ta} `{!Typing ta}
+  `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
+  `{!RedType ta} `{!RedTerm ta}
+  `{!GenericTypingProperties ta _ _ _ _ _ _ _ _ _ _}.
+
+  #[local, refine] Instance ConvCompleteLogRel : ConvComplete (ta := de) (ta' := ta) := {}.
+  Proof.
+    - now intros * [HΓ ? _ ?%(escapeEq (ta := ta))]%Fundamental.
+    - now intros * [HΓ ? _ _ ?%(escapeTmEq (ta := ta)) ]%Fundamental.
+  Qed.
+
+  #[local, refine] Instance TypingCompleteLogRel : TypingComplete (ta := de) (ta' := ta) := {}.
+  Proof.
+    - now intros * [HΓ ?%(escapeTy (ta := ta))]%Fundamental.
+    - now intros * [_ _ ?%escapeTm]%(Fundamental (ta := ta)).
+  Qed.
+
+End Completeness.
 
 (** ** Weak-head normalisation *)
 

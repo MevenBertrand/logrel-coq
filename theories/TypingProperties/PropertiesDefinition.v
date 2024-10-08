@@ -146,5 +146,21 @@ Section Properties.
     nat_canonicity {t} : [ε |- t : tNat] ->
       ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat]
   }.
+
+  Context `{ta' : tag}
+    `{!WfContext ta'} `{!WfType ta'} `{!Typing ta'} `{!ConvType ta'} `{!ConvTerm ta'} `{!ConvNeuConv ta'}
+    `{!RedType ta'} `{!RedTerm ta'}.
+
+  (** ** Completeness (of typing `ta'` with respect to typing `ta`). *)
+
+  Class ConvComplete := {
+    ty_conv_compl Γ A A' : [Γ |-[ta] A ≅ A'] -> [Γ |-[ta'] A ≅ A'] ;
+    tm_conv_compl Γ A t t' : [Γ |-[ta] t ≅ t' : A] -> [Γ |-[ta'] t ≅ t' : A] ;
+  }.
+
+  Class TypingComplete := {
+    ty_compl Γ A : [Γ |-[ta] A] -> [Γ |-[ta'] A] ;
+    tm_compl Γ A t : [Γ |-[ta] t : A] -> [Γ |-[ta'] t : A] ;
+  }.
   
 End Properties.

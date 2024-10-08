@@ -7,14 +7,16 @@ From MetaCoq.Template Require Import Loader.
 Open Scope bs.
 Open Scope bool_scope.
 
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Export Utils.
-From LogRel Require Import BasicAst Notations Context NormalForms Weakening UntypedReduction GenericTyping DeclarativeTyping DeclarativeInstance AlgorithmicTyping DeclarativeSubst TypeConstructorsInj DeclarativeNeutralConv.
+From LogRel Require Export Utils Syntax.All GenericTyping.
+From LogRel Require Import DeclarativeTyping DeclarativeProperties AlgorithmicTyping
+  PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
 
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 
 Section Invariants.
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+
 
   Unset MetaCoq Strict Unquote Universe Mode.
 
@@ -356,7 +358,7 @@ Section Invariants.
     symmetry.
     eapply typing_subst2 ; tea.
     1: boundary.
-    cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq; now econstructor.
+    cbn; rewrite 2!wk1_ren_on, 2!shift_one_eq; now econstructor.
   Qed.
 
   Lemma neuIdElimCong_concl : $run (constructor_concl_preserve pre_cond post_cond "neuIdElimCong").
@@ -379,7 +381,7 @@ Section Invariants.
       1: boundary.
       econstructor ; tea.
       symmetry.
-      cbn; rewrite 2!wk1_ren_on, 2!shift_subst_eq.
+      cbn; rewrite 2!wk1_ren_on, 2!shift_one_eq.
       now constructor.
   Qed.
 
@@ -441,7 +443,6 @@ Section Invariants.
     split.
     1: eassumption.
     eapply stability1 ; tea.
-    1-2: boundary.
     now constructor.
   Qed.
 
@@ -490,7 +491,6 @@ Section Invariants.
     split.
     1: eassumption.
     eapply stability1 ; tea.
-    1-2: boundary.
     now constructor.
   Qed.
 
@@ -858,6 +858,9 @@ hypotheses holding. *)
 Section BundledConv.
   Universe u.
 
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+
+
   Context (PTyEq PTyRedEq : context -> term -> term -> Type@{u})
   (PNeEq PNeRedEq PTmEq PTmRedEq : context -> term -> term -> term -> Type@{u}).
 
@@ -921,13 +924,6 @@ Section BundledConv.
       let T' := ltac:(eval hnf in (T x)) in let T'' := strong_step T' in exact T''))
       | ?T => (pre_cond T)
     end.
-
-  (* Eval cbn beta in ltac:(let T := strong_step (forall (Γ : context) (na' : aname) (A B A' B' : term),
-    [Γ |-[ al ] A ≅ A'] ->
-    PTyEq Γ A A' ->
-    [Γ,, A |-[ al ] B ≅ B'] ->
-    PTyEq (Γ,, A) B B' -> PTyRedEq Γ (tProd A B) (tProd na' A' B')) in exact T).
-  *)
 
   #[local] Ltac weak_concl concl :=
     lazymatch concl with
@@ -1098,6 +1094,9 @@ only constant true predicates, we get only the post-conditions, ie a soundness t
 
 Section ConvSoundness.
 
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+
+
   Let PTyEq (Γ : context) (A B : term) :=
     [Γ |-[de] A] ->
     [Γ |-[de] B] ->
@@ -1129,14 +1128,18 @@ Section ConvSoundness.
 
 End ConvSoundness.
 
-Theorem bn_conv_sound :
-BundledConvInductionConcl
-  (fun Γ A B => [Γ |-[de] A ≅ B])
-  (fun Γ A B => [Γ |-[de] A ≅ B])
-  (fun Γ A t u => [Γ |-[de] t ≅ u : A])
-  (fun Γ A t u => [Γ |-[de] t ≅ u : A])
-  (fun Γ A t u => [Γ |-[de] t ≅ u : A])
-  (fun Γ A t u => [Γ |-[de] t ≅ u : A]).
+Theorem bn_conv_sound
+  `{!TypingSubst (ta := de)}
+  `{!TypeReductionComplete (ta := de)}
+  `{!TypeConstructorsInj (ta := de)} :
+
+  BundledConvInductionConcl
+    (fun Γ A B => [Γ |-[de] A ≅ B])
+    (fun Γ A B => [Γ |-[de] A ≅ B])
+    (fun Γ A t u => [Γ |-[de] t ≅ u : A])
+    (fun Γ A t u => [Γ |-[de] t ≅ u : A])
+    (fun Γ A t u => [Γ |-[de] t ≅ u : A])
+    (fun Γ A t u => [Γ |-[de] t ≅ u : A]).
 Proof.
   red.
   prod_splitter.
@@ -1152,6 +1155,8 @@ Qed.
 (** This is repeating the same ideas as before, but for typing. *)
 
 Section BundledTyping.
+
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Context (PTy : context -> term -> Type)
     (PInf PInfRed PCheck : context -> term -> term -> Type).
@@ -1332,7 +1337,7 @@ Section BundledTyping.
       assert [Γ |-[de] P[tRefl A x .: x..]].
       1:{
           eapply typing_subst2; tea;[| now eapply ihP].
-          cbn;rewrite 2!wk1_ren_on, 2!shift_subst_eq; now econstructor.
+          cbn;rewrite 2!wk1_ren_on, 2!shift_one_eq; now econstructor.
       }
       assert [Γ |-[de] tId A x y] by now econstructor.
       split. 1:eapply X22; eauto. (* ??? *)
@@ -1371,6 +1376,7 @@ Section BundledTyping.
 End BundledTyping.
 
 Section TypingSoundness.
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Let PTy (Γ : context) (A : term) :=
     [|-[de] Γ] -> [Γ |-[de] A].
@@ -1398,12 +1404,16 @@ Section TypingSoundness.
 
 End TypingSoundness.
 
-Theorem bn_alg_typing_sound :
-BundledTypingInductionConcl
-  (fun Γ A => [Γ |-[de] A])
-  (fun Γ A t => [Γ |-[de] t : A])
-  (fun Γ A t => [Γ |-[de] t : A])
-  (fun Γ A t => [Γ |-[de] t : A]).
+Theorem bn_alg_typing_sound
+  `{!TypingSubst (ta := de)}
+  `{!TypeReductionComplete (ta := de)}
+  `{!TypeConstructorsInj (ta := de)} :
+
+  BundledTypingInductionConcl
+    (fun Γ A => [Γ |-[de] A])
+    (fun Γ A t => [Γ |-[de] t : A])
+    (fun Γ A t => [Γ |-[de] t : A])
+    (fun Γ A t => [Γ |-[de] t : A]).
 Proof.
   red.
   prod_splitter.
@@ -1413,7 +1423,11 @@ Proof.
   all: now eassumption.
 Qed.
 
-Lemma bn_typing_sound Γ t A :
+Lemma bn_typing_sound 
+  `{!TypingSubst (ta := de)}
+  `{!TypeReductionComplete (ta := de)}
+  `{!TypeConstructorsInj (ta := de)}
+  Γ t A :
   [Γ |-[bn] t : A] -> [Γ |-[de] t : A].
 Proof.
   intros [???Hty?].
@@ -1421,10 +1435,14 @@ Proof.
   now eapply algo_typing_sound in Hty.
 Qed.
 
-Corollary inf_conv_decl Γ t A A' :
-[Γ |-[al] t ▹ A] ->
-[Γ |-[de] A ≅ A'] ->
-[Γ |-[de] t : A'].
+Corollary inf_conv_decl
+  `{!TypingSubst (ta := de)}
+  `{!TypeReductionComplete (ta := de)}
+  `{!TypeConstructorsInj (ta := de)}
+  Γ t A A' :
+  [Γ |-[al] t ▹ A] ->
+  [Γ |-[de] A ≅ A'] ->
+  [Γ |-[de] t : A'].
 Proof.
   intros Ht Hconv.
   apply algo_typing_sound in Ht.

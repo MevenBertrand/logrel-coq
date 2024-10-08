@@ -717,6 +717,20 @@ End Stability.
 Section TypingStronger.
   Context `{!TypingSubst (ta := de)}.
 
+  Theorem stability1 (Γ : context) A A' :
+    [Γ |- A ≅ A'] ->
+    (forall (T : term), [Γ,, A' |-[de] T] -> [Γ,, A |-[de] T])
+    × (forall (T t : term), [Γ,, A' |-[ de ] t : T] -> [Γ,, A |-[de] t : T])
+    × (forall (T T' : term), [Γ,, A' |-[ de ] T ≅ T'] -> [Γ,, A |-[de] T ≅ T'])
+    × (forall (T t u : term),
+          [Γ,, A' |-[ de ] t ≅ u : T] -> [Γ,, A |-[de] t ≅ u : T]).
+  Proof.
+    intros.
+    apply _stability1 ; tea.
+    all: boundary.
+  Qed.
+
+
   Lemma idElimMotiveCtxConv {Γ Γ' A A' x x'} :
     [|- Γ ≅ Γ'] ->
     [Γ |- A ≅ A'] ->
