@@ -1,11 +1,14 @@
 (** * LogRel.Decidability.UntypedCompleteness: the inductive predicates imply the implementation answer positively. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import BasicAst Context Notations UntypedReduction DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
-From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj DeclarativeNeutralConv AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
-From LogRel Require Import UntypedAlgorithmicConversion.
-From LogRel Require Import Utils. (* at the end, to get the right easy tactic… *)
+From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
+From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
+From LogRel.Algorithmic Require Import AlgorithmicConvProperties AlgorithmicTypingProperties.
+
+(* To get the right easy tactic, should be fixed otherwise *)
+Check fixme.
+From LogRel Require Import Utils.
+
 From LogRel.Decidability Require Import Functions UntypedFunctions Soundness UntypedSoundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
@@ -80,7 +83,7 @@ Proof.
   + intros * ? [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red ; cbn.
-    eapply termGen' in Hty as (?&[->]& ->%red_ty_compl_univ_l').
+    eapply termGen' in Hty as (?&[->]& ->%conv_univ_l).
     2: gen_typing.
 
     eapply termPiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
@@ -108,7 +111,7 @@ Proof.
     intros ? T ? [[Hty] Hpre0]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_nat_l') ; tea.
+    eapply termGen' in Hty as (?&[->]&->%red_compl_nat_l') ; tea.
     2: gen_typing.
     eapply termSuccCongAlg_prem0 in Hpre0.
     patch_rec_ret ; econstructor ; [now eapply IH_tm|..].
@@ -169,7 +172,7 @@ Proof.
   + intros * ? [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l') ; tea.
+    eapply termGen' in Hty as (?&[->]&->%conv_univ_l) ; tea.
     2: gen_typing.
 
     eapply termSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
@@ -236,7 +239,7 @@ Proof.
     + intros ? ?? [Hconcl [[Hty]%dup]]%dup.
       unfold graph.
       simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-      eapply termGen' in Hty as (?&[->]&->%red_ty_compl_univ_l') ; tea.
+      eapply termGen' in Hty as (?&[->]&->%conv_univ_l) ; tea.
       2: gen_typing.
       eapply termIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
       econstructor ; [now eapply IHA_tm|..] ; cbn.

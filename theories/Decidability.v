@@ -1,9 +1,6 @@
 (** * LogRel.Decidability: type-checking is decidable. *)
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context Notations DeclarativeTyping GenericTyping DeclarativeNeutralConv AlgorithmicTyping BundledAlgorithmicTyping.
-
-From LogRel Require Import AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
 
 From LogRel.Decidability Require Import Functions Soundness Completeness Termination.
 From PartialFun Require Import Monad PartialFun MonadExn.

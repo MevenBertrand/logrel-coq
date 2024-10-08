@@ -253,3 +253,7 @@ Ltac block H :=
   let T := type of H in (change T with (Block T) in H).
 
 Ltac unblock := unfold Block in *.
+
+(** To get warnings whenever needed *)
+
+#[deprecated(note="Fix me!")]Axiom fixme : False.

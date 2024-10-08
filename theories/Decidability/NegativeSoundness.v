@@ -21,27 +21,6 @@ Definition nat_hd_view (Γ : context) {t t' : term} (nft : isNat t) (nft' : isNa
     | _, _ => False
   end.
 
-Lemma isNat_zero (n : isNat tZero) : n = ZeroNat.
-Proof.
-  depelim n.
-  1: easy.
-  inversion w.
-Qed.
-
-Lemma isNat_succ t (n : isNat (tSucc t)) : n = SuccNat.
-Proof.
-  depelim n.
-  1: easy.
-  inversion w.
-Qed.
-
-Lemma isNat_ne t (n : isNat t) : whne t -> ∑ w, n = NeNat w.
-Proof.
-  intros w.
-  depelim n.
-  1-2: now inversion w.
-  now eexists.
-Qed.
 
 Lemma nat_conv_inj : forall (Γ : context) (t t' : term) (nft : isNat t) (nft' : isNat t'),
   [Γ |-[de] t ≅ t' : tNat] ->
@@ -436,21 +415,6 @@ Definition id_hd_view (Γ : context) (A x x' : term) {t t' : term} (nft : isId t
     | NeId _, NeId _ => [Γ |- t ~ t' : tId A x x']
     | _, _ => False
   end.
-
-Lemma isId_refl A a (n : isId (tRefl A a)) : n = ReflId.
-Proof.
-  depelim n.
-  1: reflexivity.
-  inversion w ; cbn ; easy.
-Qed.
-
-Lemma isId_ne t (n : isId t) : whne t -> ∑ w, n = NeId w.
-Proof.
-  intros w.
-  dependent inversion n ; subst.
-  1: inversion w.
-  now eexists.
-Qed.
 
 Lemma id_conv_inj : forall (Γ : context) (A x y t t' : term) (nft : isId t) (nft' : isId t'),
   [Γ |-[de] t ≅ t' : tId A x y] ->
@@ -939,7 +903,7 @@ Proof.
     + intros [[Hpost]%dup] ; tea.
       eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
       eapply dup in pre as [pre [[? (?&[? [? [-> Hf]]]&?)%termGen'] _]].
-      eapply Hfu, red_ty_compl_prod_r in Hf as (?&?&[red%redty_sound]).
+      eapply Hfu, red_compl_prod_r in Hf as (?&?&[red%redty_sound]).
       eapply red_whnf in red ; eauto ; subst.
       edestruct neuAppCongAlg_prem1 ; eauto.
 
@@ -1002,7 +966,7 @@ Proof.
     intros [[Hpost]%dup] ; tea.
     eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
     eapply dup in pre as [pre [[? (?&[-> ? Hn]&?)%termGen'] _]].
-    eapply Hfu, red_ty_compl_empty_r, redty_sound, red_whnf in Hn ; eauto ; subst.
+    eapply Hfu, red_compl_empty_r, redty_sound, red_whnf in Hn ; eauto ; subst.
     eapply dup in pre as [pre [ []]%neuEmptyElimCong_prem1%dup] ; eauto.
     cbn.
     split ; [easy|..].
@@ -1024,7 +988,7 @@ Proof.
     + intros [[Hpost]%dup] ; tea.
       eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
       eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
-      eapply Hfu, red_ty_compl_sig_r in Hp as (?&?&[red%redty_sound]).
+      eapply Hfu, red_compl_sig_r in Hp as (?&?&[red%redty_sound]).
       eapply red_whnf in red ; eauto ; subst.
       cbn.
       now econstructor.
@@ -1040,7 +1004,7 @@ Proof.
     + intros [[Hpost]%dup] ; tea.
       eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
       eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
-      eapply Hfu, red_ty_compl_sig_r in Hp as (?&?&[red%redty_sound]).
+      eapply Hfu, red_compl_sig_r in Hp as (?&?&[red%redty_sound]).
       eapply red_whnf in red ; eauto ; subst.
       cbn.
       now econstructor.
@@ -1057,7 +1021,7 @@ Proof.
     intros [[Hpost]%dup] ; tea.
     eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
     eapply dup in pre as [pre [[? (?&[-> ????? He]&?)%termGen'] _]].
-    eapply Hfu, red_ty_compl_id_r in He as (?&?&?&[red%redty_sound]).
+    eapply Hfu, red_compl_id_r in He as (?&?&?&[red%redty_sound]).
     eapply red_whnf in red ; eauto ; subst.
     eapply dup in pre as [pre [ []]%neuIdElimCong_prem1%dup] ; eauto.
     cbn.

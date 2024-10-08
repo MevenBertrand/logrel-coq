@@ -2,8 +2,7 @@
 From Coq Require Import Nat Lia.
 From Equations Require Import Equations.
 From PartialFun Require Import Monad PartialFun MonadExn.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context.
+From LogRel Require Import Utils Syntax.All.
 
 Import MonadNotations.
 Set Universe Polymorphism.

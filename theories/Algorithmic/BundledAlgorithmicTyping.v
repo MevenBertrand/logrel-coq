@@ -7,9 +7,8 @@ From MetaCoq.Template Require Import Loader.
 Open Scope bs.
 Open Scope bool_scope.
 
-From LogRel Require Export Utils Syntax.All GenericTyping.
-From LogRel Require Import DeclarativeTyping DeclarativeProperties AlgorithmicTyping
-  PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
+From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping AlgorithmicTyping.
+From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
 
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 

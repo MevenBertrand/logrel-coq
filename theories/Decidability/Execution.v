@@ -1,6 +1,7 @@
 (** * LogRel.Decidability.Execution: example executions of the type checker, in Coq. *)
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils Notations BasicAst Context GenericTyping DeclarativeTyping DeclarativeInstance BundledAlgorithmicTyping AlgorithmicTypingProperties.
+From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
+From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicTypingProperties.
+
 From PartialFun Require Import Monad PartialFun MonadExn.
 From LogRel.Decidability Require Import Functions Soundness.
 

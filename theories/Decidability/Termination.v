@@ -1,9 +1,9 @@
 (** * LogRel.Decidability.Termination: the implementation always terminates on well-typed inputs. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import BasicAst Context Notations UntypedReduction Weakening DeclarativeTyping DeclarativeInstance DeclarativeNeutralConv GenericTyping NormalForms.
-From LogRel Require Import DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
+From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
+From LogRel.Algorithmic Require Import AlgorithmicConvProperties AlgorithmicTypingProperties.
 
 From LogRel.Decidability Require Import Functions Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
@@ -673,7 +673,7 @@ Proof.
     1: assert [Γ0 |-[ de ] P[tRefl A x .: x..]].
     1:{ 
       eapply typing_subst2; tea; cbn.
-      rewrite 2!Weakening.wk1_ren_on, 2!shift_subst_eq.
+      rewrite 2!Weakening.wk1_ren_on, 2!shift_one_eq.
       now econstructor.
     }
     1: split; cycle -1.

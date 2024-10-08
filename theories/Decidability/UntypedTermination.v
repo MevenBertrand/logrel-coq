@@ -985,12 +985,12 @@ Proof.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
     destruct wu' ; cbn ; try easy.
     + eapply termGen' in Hty as (?&[? [->]]&Hconv).
-      eapply red_ty_compl_prod_l' in Hconv as (?&?&[->]).
+      eapply red_compl_prod_l' in Hconv as (?&?&[->]).
       2: gen_typing.
       inversion Hpos.
       inv_whne.
     + eapply termGen' in Hty as (?&[->]&Hconv).
-      eapply red_ty_compl_sig_l' in Hconv as (?&?&[->]).
+      eapply conv_sig_l in Hconv as (?&?&[->]).
       2: gen_typing.
       inversion Hpos.
       inv_whne.
