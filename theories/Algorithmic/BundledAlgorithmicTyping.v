@@ -819,6 +819,16 @@ Module BundledTypingData.
     change OneStepRedTermBun with (osred_tm (ta := bn)) in * ;
     change RedTermBun with (red_tm (ta := bn)) in *.
 
+  (** If bundled judgements are complete, then so are the unbundled judgments *)
+
+  #[refine]Instance CompleteBundledAlgoConv
+    `{ta : tag} `{!ConvType ta} `{ConvTerm ta} `{! ConvComplete (ta := ta) (ta' := bn)} :
+    ConvComplete (ta := ta) (ta' := al) := {}.
+  Proof.
+    - now intros * []%(ty_conv_compl (ta' := bn)).
+    - now intros * []%(tm_conv_compl (ta' := bn)).
+  Qed.
+
 End BundledTypingData.
 
 Import BundledTypingData.
@@ -842,6 +852,16 @@ Module BundledIntermediateData.
     change (conv_type (ta := bni)) with (conv_type (ta := bn)) in * ;
     change (conv_term (ta := bni)) with (conv_term (ta := bn)) in * ;
     change (conv_neu_conv (ta := bni)) with (conv_neu_conv (ta := bn)) in *.
+
+  (** If bundled judgements are complete, then so are the unbundled judgments *)
+
+  #[refine]Instance CompleteBundledAlgoConv
+    `{ta : tag} `{!ConvType ta} `{ConvTerm ta} `{! ConvComplete (ta := ta) (ta' := bni)} :
+    ConvComplete (ta := ta) (ta' := al) := {}.
+  Proof.
+    - now intros * []%(ty_conv_compl (ta' := bni)).
+    - now intros * []%(tm_conv_compl (ta' := bni)).
+  Qed.
 
 End BundledIntermediateData.
 

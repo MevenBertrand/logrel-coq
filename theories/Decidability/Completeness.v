@@ -1,9 +1,10 @@
 (** * LogRel.Decidability.Completeness: the inductive predicates imply the implementation answer positively. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
+From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
 From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
-From LogRel.Algorithmic Require Import AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Utils.
 
 From LogRel.Decidability Require Import Functions Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
@@ -11,16 +12,18 @@ From PartialFun Require Import Monad PartialFun MonadExn.
 Set Universe Polymorphism.
 #[global] Unset Asymmetric Patterns.
 
-Import DeclarativeTypingProperties.
+Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section RedImplemComplete.
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+
 
   #[local]Definition R_aux := lexprod term term cored term_subterm.
 
   #[local]Definition R (t u : term × stack) :=
     R_aux (Datatypes.pair (zip (fst t) (snd t)) (fst t)) (Datatypes.pair (zip (fst u) (snd u)) (fst u)).
 
-  #[local]Lemma R_acc t π :
+  Lemma R_acc t π :
     Acc cored (zip t π) ->
     Acc R (t, π).
   Proof.
@@ -36,17 +39,35 @@ Section RedImplemComplete.
   - eapply well_founded_term_subterm.
   Qed.
 
-  #[local] Lemma well_typed_acc Γ t π :
+  (* Lemma well_typed_acc Γ t π :
     well_formed Γ (zip t π) ->
     Acc R (t,π).
   Proof.
     intros.
     now eapply R_acc, typing_acc_cored.
+  Qed. *)
+
+  Lemma normalising_acc t π t' :
+    [(zip t π) ⤳* t'] ->
+    whnf t' ->
+    Acc R (t,π).
+  Proof.
+    intros Hred Hnf.
+    eapply R_acc.
+    set (t'' := (zip t π)) in *.
+    clearbody t''.
+    clear -Hred Hnf.
+    induction Hred.
+    - constructor.
+      intros ? [].
+      now edestruct whnf_nored.
+    - constructor.
+      now eintros ? [<-%ored_det].
   Qed.
 
   Lemma well_typed_zip Γ t π :
-    well_typed Γ (zip t π) ->
-    ∑ T', [Γ |- t : T'] × (forall u, [Γ |- t ≅ u : T'] -> well_typed Γ (zip u π)).
+    well_typed (ta := de) Γ (zip t π) ->
+    ∑ T', [Γ |-[de] t : T'] × (forall u, [Γ |-[de] t ≅ u : T'] -> well_typed (ta := de) Γ (zip u π)).
   Proof.
     intros H.
     induction π as [|[]] in t, H |- * ; cbn.
@@ -105,32 +126,17 @@ Section RedImplemComplete.
       econstructor; tea; eapply TypeRefl + eapply TermRefl; refold; tea.
   Qed.
 
-  Lemma isType_ty Γ T t :
-    [Γ |- t : T] ->
-    isType t ->
-    ~ whne t ->
-    [Γ |- U ≅ T].
-  Proof.
-    intros Hty HisT Hne.
-    all: inversion HisT ; subst ; clear HisT ; cycle -1.
-    1: now exfalso.
-    all: clear Hne.
-    all: eapply termGen' in Hty as (?&[]&?); subst.
-    all: eassumption.
-  Qed.
-
   Lemma zip1_notType Γ T t π :
     isType t ->
     ~ whne t ->
-    [Γ |- zip1 t π : T] ->
-    False.
+    ~ [Γ |-[de] zip1 t π : T].
   Proof.
     intros Ht Ht' Hty.
     destruct π ; cbn in * ;
       eapply termGen' in Hty as (?&[]&?) ; subst ; prod_hyp_splitter ;
       match goal with H : [_ |-[de] t : _] |- _ => (unshelve eapply isType_ty, ty_conv_inj in H) end ; tea.
-    all: try solve [now econstructor].
-    all: now easy.
+    all: try solve
+      [now econstructor| now eapply not_whne_can ; tea ; eapply isType_whnf | now cbn in *].
   Qed.
 
   Ltac termInvContradiction Hty := 
@@ -143,14 +149,17 @@ Section RedImplemComplete.
       end
     end.
 
-  Lemma wh_red_stack_complete Γ t π :
+  Lemma wh_red_stack_complete Γ t π t' :
     well_typed Γ (zip t π) ->
+    [(zip t π) ⤳* t'] ->
+    whnf t' ->
     domain wh_red_stack (t,π).
   Proof.
-    intros Hty.
-    pose proof (Hacc := well_typed_acc _ _ _ Hty).
+    intros Hty Hred Hnf.
+    pose proof (Hacc := normalising_acc _ _ _ Hred Hnf).
     change (zip t π) with (zip (fst (t,π)) (snd (t,π))) in *.
     set (z := (t, π)) in *. clearbody z.
+    clear Hnf Hred.
     induction Hacc as [z H IH] in Hty |- *.
     apply compute_domain. funelim (wh_red_stack z).
     all: simpl.
@@ -229,14 +238,15 @@ Section RedImplemComplete.
 
   Corollary wh_red_complete Γ t :
     well_formed Γ t ->
+    normalising t ->
     domain wh_red t.
   Proof.
-    intros [|w]%well_formed_well_typed.
+    intros [|w]%well_formed_well_typed [].
     all: eapply compute_domain; cbn.
     all: split ; [|easy].
     - eapply wh_red_stack_complete ; tea.
     - inversion w ; subst ; clear w; cycle -1.
-      1: eapply wh_red_stack_complete ; now econstructor.
+      1: eapply wh_red_stack_complete ; tea ; now econstructor.
       all: econstructor ; cbn ; red.
       all: simp wh_red_stack ; cbn.
       all: now econstructor.
@@ -251,6 +261,7 @@ Section RedImplemComplete.
     assert (domain wh_red t) as h.
     {
       eapply (wh_red_complete Γ).
+      2: now econstructor.
       destruct K as [|A] ; unshelve econstructor ; [left|right|..] ; cbn.
       2-3: eassumption.
     }
@@ -346,6 +357,8 @@ Qed.
     end).
 
 Section ConversionComplete.
+
+Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
 Let PTyEq (Γ : context) (A B : term) :=
   forall v, graph _conv (ty_state;Γ;v;A;B) ok.
@@ -573,7 +586,7 @@ Proof.
     all: now econstructor ; [exact (IHm tt)|constructor].
 Qed.
 
-Lemma implem_conv_complete Γ A B :
+Corollary implem_conv_complete Γ A B `{!ConvComplete (ta := de) (ta' := al)} :
   [Γ |-[de] A ≅ B] ->
   graph tconv (Γ,A,B) ok.
 Proof.
@@ -584,13 +597,15 @@ Proof.
   - apply _implem_conv_complete.
     split.
     1-3: boundary.
-    now apply algo_conv_complete.
+    now apply ty_conv_compl.
   - econstructor.
-Qed. 
+Qed.
 
 End ConversionComplete.
 
 Section TypingComplete.
+
+Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
 Variable conv : (context × term × term) ⇀ exn errors unit.
 

@@ -23,6 +23,9 @@ standard library. **)
 Notation "~ x" := (notT x) : type_scope.
 #[export] Set Warnings "notation-overridden".
 
+
+#[global]Hint Unfold notT: core.
+
 (** ** Polymorphic and cumulative redefinitions from the standard library. *)
 
 #[universes(polymorphic)]

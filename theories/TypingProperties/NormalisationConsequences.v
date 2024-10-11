@@ -6,8 +6,6 @@ Import DeclarativeTypingData.
 
 (** ** Well-foundedness of reduction *)
 
-Record cored t t' : Prop := { _ : [t' ⤳ t] }.
-
 Theorem typing_acc_cored Γ t `{!Normalisation (ta := de)} :
   well_formed Γ t ->
   Acc cored t.

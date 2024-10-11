@@ -1,18 +1,21 @@
 (** * LogRel.Decidability.Termination: the implementation always terminates on well-typed inputs. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
+From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
 From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
-From LogRel.Algorithmic Require Import AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Utils.
 
 From LogRel.Decidability Require Import Functions Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
 
-Import DeclarativeTypingProperties.
+Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section ConversionTerminates.
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+  `{!ConvComplete (ta := de) (ta' := al)} `{!Normalisation (ta := de)}.
 
 Let PTyEq (Γ : context) (A B : term) :=
   forall v B',
@@ -54,10 +57,10 @@ Proof.
     simp _conv conv_ty.
     cbn.
     split.
-    1: eapply wh_red_complete ; now exists istype.
+    now eapply wh_red_complete ; [exists istype|eapply ty_norm].
     intros A'' []%red_sound.
     split.
-    1: eapply wh_red_complete ; now exists istype.
+    1: now eapply wh_red_complete ; [exists istype|eapply ty_norm].
     intros B'' []%red_sound.
     replace A'' with A'
       by (eapply whred_det ; tea ; eapply algo_conv_wh in HA as [] ; gen_typing).
@@ -272,20 +275,20 @@ Proof.
     intros [Hpost0 []]%implem_conv_graph%algo_conv_sound%dup ; eauto.
     2: now eapply algo_conv_wh in Hm as [].
     split ; [..|easy].
-    eapply wh_red_complete ; exists istype ; boundary.
+    eapply wh_red_complete ; [exists istype|eapply ty_norm] ; boundary.
 
   - intros * ??? []%algo_conv_wh IH * [Hconcl []]%dup.
     apply compute_domain.
     simp _conv conv_tm ; cbn.
 
     split.
-    1: eapply wh_red_complete ; exists istype ; boundary.
+    1: eapply wh_red_complete ; [exists istype|eapply ty_norm] ; boundary.
     intros A'' []%red_sound.
     split.
-    1: eapply wh_red_complete ; now eexists (isterm _).
+    1: now eapply wh_red_complete ; [eexists (isterm _)|eapply tm_norm].
     intros t'' []%red_sound.
     split.
-    1: eapply wh_red_complete ; now eexists (isterm _).
+    1: now eapply wh_red_complete ; [eexists (isterm _)|eapply tm_norm].
     intros u'' []%red_sound.
 
     replace A'' with A' in * by (now eapply whred_det ; gen_typing).
@@ -448,7 +451,7 @@ Proof.
     assert (domain _conv (ty_state; Γ; tt; A; A')) as [].
     {
       eapply _conv_terminates ; eauto.
-      eapply algo_conv_complete.
+      eapply ty_conv_compl.
       econstructor.
       boundary.
     }
@@ -462,6 +465,9 @@ Proof.
 End ConversionTerminates.
 
 Section TypingTerminates.
+
+  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+  `{!Normalisation (ta := de)}.
 
   Import AlgorithmicTypingData.
 
@@ -702,8 +708,9 @@ Proof.
       split.
       2: easy.
       eapply wh_red_complete.
-      exists istype.
-      now boundary.
+      1: exists istype.
+      2: eapply ty_norm.
+      all: now boundary.
   - split.
     1:{
       apply IH ; cbn ; try easy.

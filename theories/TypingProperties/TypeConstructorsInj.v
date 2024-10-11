@@ -618,6 +618,19 @@ Section WhClassification.
     all: now cbn in Hconv.
   Qed.
 
+  Lemma isType_ty Γ T t :
+    [Γ |-[de] t : T] ->
+    isType t ->
+    isCanonical t ->
+    [Γ |-[de] U ≅ T].
+  Proof.
+    intros Hty HisT Hcan.
+    all: inversion HisT ; subst ; clear HisT ; cycle -1.
+    1: now edestruct can_whne_exclusive.
+    all: eapply termGen' in Hty as (?&[]&?); subst.
+    all: eassumption.
+  Qed.
+
 End WhClassification.
 
 Lemma idElimConv {Γ A x P hr y e A' x' P' hr' e' y' T A'' x'' y''}

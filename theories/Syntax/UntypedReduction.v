@@ -64,6 +64,12 @@ Inductive RedClosureAlg : term -> term -> Type :=
       now econstructor.
   Qed.
 
+(** *** Co-reduction *)
+(** The symmetric of reduction, in Prop. The well-founded relation on which the reduction
+  machine operates. *)
+
+Record cored t t' : Prop := { _ : [t' ⤳ t] }.
+
 (** ** Properties *)
 
 (** *** Weak-head normal forms do not reduce *)

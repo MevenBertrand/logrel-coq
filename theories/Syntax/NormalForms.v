@@ -182,6 +182,30 @@ Inductive isCanonical : term -> Type :=
 
 #[global] Hint Constructors isCanonical : gen_typing.
 
+Lemma can_whne_exclusive t : isCanonical t -> whne t -> False.
+Proof.
+  intros Hcan Hne.
+  inversion Hcan ; subst ; inversion Hne.
+Qed.
+
+Lemma whnf_can_whne t : whnf t -> isCanonical t + whne t.
+Proof.
+  intros [].
+  all: try solve [left ; now constructor | now right].
+Qed.
+
+Lemma not_can_whne t : whnf t -> ~ isCanonical t -> whne t.
+Proof.
+  intros []%whnf_can_whne ; eauto.
+  now intros [].
+Qed.
+
+Lemma not_whne_can t : whnf t -> ~ whne t -> isCanonical t.
+Proof.
+  intros []%whnf_can_whne ; eauto.
+  now intros [].
+Qed.
+
 (** ** Normal and neutral forms are stable by renaming *)
 
 Section RenWhnf.

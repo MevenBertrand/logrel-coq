@@ -1,6 +1,7 @@
 (** * LogRel.Decidability.Execution: example executions of the type checker, in Coq. *)
 From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicTypingProperties.
+From LogRel.TypingProperties Require Import LogRelConsequences.
 
 From PartialFun Require Import Monad PartialFun MonadExn.
 From LogRel.Decidability Require Import Functions Soundness.
@@ -8,6 +9,8 @@ From LogRel.Decidability Require Import Functions Soundness.
 From LogRel Require TermNotations.
 
 Import DeclarativeTypingData.
+#[local] Existing Instances TypingSubstLogRel RedCompleteLogRel TypeConstructorsInjLogRel.
+
 
 #[local] Definition infer (Γ : context) (t : term) : Fueled (exn errors term) :=
   (fueled (typing tconv) 1000 (inf_state;Γ;tt;t)).

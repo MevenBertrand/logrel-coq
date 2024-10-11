@@ -202,12 +202,6 @@ Proof.
   all: exfalso ; apply EA ; now constructor.
 Qed.
 
-Lemma whne_can t : whnf t -> ~ isCanonical t -> whne t.
-Proof.
-  destruct 1 ; eauto.
-  all: intros Hcan ; exfalso ; apply Hcan ; now constructor.
-Qed.
-
 Section ConversionSound.
 
 
@@ -241,11 +235,11 @@ Section ConversionSound.
       | H : graph wh_red _ _ |- _ => eapply red_sound in H as []
       | H : (_;_;_;_) = (_;_;_;_) |- _ => injection H; clear H; intros; subst
       | H : (build_nf_ty_view2 _ _ = ty_neutrals _ _) |- _ =>
-          eapply ty_view2_neutral_can in H as [?%whne_can ?%whne_can] ; tea
+          eapply ty_view2_neutral_can in H as [?%not_can_whne ?%not_can_whne] ; tea
       | H : (build_nf_view3 (tSort _) _ _ = types _ (ty_neutrals _ _)) |- _ =>
-        eapply whnf_view3_ty_neutral_can in H as [?%whne_can ?%whne_can] ; tea
+        eapply whnf_view3_ty_neutral_can in H as [?%not_can_whne ?%not_can_whne] ; tea
       | H : (build_nf_view3 _ _ _ = neutrals _ _ _) |- _ =>
-        eapply whnf_view3_neutrals_can in H as [? ?%whne_can ?%whne_can] ; tea
+        eapply whnf_view3_neutrals_can in H as [? ?%not_can_whne ?%not_can_whne] ; tea
       end).
     all: repeat match goal with | H : whne (_ _) |- _ => inversion_clear H end.
     all: try solve [now econstructor].
