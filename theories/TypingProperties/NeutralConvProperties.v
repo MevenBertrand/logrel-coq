@@ -90,6 +90,30 @@ Section NeuConvProperties.
     - boundary.
   Qed.
 
+  Lemma boundary_neu_conv_l Γ A m n :
+    [Γ |- m ~ n : A] ->
+    [Γ |- m : A].
+  Proof.
+    intros ?%conv_neu_sound.
+    boundary.
+  Qed.
+
+  Lemma boundary_neu_conv_r Γ A m n :
+    [Γ |- m ~ n : A] ->
+    [Γ |- n : A].
+  Proof.
+    intros ?%conv_neu_sound.
+    boundary.
+  Qed.
+
+  Lemma boundary_neu_conv_ty Γ A m n :
+  [Γ |- m ~ n : A] ->
+  [Γ |- A].
+  Proof.
+    intros ?%conv_neu_sound.
+    boundary.
+  Qed.
+
   Lemma conv_neu_ne Γ A m n :
     [Γ |- m ~ n : A] ->
     whne m × whne n.
@@ -398,6 +422,8 @@ Section NeuConvProperties.
   Qed.
 
 End NeuConvProperties.
+
+#[export] Hint Resolve boundary_neu_conv_l boundary_neu_conv_r boundary_neu_conv_ty : boundary.
 
 Module DeclarativeTypingProperties.
   Export DeclarativeTypingData.

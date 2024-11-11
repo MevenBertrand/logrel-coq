@@ -357,7 +357,7 @@ Section TypingSound.
     - now constructor.
     - split ; [easy|].
       intros [|] ; cbn ; try easy.
-      intros ? [] ?%implem_typing_sound ; cbn in *.
+      intros ? ? [] ?%implem_typing_sound ; cbn in *.
       2: easy.
       now econstructor.
   Qed.

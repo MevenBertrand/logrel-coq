@@ -68,14 +68,14 @@ Proof.
   infer_auto.
 Qed.
 
-Check ((fun x => nat_rec (fun _ => nat) 0 (fun _ ih => S (S ih)) x) : nat -> nat).
+Succeed Check ((fun x => nat_rec (fun _ => nat) 0 (fun _ ih => S (S ih)) x) : nat -> nat).
 
 Goal ⟪ε |- λ ℕ, indℕ ℕ 0 (λ ℕ ℕ, x₀.+2) 2 : ℕ → ℕ⟫.
 Proof.
   infer_auto.
 Qed.
 
-Check (eq_refl : (nat_rect (fun _ => Type) nat (fun _ ih => nat -> ih) 3) = (nat -> nat -> nat -> nat)).
+Succeed Check (eq_refl : (nat_rect (fun _ => Type) nat (fun _ ih => nat -> ih) 3) = (nat -> nat -> nat -> nat)).
 
 Goal ⟪ ε |- rfl □ (ℕ → ℕ → ℕ → ℕ) :
   (ℕ → ℕ → ℕ → ℕ) =⟨ □ ⟩ indℕ □ ℕ (λ ℕ □, ℕ → x₀) 3⟫.

@@ -80,6 +80,7 @@ theories/Algorithmic/TypeUniqueness.v
 theories/Decidability/Functions.v
 theories/Decidability/UntypedFunctions.v
 theories/Decidability/Soundness.v
+theories/Decidability/NegativeSoundness.v
 theories/Decidability/Completeness.v
 theories/Decidability/Termination.v
 theories/Decidability/UntypedSoundness.v

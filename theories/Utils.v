@@ -197,7 +197,7 @@ Create HintDb boundary.
 #[global] Hint Constants Opaque : boundary.
 #[global] Hint Variables Transparent : boundary.
 
-Ltac boundary := solve[eauto 3 with boundary].
+Ltac boundary := solve[eauto 3 with boundary typeclass_instances].
 
 (** Tactics used to create good induction principles using Scheme *)
 

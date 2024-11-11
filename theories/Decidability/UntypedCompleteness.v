@@ -3,11 +3,11 @@ From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
 From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
-From LogRel.Algorithmic Require Import AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties UntypedAlgorithmicConversion.
 
 (* To get the right easy tactic, should be fixed otherwise *)
-Check fixme.
 From LogRel Require Import Utils.
+Check fixme.
 
 From LogRel.Decidability Require Import Functions UntypedFunctions Soundness UntypedSoundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
@@ -17,6 +17,7 @@ Set Universe Polymorphism.
 Import DeclarativeTypingProperties.
 
 Section ConversionComplete.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!TypeReductionComplete (ta := de)}.
 
 Let PEq (t u : term) :=
   (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> graph _uconv (tm_state,t,u) ok) ×

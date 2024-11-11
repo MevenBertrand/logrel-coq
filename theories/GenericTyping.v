@@ -398,7 +398,7 @@ Section GenericTyping.
 
   Class ConvNeuProperties :=
   {
-    convneu_equiv {Γ A} :: PER (conv_neu_conv Γ A) ;
+    convneu_equiv {Γ A} :: PER (conv_neu_ty Γ A) ;
     convneu_conv {Γ t u A A'} : [Γ |- t ~ u : A] -> [Γ |- A ≅ A'] -> [Γ |- t ~ u : A'] ;
     convneu_wk {Γ Δ t u A} (ρ : Δ ≤ Γ) :
       [|- Δ ] -> [Γ |- t ~ u : A] -> [Δ |- t⟨ρ⟩ ~ u⟨ρ⟩ : A⟨ρ⟩] ;

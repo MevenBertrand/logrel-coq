@@ -814,7 +814,7 @@ Module BundledTypingData.
     change ConvTypeRedBun with (conv_type_red (ta := bn)) in * ;
     change ConvTermRedBun with (conv_term_red (ta := bn)) in * ;
     change ConvNeuRedBun with (conv_neu_red (ta := bn)) in *;
-    change ConvNeuConvBun with (conv_neu_conv (ta := bn)) in *;
+    change ConvNeuConvBun with (conv_neu_ty (ta := bn)) in *;
     change RedTypeBun with (red_ty (ta := bn)) in * ;
     change OneStepRedTermBun with (osred_tm (ta := bn)) in * ;
     change RedTermBun with (red_tm (ta := bn)) in *.
@@ -851,7 +851,7 @@ Module BundledIntermediateData.
     change (typing (ta := bni)) with (typing (ta := de)) in * ;
     change (conv_type (ta := bni)) with (conv_type (ta := bn)) in * ;
     change (conv_term (ta := bni)) with (conv_term (ta := bn)) in * ;
-    change (conv_neu_conv (ta := bni)) with (conv_neu_conv (ta := bn)) in *.
+    change (conv_neu_ty (ta := bni)) with (conv_neu_ty (ta := bn)) in *.
 
   (** If bundled judgements are complete, then so are the unbundled judgments *)
 

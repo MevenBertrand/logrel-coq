@@ -26,6 +26,22 @@ Section Properties.
       [Γ |- t ≅ u : A] -> [Δ |- t[σ] ≅ u[σ'] : A[σ]] ;
   }.
 
+  Class Strengthening :=
+  {
+  ty_str {Γ Δ A} (ρ : Γ ≤ Δ) :
+    [|- Δ] ->
+    [Γ |- A⟨ρ⟩] -> [Δ |- A];
+  tm_str {Γ Δ A t} (ρ : Γ ≤ Δ) :
+    [|- Δ] ->
+    [Γ |- t⟨ρ⟩ : A⟨ρ⟩] -> [Δ |- t : A];
+  ty_conv_str {Γ Δ A B} (ρ : Γ ≤ Δ) :
+    [|- Δ] ->
+    [Γ |- A⟨ρ⟩ ≅ B⟨ρ⟩] -> [Δ |- A ≅ B];
+  tm_conv_str {Γ Δ A t u} (ρ : Γ ≤ Δ) :
+    [|- Δ] ->
+    [Γ |- t⟨ρ⟩ ≅ u⟨ρ⟩ : A⟨ρ⟩] -> [Δ |- t ≅ u : A] ;
+  }.
+
   (** Reduction is complete for type conversion: if a
     type is convertible to a whnf, then it also reduces
     to a whnf. *)
@@ -76,7 +92,7 @@ Section Properties.
       | @ProdType A B, @ProdType A' B' => [Γ |- A' ≅ A : U] × [Γ,, A' |- B ≅ B' : U]
       | NatType, NatType => True
       | EmptyType, EmptyType => True
-      | NeType _, NeType _ => [Γ |- T ~ T' : U]
+      | NeType _, NeType _ => [Γ |- T ≅ T' : U]
       | @SigType A B, @SigType A' B' => [Γ |- A ≅ A' : U] × [Γ,, A |- B ≅ B' : U]
       | @IdType A x y, @IdType A' x' y' => [× [Γ |- A ≅ A' : U], [Γ |- x ≅ x' : A] & [Γ |- y ≅ y' : A]]
       | _, _ => False
@@ -86,14 +102,14 @@ Section Properties.
   match nft, nft' with
     | ZeroNat, ZeroNat => True
     | @SuccNat u, @SuccNat u' => [Γ |- u ≅ u' : tNat]
-    | NeNat _, NeNat _ => [Γ |- t ~ t' : tNat ]
+    | NeNat _, NeNat _ => [Γ |- t ≅ t' : tNat ]
     | _, _ => False
   end.
 
   Definition id_hd_view (Γ : context) (A x x' : term) {t t' : term} (nft : isId t) (nft' : isId t') : Type :=
     match nft, nft' with
       | @ReflId A a, @ReflId A' a' => [Γ |- A ≅ A'] × [Γ |- a ≅ a' : A]
-      | NeId _, NeId _ => [Γ |- t ~ t' : tId A x x']
+      | NeId _, NeId _ => [Γ |- t ≅ t' : tId A x x']
       | _, _ => False
     end.
 
@@ -109,20 +125,36 @@ Section Properties.
       [Γ |- t ≅ t' : tNat] ->
       nat_hd_view Γ nft nft' ;
 
-    empty_conv_inj (Γ : context) (t t' : term) :
+    (* empty_conv_inj (Γ : context) (t t' : term) :
       whne t -> whne t' ->
       [Γ |- t ≅ t' : tEmpty] ->
-      [Γ |- t ~ t' : tEmpty] ;
+      [Γ |- t ~ t' : tEmpty] ; *)
 
     id_conv_inj (Γ : context) (A x y t t' : term)
       (nft : isId t) (nft' : isId t') :
       [Γ |- t ≅ t' : tId A x y] ->
       id_hd_view Γ A x y nft nft' ;
     
-    neu_conv_inj (Γ : context) (A t t' : term) :
+    (* neu_conv_inj (Γ : context) (A t t' : term) :
       whne A -> whne t -> whne t' ->
       [Γ |- t ≅ t' : A] ->
-      [Γ |- t ~ t' : A]
+      [Γ |- t ~ t' : A] *)
+  }.
+
+  Class ConvNeutralConvPos :=
+  {
+    conv_neu_conv_p Γ T n n' :
+      whne n -> whne n' -> isPosType T ->
+      [Γ |- n ≅ n' : T] ->
+      [Γ |- n ~ n' : T]
+  }.
+
+  Class ConvNeutralConv :=
+  {
+    conv_neu_conv Γ T n n' :
+      whne n -> whne n' ->
+      [Γ |- n ≅ n' : T] ->
+      [Γ |- n ~ n' : T]
   }.
 
   (** ** Normalisation *)

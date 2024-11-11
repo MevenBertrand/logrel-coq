@@ -412,7 +412,7 @@ Module DeclarativeTypingData.
     change ConvTermDecl with (conv_term (ta := de)) in * ;
     change TypeRedClosure with (red_ty (ta := de)) in *;
     change TermRedClosure with (red_tm (ta := de)) in *;
-    change DeclNeutralConversion with (conv_neu_conv (ta := de)) in *.
+    change DeclNeutralConversion with (conv_neu_ty (ta := de)) in *.
 
   Smpl Add fold_decl : refold.
 
