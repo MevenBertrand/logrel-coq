@@ -1,9 +1,7 @@
 (** * LogRel.Decidability.Soundness: the implementations imply the inductive predicates. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context Notations UntypedReduction GenericTyping NormalForms AlgorithmicTyping UntypedAlgorithmicConversion.
-
+From LogRel Require Import Utils Syntax.All GenericTyping AlgorithmicTyping UntypedAlgorithmicConversion.
 From LogRel.Decidability Require Import Functions UntypedFunctions Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 

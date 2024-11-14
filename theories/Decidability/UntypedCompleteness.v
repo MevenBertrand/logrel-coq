@@ -17,7 +17,15 @@ Set Universe Polymorphism.
 Import DeclarativeTypingProperties.
 
 Section ConversionComplete.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!TypeReductionComplete (ta := de)}.
+  Context
+    `{!TypingSubst (ta := de)}
+    `{!TypeConstructorsInj (ta := de)}
+    `{!TypeReductionComplete (ta := de)}
+    `{!Normalisation (ta := de)}.
+  Check fixme.
+  (* We are using normalisation, because we need soundness of untyped conversion,
+    which is currently obtained by going through typed algo conversion, but the
+    implication untyped algo -> typed algo relies on normalisation. *)
 
 Let PEq (t u : term) :=
   (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> graph _uconv (tm_state,t,u) ok) ×
@@ -25,7 +33,7 @@ Let PEq (t u : term) :=
 
 Let PRedEq (t u : term) :=
   (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> graph _uconv (tm_red_state,t,u) ok) ×
-  (forall Γ A, isType A ->
+  (forall Γ A,
     [Γ |-[de] t : A] × [Γ |-[de] u : A] -> graph _uconv (tm_red_state,t,u) ok).
 
 Let PNeEq (t u : term) :=
@@ -55,11 +63,9 @@ Proof.
     2-3: now eapply wh_red_complete_whnf_tm ; eauto.
     * eapply typeConvRed_prem2 in Hconcl ; eauto.
       now eapply Hty.
-    * assert [Γ |-[de] A] as [[? ? wh]%type_normalisation]%dup by boundary. 
-      eapply termConvRed_prem3 in Hconcl ; eauto.
-      1: eapply Htm ; tea.
-      eapply type_isType ; tea.
-      now eapply subject_reduction_raw_ty.
+    * eapply termConvRed_prem3 in Hconcl ; eauto.
+      2: reflexivity.
+      now eapply Htm.
 
   - split.
     all: intros.
@@ -81,13 +87,16 @@ Proof.
       patch_rec_ret ; econstructor ; [now eapply IHB_ty|..].
       now constructor.
 
-  + intros * ? [Hconcl [[Hty]%dup]]%dup.
+  + intros * [(?&[->]& _)%termGen' (?&[->]& _)%termGen'].
     unfold graph.
     simp _uconv uconv_tm_red ; cbn.
-    eapply termGen' in Hty as (?&[->]& ->%conv_univ_l).
-    2: gen_typing.
 
-    eapply termPiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+    assert ([Γ |-[ de ] tProd A B : U] × [Γ |-[ de ] tProd A' B' : U]) as
+      [[Hpre0 []]%termPiCongAlg_prem0%dup]%dup.
+    {
+      split ; now econstructor.
+    }
+
     econstructor ; [now eapply IHA_tm|..] ; cbn.
     eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
     eapply termPiCongAlg_prem1 in Hpost0 ; eauto.
@@ -109,12 +118,15 @@ Proof.
   - intros * ? [_ IH_tm].
     split_tm.
     
-    intros ? T ? [[Hty] Hpre0]%dup.
+    intros * [(?&[->]&?)%termGen' (?&[->]&?)%termGen'].
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%red_compl_nat_l') ; tea.
-    2: gen_typing.
-    eapply termSuccCongAlg_prem0 in Hpre0.
+
+    assert ([Γ |-[ de ] tSucc t : tNat] × [Γ |-[ de ] tSucc t' : tNat]) as ?%termSuccCongAlg_prem0.
+    {
+      split ; now econstructor.
+    }
+
     patch_rec_ret ; econstructor ; [now eapply IH_tm|..].
     now constructor.
 
@@ -127,32 +139,33 @@ Proof.
   - intros * ? [_ IH_tm].
     split_tm.
 
-    intros * ? [Hconcl]%dup.
+    intros * Hconcl.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-    eapply LamCongUAlg_prem0 in Hconcl as (?&?&[->]); tea.
+
+    eapply LamCongUAlg_prem0 in Hconcl as (?&?&[]); tea.
     patch_rec_ret ; econstructor ; [now eapply IH_tm|..].
     now constructor.
 
   - intros * ? ? [_ IH_tm].
     split_tm.
 
-    intros * ? [Hconcl]%dup.
+    intros * [Hconcl]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
-    eapply LamNeUAlg_prem0 in Hconcl as (?&?&[->]); tea.
+    eapply LamNeUAlg_prem0 in Hconcl as (?&?&[]); tea.
     patch_rec_ret ; econstructor ; [now eapply IH_tm|..].
     now constructor.
 
   - intros * ? ? [_ IH_tm].
     split_tm.
 
-    intros * ? [Hconcl]%dup.
+    intros * [Hconcl]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
-    eapply NeLamUAlg_prem0 in Hconcl as (?&?&[->]); tea.
+    eapply NeLamUAlg_prem0 in Hconcl as (?&?&[]); tea.
     patch_rec_ret ; econstructor ; [now eapply IH_tm|..].
     now constructor.
 
@@ -170,25 +183,30 @@ Proof.
       patch_rec_ret ; econstructor ; [now eapply IHB_ty|..].
       now constructor.
 
-  + intros * ? [Hconcl [[Hty]%dup]]%dup.
-    unfold graph.
-    simp _uconv uconv_tm_red ; cbn.
-    eapply termGen' in Hty as (?&[->]&->%conv_univ_l) ; tea.
-    2: gen_typing.
+    
+    + intros * [(?&[->]& _)%termGen' (?&[->]& _)%termGen'].
+      unfold graph.
+      simp _uconv uconv_tm_red ; cbn.
 
-    eapply termSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
-    econstructor ; [now eapply IHA_tm|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
-    eapply termSigCongAlg_prem1 in Hpost0 ; eauto.
-    patch_rec_ret ; econstructor ; [now eapply IHB_tm|..].
-    now constructor.
+      assert ([Γ |-[ de ] tSig A B : U] × [Γ |-[ de ] tSig A' B' : U]) as
+        [[Hpre0 []]%termSigCongAlg_prem0%dup]%dup.
+      {
+        split ; now econstructor.
+      }
+
+      econstructor ; [now eapply IHA_tm|..] ; cbn.
+      eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
+      eapply termSigCongAlg_prem1 in Hpost0 ; eauto.
+      patch_rec_ret ; econstructor ; [now eapply IHB_tm|..].
+      now constructor.
 
   - intros * ? [_ IHp] ? [_ IHq].
     split_tm.
-    intros * ? [Hconcl [[Hty]%dup]]%dup.
+    intros * [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-    eapply PairCongUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+
+    eapply PairCongUAlg_prem0 in Hconcl as (?&?&[? [Hpre0 []]%dup]) ; tea.
     econstructor ; [now eapply IHp|..] ; cbn.
     eapply implem_uconv_graph, uconv_sound in IHp as [_ Hpost0%algo_conv_sound]; tea.
     eapply PairCongUAlg_prem1 in Hpost0 ; eauto.
@@ -197,11 +215,11 @@ Proof.
 
   - intros * ? ? [_ IHp] ? [_ IHq].
     split_tm.
-    intros * ? [Hconcl [[Hty]%dup]]%dup.
+    intros * [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
-    eapply PairNeUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+    eapply PairNeUAlg_prem0 in Hconcl as (?&?&[? [Hpre0 []]%dup]) ; tea.
     econstructor ; [now eapply IHp|..] ; cbn.
     eapply implem_uconv_graph, uconv_sound in IHp as [_ Hpost0%algo_conv_sound]; tea.
     eapply PairNeUAlg_prem1 in Hpost0 ; eauto.
@@ -210,11 +228,11 @@ Proof.
 
   - intros * ? ? [_ IHp] ? [_ IHq].
     split_tm.
-    intros * ? [Hconcl [[Hty]%dup]]%dup.
+    intros * [Hconcl [[Hty]%dup]]%dup.
     unfold graph.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
-    eapply NePairUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+    eapply NePairUAlg_prem0 in Hconcl as (?&?&[? [Hpre0 []]%dup]) ; tea.
     econstructor ; [now eapply IHp|..] ; cbn.
     eapply implem_uconv_graph, uconv_sound in IHp as [_ Hpost0%algo_conv_sound]; tea.
     eapply NePairUAlg_prem1 in Hpost0 ; eauto.
@@ -237,12 +255,16 @@ Proof.
       patch_rec_ret ; econstructor ; [now eapply IHy|..] ; cbn.
       now econstructor.
       
-    + intros ? ?? [Hconcl [[Hty]%dup]]%dup.
+    + intros * [(?&[->]& _)%termGen' (?&[->]& _)%termGen'].
       unfold graph.
-      simp _uconv uconv_tm_red build_nf_view2 ; cbn.
-      eapply termGen' in Hty as (?&[->]&->%conv_univ_l) ; tea.
-      2: gen_typing.
-      eapply termIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+      simp _uconv uconv_tm_red ; cbn.
+
+      assert ([Γ |-[ de ] tId A x y : U] × [Γ |-[ de ] tId A' x' y' : U]) as
+        [[Hpre0 []]%termIdCongAlg_prem0%dup]%dup.
+      {
+        split ; now econstructor.
+      }
+
       econstructor ; [now eapply IHA_tm|..] ; cbn.
       eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ [Hpost0]%algo_conv_sound%dup]; tea.
       eapply termIdCongAlg_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto. 
@@ -270,7 +292,7 @@ Proof.
       patch_rec_ret ; econstructor ; [now eapply IH|..] ; cbn.
       now econstructor.
 
-    + intros ? ?? Hconcl.
+    + intros ? ? Hconcl.
       unfold graph.
       simp _uconv uconv_tm_red build_nf_view2.
       repeat (unshelve erewrite ! whne_nf_view1 ; tea ; cbn).

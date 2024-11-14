@@ -14,8 +14,12 @@ Set Universe Polymorphism.
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section ConversionTerminates.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
-  `{!ConvComplete (ta := de) (ta' := al)} `{!Normalisation (ta := de)}.
+  Context
+    `{!TypingSubst (ta := de)}
+    `{!TypeReductionComplete (ta := de)}
+    `{!TypeConstructorsInj (ta := de)}
+    `{!ConvComplete (ta := de) (ta' := al)}
+    `{!Normalisation (ta := de)}.
 
 Let PTyEq (Γ : context) (A B : term) :=
   forall v B',

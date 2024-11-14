@@ -586,7 +586,7 @@ Proof.
     all: now econstructor ; [exact (IHm tt)|constructor].
 Qed.
 
-Corollary implem_conv_complete Γ A B `{!ConvComplete (ta := de) (ta' := al)} :
+Corollary implem_conv_complete `{!ConvComplete (ta := de) (ta' := al)} Γ A B :
   [Γ |-[de] A ≅ B] ->
   graph tconv (Γ,A,B) ok.
 Proof.

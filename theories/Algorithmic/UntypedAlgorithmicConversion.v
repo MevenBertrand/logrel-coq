@@ -323,78 +323,81 @@ Section PremisePreserve.
 
 
   Lemma LamCongUAlg_prem0 Γ T A t A' t' :
-    isType T ->
     [Γ |-[ de ] tLambda A t : T] × [Γ |-[ de ] tLambda A' t' : T] ->
-    ∑ A'' B, [× T = tProd A'' B, [Γ ,, A'' |- t : B] & [Γ ,, A'' |- t' : B]].
+    ∑ A'' B, [× [T ⤳* tProd A'' B], [Γ ,, A'' |- t : B] & [Γ ,, A'' |- t' : B]].
   Proof.
-    intros ? [[? [[B [->]] Hconv]]%termGen' [? [[B' [->]] Hconv']]%termGen'].
+    intros [[? [[B [->]] Hconv]]%termGen' [? [[B' [->]] Hconv']]%termGen'].
     eapply red_compl_prod_l in Hconv as (A''&B''&[Hred]).
-    eapply redty_sound, red_whnf in Hred as ->.
-    2: gen_typing.
-    eapply prod_ty_inj in Hconv' as [].
+    edestruct prod_ty_inj.
+    {
+     etransitivity ; tea.
+     now eapply RedConvTyC.
+    }
+
     do 2 eexists ; split.
-    - reflexivity.
+    - now eapply redty_sound.
     - now econstructor ; [eapply stability1|..] ; cycle 1.
     - now econstructor ; [eapply stability1|..].
   Qed.
 
 
   Lemma LamNeUAlg_prem0 Γ T A t n' :
-    isType T ->
     [Γ |-[ de ] tLambda A t : T] × [Γ |-[ de ] n' : T] ->
-    ∑ A'' B, [× T = tProd A'' B, [Γ ,, A'' |- t : B] & [Γ ,, A'' |- eta_expand n' : B]].
+    ∑ A'' B, [× [T ⤳* tProd A'' B], [Γ ,, A'' |- t : B] & [Γ ,, A'' |- eta_expand n' : B]].
   Proof.
-    intros ? [[? [[B [->]] Hconv]]%termGen' Hn].
+    intros [[? [[B [->]] Hconv]]%termGen' Hn].
     eapply red_compl_prod_l in Hconv as (A''&B''&[Hred]).
-    eapply redty_sound, red_whnf in Hred as ->.
-    2: gen_typing.
     do 2 eexists ; split.
 
-    - reflexivity.
+    - now eapply redty_sound.
     - now econstructor ; [eapply stability1 |..].
-    - now eapply typing_eta'.
+    - eapply typing_eta' ; econstructor ; tea.
+      now eapply RedConvTyC.
   Qed.
 
   Lemma NeLamUAlg_prem0 Γ T n A' t' :
-    isType T ->
     [Γ |-[ de ] n : T] × [Γ |-[ de ] tLambda A' t' : T] ->
-    ∑ A'' B, [× T = tProd A'' B, [Γ ,, A'' |- eta_expand n : B] & [Γ ,, A'' |- t' : B]].
+    ∑ A'' B, [× [T ⤳* tProd A'' B], [Γ ,, A'' |- eta_expand n : B] & [Γ ,, A'' |- t' : B]].
   Proof.
-    intros ? [Hn [? [[B [->]] Hconv]]%termGen'].
+    intros [Hn [? [[B [->]] Hconv]]%termGen'].
     eapply red_compl_prod_l in Hconv as (A''&B''&[Hred]).
-    eapply redty_sound, red_whnf in Hred as ->.
-    2: gen_typing.
     do 2 eexists ; split.
 
-    - reflexivity.
-    - now eapply typing_eta'.
+    - now eapply redty_sound.
+    - eapply typing_eta' ; econstructor ; tea.
+      now eapply RedConvTyC.
     - now econstructor ; [eapply stability1 | ..].
   Qed.
 
   Lemma PairCongUAlg_prem0 Γ T A B p q A' B' p' q' :
-    isType T ->
     [Γ |-[ de ] tPair A B p q : T] × [Γ |-[ de ] tPair A' B' p' q' : T] ->
-    ∑ A'' B'', (T = tSig A'' B'') × ([Γ |- p : A''] × [Γ |- p' : A'']).
+    ∑ A'' B'', [T ⤳* tSig A'' B''] × ([Γ |- p : A''] × [Γ |- p' : A'']).
   Proof.
-    intros ? [[? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'].
+    intros [[? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'].
     eapply red_compl_sig_l in Hconv as (A''&B''&[Hred]).
-    eapply redty_sound, red_whnf in Hred as ->.
-    2: gen_typing.
-    eapply sig_ty_inj in Hconv' as [].
+
+    edestruct sig_ty_inj.
+    {
+      etransitivity ; tea.
+      now eapply RedConvTyC.
+    }
     do 2 eexists ; split ; [..|split].
-    - reflexivity.
+    - now eapply redty_sound.
     - now econstructor.
     - now econstructor.
   Qed.
 
-  Lemma PairCongUAlg_prem1 Γ A B p q A' B' p' q' A'' B'' :
-    [Γ |-[ de ] tPair A B p q : tSig A'' B''] × [Γ |-[ de ] tPair A' B' p' q' : tSig A'' B''] ->
+  Lemma PairCongUAlg_prem1 Γ A B p q A' B' p' q' A'' B'' T :
+    [Γ |-[ de ] tPair A B p q : T] × [Γ |-[ de ] tPair A' B' p' q' : T] ->
+    [T ⤳* tSig A'' B''] ->
     [Γ |-[de] p ≅ p' : A''] ->
     [Γ |- q : B''[(tFst (tPair A B p q))..]] × [Γ |- q' : B''[(tFst (tPair A B p q))..]].
   Proof.
-    intros * [[? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'] ?.
-    eapply sig_ty_inj in Hconv as [].
-    eapply sig_ty_inj in Hconv' as [].
+    intros * [[? [[->] Hconv]]%termGen' [? [[->] Hconv']]%termGen'] ? ?.
+    eapply (TypeTrans (B := T)), sig_ty_inj in Hconv as [].
+    2: eapply RedConvTyC, subject_reduction_type ; boundary.
+    eapply (TypeTrans (B := T)), sig_ty_inj in Hconv' as [].
+    2: eapply RedConvTyC, subject_reduction_type ; boundary.
     
     assert [Γ |-[de] p' : A]
       by (econstructor ; tea ; etransitivity ; tea ; now symmetry).
@@ -411,28 +414,30 @@ Section PremisePreserve.
   Qed.
 
   Lemma PairNeUAlg_prem0 Γ T A B p q n' :
-    isType T ->
     [Γ |-[ de ] tPair A B p q : T] × [Γ |-[ de ] n' : T] ->
-    ∑ A'' B'', (T = tSig A'' B'') × ([Γ |- p : A''] × [Γ |- tFst n' : A'']).
+    ∑ A'' B'', [T ⤳* tSig A'' B''] × ([Γ |- p : A''] × [Γ |- tFst n' : A'']).
   Proof.
-    intros ? [[? [[->] [Hconv Hconv']%dup]]%termGen' ?].
-    eapply red_compl_sig_l in Hconv as (?&?&[Hred ]).
-    eapply redty_sound, red_whnf in Hred as ->.
-    2: gen_typing.
-    eapply sig_ty_inj in Hconv' as [].
+    intros [[? [[->] [Hconv Hconv']%dup]]%termGen' ?].
+    eapply red_compl_sig_l in Hconv as (?&?&[Hred]).
+    
     do 2 eexists ; split ; [..|split].
-    - reflexivity.
+    - now eapply redty_sound.
     - now econstructor.
-    - now econstructor.
+    - do 2 econstructor ; tea.
+      now eapply RedConvTyC.
   Qed.
 
-  Lemma PairNeUAlg_prem1 Γ A B p q n' A'' B'' :
-    [Γ |-[ de ] tPair A B p q : tSig A'' B''] × [Γ |-[ de ] n' : tSig A'' B''] ->
+  Lemma PairNeUAlg_prem1 Γ A B p q n' A'' B'' T :
+    [Γ |-[ de ] tPair A B p q : T] × [Γ |-[ de ] n' : T] ->
+    [T ⤳* tSig A'' B''] ->
     [Γ |-[de] p ≅ tFst n' : A''] ->
     [Γ |- q : B''[(tFst (tPair A B p q))..]] × [Γ |- tSnd n' : B''[(tFst (tPair A B p q))..]].
   Proof.
-    intros * [[? [[->] Hconv]]%termGen'?] ?.
-    eapply sig_ty_inj in Hconv as [].
+    intros * [[? [[->] Hconv]]%termGen'?] ? ?.
+
+    assert [Γ |-[de] T ≅ tSig A'' B''] by
+      (eapply RedConvTyC, subject_reduction_type ; boundary).
+    eapply (TypeTrans (B := T)), sig_ty_inj in Hconv as [] ; tea.
     
     assert [Γ |-[ de ] p ≅ tFst (tPair A B p q) : A] by
       (econstructor ; symmetry ; now econstructor).
@@ -441,7 +446,7 @@ Section PremisePreserve.
     - econstructor ; tea.
       now eapply typing_subst1.
     - econstructor.
-      1: now econstructor.
+      1: now do 2 econstructor.
       eapply typing_subst1.
       2: constructor ; boundary.
       etransitivity ; tea.
@@ -450,31 +455,32 @@ Section PremisePreserve.
   Qed.
 
   Lemma NePairUAlg_prem0 Γ T n A' B' p' q' :
-    isType T ->
     [Γ |-[ de ] n : T] × [Γ |-[ de ] tPair A' B' p' q' : T] ->
-    ∑ A'' B'', (T = tSig A'' B'') × ([Γ |- tFst n : A''] × [Γ |- p' : A'']).
+    ∑ A'' B'', [T ⤳* tSig A'' B''] × ([Γ |- tFst n : A''] × [Γ |- p' : A'']).
   Proof.
-    intros ? [? [? [[->] [Hconv Hconv']%dup]]%termGen'].
-    eapply red_compl_sig_l in Hconv as (?&?&[Hred ]).
-    eapply redty_sound, red_whnf in Hred as ->.
-    2: gen_typing.
-    eapply sig_ty_inj in Hconv' as [].
+    intros [? [? [[->] [Hconv Hconv']%dup]]%termGen'].
+    eapply red_compl_sig_l in Hconv as (?&?&[Hred]).
     do 2 eexists ; split ; [..|split].
-    - reflexivity.
-    - now econstructor.
+    - now eapply redty_sound.
+    - do 2 econstructor ; tea.
+      now eapply RedConvTyC.
     - now econstructor.
   Qed.
 
-  Lemma NePairUAlg_prem1 Γ n A' B' p' q' A'' B'' :
-    [Γ |-[ de ] n : tSig A'' B''] × [Γ |-[ de ] tPair A' B' p' q' : tSig A'' B''] ->
+  Lemma NePairUAlg_prem1 Γ n A' B' p' q' A'' B'' T :
+    [Γ |-[ de ] n : T] × [Γ |-[ de ] tPair A' B' p' q' : T] ->
+    [T ⤳* tSig A'' B''] ->
     [Γ |-[de] tFst n ≅ p' : A''] ->
     [Γ |- tSnd n : B''[(tFst n)..]] × [Γ |- q' : B''[(tFst n)..]].
   Proof.
-    intros * [? [? [[->] Hconv]]%termGen'] ?.
-    eapply sig_ty_inj in Hconv as [].
+    intros * [? [? [[->] Hconv]]%termGen'] ? ?.
+
+    assert [Γ |-[de] T ≅ tSig A'' B''] by
+      (eapply RedConvTyC, subject_reduction_type ; boundary).
+    eapply (TypeTrans (B := T)), sig_ty_inj in Hconv as [] ; tea.
 
     split.
-    - econstructor ; tea.
+    - now do 2 econstructor.
     - econstructor ; tea.
       eapply typing_subst1 ; tea.
       econstructor.
@@ -650,7 +656,10 @@ Section PremisePreserve.
 End PremisePreserve.
 
 Section Soundness.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!TypeReductionComplete (ta := de)}
+  Context
+    `{!TypingSubst (ta := de)}
+    `{!TypeConstructorsInj (ta := de)}
+    `{!TypeReductionComplete (ta := de)}
     `{!Normalisation (ta := de)}.
 
   Let PEq (t u : term) :=
@@ -760,7 +769,9 @@ Section Soundness.
         inversion Hz ; inv_whne.
 
       + intros ? T ? [Hconv]%dup.
-        eapply LamCongUAlg_prem0 in Hconv as (?&?&[->]); tea.
+        eapply LamCongUAlg_prem0 in Hconv as (?&?&[Hred]); tea.
+        eapply red_whnf in Hred as ->.
+        2: gen_typing.
         
         econstructor.
         1-2: now constructor.
@@ -776,7 +787,9 @@ Section Soundness.
         inversion Hz ; inv_whne.
 
       + intros ? T ? [Hconv]%dup.
-        eapply LamNeUAlg_prem0 in Hconv as (?&?&[->]); tea.
+        eapply LamNeUAlg_prem0 in Hconv as (?&?&[Hred]); tea.
+        eapply red_whnf in Hred as ->.
+        2: gen_typing.
         
         econstructor.
         1-2: now constructor.
@@ -793,7 +806,9 @@ Section Soundness.
         inversion Hz ; inv_whne.
 
       + intros ? T ? [Hconv]%dup.
-        eapply NeLamUAlg_prem0 in Hconv as (?&?&[->]); tea.
+        eapply NeLamUAlg_prem0 in Hconv as (?&?&[Hred]); tea.
+        eapply red_whnf in Hred as ->.
+        2: gen_typing.
         
         econstructor.
         1-2: now constructor.
@@ -827,9 +842,12 @@ Section Soundness.
 
       + intros * ? [Hconcl [[Hty]%dup]]%dup.
 
-        eapply PairCongUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+        eapply PairCongUAlg_prem0 in Hconcl as (?&?&[Hred [Hpre0 []]%dup]) ; tea.
+        eapply red_whnf in Hred as ->.
+        2: gen_typing.
 
         eapply IHp, algo_conv_sound, PairCongUAlg_prem1 in Hpre0 ; eauto.
+        2: reflexivity.
         econstructor.
         1-2: now constructor.
 
@@ -845,11 +863,14 @@ Section Soundness.
   
         + intros * ? [Hconcl [[Hty]%dup]]%dup.
   
-          eapply PairNeUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+          eapply PairNeUAlg_prem0 in Hconcl as (?&?&[Hred [Hpre0 []]%dup]) ; tea.
+          eapply red_whnf in Hred as ->.
+          2: gen_typing.
   
           eapply IHp, algo_conv_sound, PairNeUAlg_prem1 in Hpre0 ; eauto.
           econstructor.
           1-2: now constructor.
+          3: reflexivity.
   
           all: eapply algo_conv_tm_expand.
           all: solve [eapply redalg_one_step ; now constructor | reflexivity | eauto].
@@ -863,11 +884,14 @@ Section Soundness.
 
       + intros * ? [Hconcl [[Hty]%dup]]%dup.
 
-        eapply NePairUAlg_prem0 in Hconcl as (?&?&[-> [Hpre0 []]%dup]) ; tea.
+        eapply NePairUAlg_prem0 in Hconcl as (?&?&[Hred [Hpre0 []]%dup]) ; tea.
+        eapply red_whnf in Hred as ->.
+        2: gen_typing.
 
         eapply IHp, algo_conv_sound, NePairUAlg_prem1 in Hpre0 ; eauto.
         econstructor.
         1-2: now constructor.
+        3: reflexivity.
 
         all: eapply algo_conv_tm_expand.
         all: solve [eapply redalg_one_step ; now constructor | reflexivity | eauto].
@@ -999,7 +1023,10 @@ Section Soundness.
 End Soundness.
 
 Section Completeness.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!TypeReductionComplete (ta := de)}.
+  Context
+    `{!TypingSubst (ta := de)}
+    `{!TypeConstructorsInj (ta := de)}
+    `{!TypeReductionComplete (ta := de)}.
 
   Lemma whne_app_inv f g :
   [tApp f⟨↑⟩ (tRel 0) ~ tApp g⟨↑⟩ (tRel 0)] ->

@@ -1,12 +1,21 @@
 (** * LogRel.Decidability: type-checking is decidable. *)
 From Equations Require Import Equations.
-From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
+From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping
+  AlgorithmicTyping BundledAlgorithmicTyping AlgorithmicConvProperties
+  AlgorithmicTypingProperties PropertiesDefinition NeutralConvProperties LogRelConsequences.
 
 From LogRel.Decidability Require Import Functions Soundness Completeness Termination.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
-Import AlgorithmicTypingData DeclarativeTypingProperties.
+Import AlgorithmicTypingProperties DeclarativeTypingProperties.
 Set Universe Polymorphism.
+
+#[local]Existing Instance TypingSubstLogRel.
+#[local]Existing Instance RedCompleteLogRel.
+#[local]Existing Instance TypeConstructorsInjLogRel.
+#[local]Existing Instance NormalisationLogRel.
+#[local]Existing Instance ConvCompleteLogRel.
+#[local]Existing Instance TypingCompleteLogRel.
 
 Definition inspect {A} (a : A) : ∑ b, a = b :=
   (a;eq_refl).
@@ -49,12 +58,12 @@ Next Obligation.
     eapply orec_graph_functional in Hgraph ; tea.
     assert (ok = exception e0) as [=] by (etransitivity ; eassumption).
   }
-  eapply algo_typing_complete in Hty as [].
+  eapply (tm_compl (ta' := bn)) in Hty as [].
   apply typing_complete.
-  1: apply implem_conv_complete.
+  1: now apply implem_conv_complete.
   constructor ; tea.
   econstructor ; tea.
-  now eapply algo_conv_complete.
+  now apply ty_conv_compl.
 Qed.
 
 Print Assumptions check.
