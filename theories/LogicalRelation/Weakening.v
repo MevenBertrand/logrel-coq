@@ -169,12 +169,14 @@ Section Weakenings.
   Lemma isLRFun_ren : forall Γ Δ t A l (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) (ΠA : [Γ ||-Π< l > A]),
     isLRFun ΠA t -> isLRFun (wkΠ ρ wfΔ ΠA) t⟨ρ⟩.
   Proof.
-  intros * [A' t' Hdom Ht|]; constructor; tea.
-  + intros Ξ ρ' *; cbn.
+  intros * [A' t' wtdom convtydom Ht|]; constructor; tea.
+  + now eapply wft_wk.
+  + now eapply convty_wk.
+  (* + intros Ξ ρ' *; cbn.
     assert (eq : forall t, t⟨ρ' ∘w ρ⟩ = t⟨ρ⟩⟨ρ'⟩) by now bsimpl.
     irrelevance0; [apply eq|].
     rewrite <- eq.
-    now unshelve apply Hdom.
+    now unshelve apply Hdom. *)
   + intros Ξ a b ρ' wfΞ *; cbn.
     assert (eq : forall t, t⟨ρ' ∘w ρ⟩ = t⟨ρ⟩⟨ρ'⟩) by now bsimpl.
     unshelve eassert (Ht0 := Ht Ξ a b (ρ' ∘w ρ) wfΞ _).
@@ -197,27 +199,34 @@ Section Weakenings.
     + now apply isLRFun_ren.
   Defined.
 
+  Lemma wk_up_subst1 {Γ Δ F} t a (ρ : Γ ≤ Δ) : t⟨wk_up F ρ⟩[(a⟨ρ⟩)..] = t[a..]⟨ρ⟩.
+  Proof. now bsimpl. Qed.
 
   Lemma isLRPair_ren : forall Γ Δ t A l (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) (ΣA : [Γ ||-Σ< l > A]),
     isLRPair ΣA t -> isLRPair (wkΣ ρ wfΔ ΣA) t⟨ρ⟩.
   Proof.
-  intros * [A' B' a b Hdom Hcod Hfst Hsnd|]; unshelve econstructor; tea.
+  intros * [A' B' a b wtydom convtydom wtycod convtycod Hfst Hsnd|]; unshelve econstructor; tea; refold.
+  all: try first [now eapply wft_wk| now eapply convty_wk].
   + refold; intros Ξ ρ' wfΞ.
     assert (eq : forall t, t⟨ρ' ∘w ρ⟩ = t⟨ρ⟩⟨ρ'⟩) by now bsimpl.
     rewrite <- eq; irrelevance0; [|now unshelve apply Hfst].
     now bsimpl.
-  + intros Ξ ρ' *; cbn.
+  + erewrite <- (wk_up_ren_on _ _ _ A'), wk_up_subst1.
+    now eapply wft_wk.
+  + cbn; erewrite <- (wk_up_ren_on _ _ _ A'), 2!wk_up_subst1.
+    now eapply convty_wk.
+  (* + intros Ξ ρ' *; cbn.
     assert (eq : forall t, t⟨ρ' ∘w ρ⟩ = t⟨ρ⟩⟨ρ'⟩) by now bsimpl.
     irrelevance0; [apply eq|].
     rewrite <- eq.
-    now unshelve apply Hdom.
-  + intros Ξ a' b' ρ' wfΞ ha'; cbn.
+    now unshelve apply Hdom. *)
+  (*+ intros Ξ a' b' ρ' wfΞ ha'; cbn.
     assert (eq : forall t, t⟨ρ' ∘w ρ⟩ = t⟨ρ⟩⟨ρ'⟩) by now bsimpl.
     unshelve eassert (Hcod0 := Hcod Ξ a' b' (ρ' ∘w ρ) wfΞ _).
     { cbn in ha'; irrelevance0; [symmetry; apply eq|tea]. }
     replace (B'⟨upRen_term_term ρ⟩[b' .: ρ' >> tRel]) with B'[b' .: (ρ' ∘w ρ) >> tRel] by now bsimpl.
     irrelevance0; [|apply Hcod0].
-    now bsimpl.
+    now bsimpl. *)
   + refold; intros Ξ ρ' wfΞ.
     assert (eq : forall t, t⟨ρ' ∘w ρ⟩ = t⟨ρ⟩⟨ρ'⟩) by now bsimpl.
     irrelevance0.
@@ -366,7 +375,7 @@ Section Weakenings.
       assert [|-Γ] by (escape; gen_typing); constructor; cbn.
       1,2: now eapply wft_wk.
       1,2: now eapply ty_wk.
-      1,2:eapply IA.(IdRedTy.tyKripkeEq); [now rewrite wk_comp_runit| irrelevance].
+      1,2: now eapply convty_wk.
       all: eapply IA.(IdRedTy.tyKripkeTmEq); [now rewrite wk_comp_runit| irrelevance].
       Unshelve. all: tea.
   Qed.

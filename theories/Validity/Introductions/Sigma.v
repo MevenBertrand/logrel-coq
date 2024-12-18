@@ -209,24 +209,22 @@ Section SigRedTmEqHelper.
       isWfPair Γ A B p.
   Proof.
     assert (wfΓ: [|- Γ]) by (escape ; gen_typing).
-    destruct Rp as [???? eqA eqB rfst rsnd|].
+    destruct Rp as [???? wtdom convtydom wtcod convtycod rfst rsnd|].
     2: now econstructor.
-    pose proof (RFA := instKripkeEq wfΓ eqA).
-    pose proof (LRTyEqRedRight _ RFA).
-    pose proof (instKripkeSubstConv wfΓ eqA (PolyRed.posRed RΣ)).
-    pose proof (instKripkeSubstConvEq wfΓ eqA eqB).
+    (* pose proof (RFA := instKripkeEq wfΓ eqA). *)
+    (* pose proof (LRTyEqRedRight _ RFA). *)
+    (* pose proof (instKripkeSubstConv wfΓ eqA (PolyRed.posRed RΣ)). *)
+    (* pose proof (instKripkeSubstConvEq wfΓ eqA eqB). *)
     pose proof (Ra := instKripkeTmEq wfΓ rfst).
-    pose proof (instKripkeSubstEq wfΓ eqB).
+    (* pose proof (instKripkeSubstEq wfΓ eqB). *)
     pose proof (polyCodSubstRed _ RΣ _ _ Ra).
-    unshelve epose proof (hB:=eqB _ _ _ (@wk_id Γ) wfΓ _).
-    3: irrelevance0; [| exact Ra]; now rewrite wk_id_ren_on.
+    (* unshelve epose proof (hB:=eqB _ _ _ (@wk_id Γ) wfΓ _). *)
+    (* 3: irrelevance0; [| exact Ra]; now rewrite wk_id_ren_on. *)
     pose proof (polyCodSubstExtRed _ RΣ _ _ Ra).
     epose proof (hb := rsnd _ wk_id wfΓ).
     cbn -[wk_id] in *.
     escape.
-    rewrite 2!subst_wk_id_tail in EschB.
-    rewrite subst_wk_id_tail in EscRhB, Rlhb.
-    rewrite 2!wk_id_ren_on in Rlhb.
+    rewrite subst_wk_id_tail, 2!wk_id_ren_on in Rlhb.
     now econstructor.
   Qed.
 
@@ -503,14 +501,13 @@ Section PairRed.
   Qed.
   Next Obligation.
     unshelve econstructor; intros; cbn.
-      1-3:irrelevanceRefl.
-      * now eapply wkTermEq.
-      * now eapply wkEq.
-      * unshelve eapply (posRedExt (normEqRedΣ _ RAB)); tea; irrelevance.
-      * irrelevance0.
-        2: now eapply wkTermEq.
-        clear; now bsimpl.
-        Unshelve. all: tea.
+    (* Why do I get some unbound universe with the tactic escape at QED time ?*)
+    all: try first [now eapply escape| now eapply escapeEq | eapply escape; now eapply LRTyEqRedRight].
+    * irrelevanceRefl; now eapply wkTermEq.
+    * irrelevance0.
+      2: now eapply wkTermEq.
+      clear; now bsimpl.
+      Unshelve. all: tea.
   Qed.
 
    Definition pairSigRedTm0@{i j k l} {Γ A B a b l}

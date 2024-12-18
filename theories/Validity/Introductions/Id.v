@@ -261,6 +261,7 @@ Context `{GenericTypingProperties}.
     - intros * Ry ? Re.
       epose proof (Vext := idElimMotiveScons2Red Vx VΓext Vσσ' Ry Re).
       instValid Vext; now rewrite subst_upup_scons2.
+    - now eapply escapeEq.
     - erewrite idElimMotive_Idsubst_eq; now eapply escape.
     - erewrite idElimMotive_Idsubst_eq.
       epose proof (VA' := ureflValidTy VAA').
@@ -276,7 +277,7 @@ Context `{GenericTypingProperties}.
     - intros ???? Ry ? Re.
       epose proof (Vext := idElimMotiveScons2Red Vx VΓext Vσσ' Ry Re).
       instValid Vext; irrelevance0; now rewrite subst_upup_scons2.
-    - intros ???????? Ry ? Re.
+    - intros ????????? Ry ? Re.
       pose proof (reflValidTy VP).
       epose proof (Vext := idElimMotiveScons2Red Vx VΓext (lrefl Vσσ') Ry Re).
       instValid Vext; irrelevance0; now rewrite subst_upup_scons2.

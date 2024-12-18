@@ -375,8 +375,10 @@ Inductive isLRFun `{ta : tag} `{WfContext ta}
   `{WfType ta} `{ConvType ta} `{RedType ta} `{Typing ta} `{ConvTerm ta} `{ConvNeuConv ta}
   {Γ : context} {A : term} (ΠA : PiRedTy Γ A) : term -> Type :=
 | LamLRFun : forall A' t : term,
-  (forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) (domRed:= ΠA.(PolyRedPack.shpRed) ρ h),
-      [domRed | Δ ||- (PiRedTy.dom ΠA)⟨ρ⟩ ≅ A'⟨ρ⟩]) ->
+    [Γ |- A'] ->
+    [Γ |- PiRedTy.dom ΠA ≅ A'] ->
+  (* (forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]) (domRed:= ΠA.(PolyRedPack.shpRed) ρ h),
+      [domRed | Δ ||- (PiRedTy.dom ΠA)⟨ρ⟩ ≅ A'⟨ρ⟩]) -> *)
   (forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
     (ha : [ ΠA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b : ΠA.(PiRedTy.dom)⟨ρ⟩ ]),
       [ΠA.(PolyRedPack.posRed) ρ h ha | Δ ||- t[a .: (ρ >> tRel)] ≅ t[b .: (ρ >> tRel)] : ΠA.(PiRedTy.cod)[a .: (ρ >> tRel)]]) ->
@@ -454,11 +456,17 @@ Inductive isLRPair `{ta : tag} `{WfContext ta}
   `{WfType ta} `{ConvType ta} `{RedType ta} `{Typing ta} `{ConvTerm ta} `{ConvNeuConv ta}
   {Γ : context} {A : term} (ΣA : SigRedTy Γ A) : term -> Type :=
 | PairLRpair : forall (A' B' a b : term)
-  (rdom : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
+      (wtydom : [Γ |- A'])
+      (convtydom : [Γ |- SigRedTy.dom ΣA ≅ A'])
+      (wtycod : [Γ |- B'[a..]])
+      (convtycod : [Γ |- (SigRedTy.cod ΣA)[a..] ≅ B'[a..]])
+  (* (convdom : [Γ |- SigRedTy.dom ΣA ≅ A'])
+  (convcod : [Γ ,, SigRedTy.dom ΣA |- SigRedTy.cod ΣA ≅ B']) *)
+  (* (rdom : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- (SigRedTy.dom ΣA)⟨ρ⟩ ≅ A'⟨ρ⟩])
   (rcod : forall {Δ a b} (ρ : Δ ≤ Γ) (h : [ |- Δ ])
     (ha : [ ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- a ≅ b: ΣA.(PiRedTy.dom)⟨ρ⟩ ]),
-      [ΣA.(PolyRedPack.posRed) ρ h ha | Δ ||- (SigRedTy.cod ΣA)[a .: (ρ >> tRel)] ≅ B'[b .: (ρ >> tRel)]])
+      [ΣA.(PolyRedPack.posRed) ρ h ha | Δ ||- (SigRedTy.cod ΣA)[a .: (ρ >> tRel)] ≅ B'[b .: (ρ >> tRel)]]) *)
   (rfst : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
       [ΣA.(PolyRedPack.shpRed) ρ h | Δ ||- a⟨ρ⟩ ≅ a⟨ρ⟩ : (SigRedTy.dom ΣA)⟨ρ⟩])
   (rsnd : forall {Δ} (ρ : Δ ≤ Γ) (h : [ |- Δ ]),
@@ -801,8 +809,10 @@ Section IdRedTmEq.
     [Γ |- A'] ->
     [Γ |- x : A] ->
     [Γ |- x' : A'] ->
-    [IA.(IdRedTyPack.tyRed) | _ ||- _ ≅ A] ->
-    [IA.(IdRedTyPack.tyRed) | _ ||- _ ≅ A'] ->
+    [Γ |- IA.(IdRedTyPack.ty) ≅ A] ->
+    [Γ |- IA.(IdRedTyPack.ty) ≅ A'] ->
+    (* [IA.(IdRedTyPack.tyRed) | _ ||- _ ≅ A] ->
+    [IA.(IdRedTyPack.tyRed) | _ ||- _ ≅ A'] -> *)
     [IA.(IdRedTyPack.tyRed) | _ ||- IA.(IdRedTyPack.lhs) ≅ x : _ ] ->
     [IA.(IdRedTyPack.tyRed) | _ ||- IA.(IdRedTyPack.lhs) ≅ x' : _ ] ->
     (* Should the indices only be conversion ? *)

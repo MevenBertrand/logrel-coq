@@ -11,14 +11,10 @@ Lemma isLRFun_isWfFun `{GenericTypingProperties}
   : isWfFun Γ F G t.
 Proof.
   assert (wfΓ: [|- Γ]) by (escape ; gen_typing).
-  destruct Rt as [?? eqA eqt|]; cbn in *.
+  destruct Rt as [?? wtA convtyA eqt|]; cbn in *.
   2: now constructor.
-  pose proof (RFA := instKripkeEq wfΓ eqA).
-  pose proof (LRTyEqRedRight _ RFA).
   pose proof (instKripkeSubstTmEq wfΓ eqt).
-  pose proof (instKripkeSubstConvTmEq wfΓ eqA eqt).
-  escape.
-  now constructor.
+  escape; now constructor.
 Qed.
 
 
@@ -79,11 +75,9 @@ Proof.
   econstructor.
   1: eapply redtmwf_refl, ty_conv; [now eapply ty_lam| now symmetry].
 
-  constructor; intros; cbn.
-  2: epose (Vaσ := consWkSubstEq VF Vσσ' ρ h (lrefl ha)).
+  constructor; intros; cbn; tea.
+  epose (Vaσ := consWkSubstEq VF Vσσ' ρ h (lrefl ha)).
   all: irrelevanceRefl.
-  1: now unshelve eapply wkEq.
-
   rewrite 2! consWkEq'.
   pose proof (ureflValidTm Vtt').
   unshelve epose (Vaσ' := consWkSubstEq VF (urefl Vσσ') ρ h _).

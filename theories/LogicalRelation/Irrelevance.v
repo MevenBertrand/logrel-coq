@@ -15,6 +15,9 @@ in the right places. *)
 (** Interestingly, we also show irrelevance with respect to universe levels, which is crucial
 in later parts of the development, where this avoids creating spurious constraints on universe levels.*)
 
+Lemma subst_wk_id_tail Γ P t : P[t .: @wk_id Γ >> tRel] = P[t..].
+Proof. setoid_rewrite id_ren; now bsimpl. Qed.
+
 
 Section Irrelevances.
 Context `{GenericTypingProperties}.
@@ -105,14 +108,11 @@ Proof.
   intros []; cbn in *; econstructor; tea.
   - now eapply redtmwf_conv.
   - destruct isfun as [A₀ t₀|n Hn].
-    + constructor.
-      * intros; now eapply eqv.(eqvShp).
+    + constructor; tea.
+      * etransitivity; tea; now symmetry.
       * intros; unshelve eapply eqv.(eqvPos); [|eauto].
         now apply eqv.(eqvShp).
     + constructor; now eapply convneu_conv.
-  (* - unfold PiRedTmEq.appRed in *; intros; unshelve eapply eqv.(eqvPos).
-    2: now auto.
-    now apply eqv.(eqvShp). *)
 Defined.
 
 Lemma ΠIrrelevanceTmEq t u : [Γ ||-<lA> t ≅ u : A | RA] -> [Γ ||-<lA'> t ≅ u : A' | RA'].
@@ -175,11 +175,21 @@ Proof.
   intros []; cbn in *; unshelve econstructor; tea.
   - now eapply redtmwf_conv.
   - destruct ispair as [A₀ B₀ a b|n Hn].
-    + unshelve econstructor.
+    + unshelve econstructor; tea.
+      2,3: etransitivity; tea;  symmetry; tea.
       * intros; now unshelve eapply eqv.(eqvShp).
-      * intros; now eapply eqv.(eqvShp).
-      * intros; unshelve eapply eqv.(eqvPos); [|now eauto].
-        now unshelve eapply eqv.(eqvShp).
+      * assert (wfΓ : [|-Γ]) by gen_typing.
+        pose proof (h := rfst Γ wk_id wfΓ).
+        rewrite wk_id_ren_on in h.
+        pose proof (h' := ΣA.(PolyRed.posExt) _ _ h).
+        eapply eqv.(eqvPos), escapeEq in h'.
+        rewrite 2!subst_wk_id_tail in h'.
+        now symmetry.
+        Unshelve. now eapply eqv.(eqvShp).
+      (* * etransitivity; tea; now symmetry. *)
+      (* * intros; now eapply eqv.(eqvShp). *)
+      (* * intros; unshelve eapply eqv.(eqvPos); [|now eauto].
+        now unshelve eapply eqv.(eqvShp). *)
       * intros; now eapply eqv.(eqvPos).
     + constructor; now eapply convneu_conv.
 Defined.
@@ -230,7 +240,7 @@ Section IdIrrelevance.
     (RA' := LRId' IA')
     (eqId : [Γ |- IA.(IdRedTy.outTy) ≅ IA'.(IdRedTy.outTy)])
     (eqv : equivLRPack@{k k' v} IA.(IdRedTy.tyRed) IA'.(IdRedTy.tyRed))
-    (* (eqty : [Γ |- IA.(IdRedTy.ty) ≅  IA'.(IdRedTy.ty)]) *)
+    (eqty : [Γ |- IA.(IdRedTy.ty) ≅  IA'.(IdRedTy.ty)])
     (lhsconv : [IA.(IdRedTy.tyRed) | Γ ||- IA.(IdRedTy.lhs) ≅  IA'.(IdRedTy.lhs) : _ ])
     (rhsconv : [IA.(IdRedTy.tyRed) | Γ ||- IA.(IdRedTy.rhs) ≅  IA'.(IdRedTy.rhs) : _]).
 
@@ -250,7 +260,8 @@ Section IdIrrelevance.
   Proof.
     intros []; constructor ; tea; cycle -1.
     1: eapply NeNfEqconv; tea; unfold_id_outTy ; destruct IA'; escape; cbn in *; gen_typing.
-    all: apply eqv; tea.
+    1,2: etransitivity; tea; now symmetry.
+    all: try (apply eqv; tea).
     all: etransitivity; [now symmetry|]; tea.
   Qed.
 
@@ -272,6 +283,7 @@ Lemma IdIrrelevanceLRPack@{i j k l i' j' k' l' v}
   (RA' := LRId' IA')
   (eqId : [Γ |- IA.(IdRedTy.outTy) ≅ IA'.(IdRedTy.outTy)])
   (eqv : equivLRPack@{k k' v} IA.(IdRedTy.tyRed) IA'.(IdRedTy.tyRed))
+  (tyconv : [IA.(IdRedTy.tyRed) | _ ||- IA.(IdRedTy.ty) ≅ IA'.(IdRedTy.ty)])
   (lhsconv : [IA.(IdRedTy.tyRed) | Γ ||- IA.(IdRedTy.lhs) ≅  IA'.(IdRedTy.lhs) : _ ])
   (rhsconv : [IA.(IdRedTy.tyRed) | Γ ||- IA.(IdRedTy.rhs) ≅  IA'.(IdRedTy.rhs) : _])
   : equivLRPack@{k k' v} RA RA'.
@@ -279,6 +291,8 @@ Proof.
   pose proof (IA.(IdRedTy.tyPER)).
   pose proof (symLRPack eqv).
   assert (eqId' : [Γ |- IA'.(IdRedTy.outTy) ≅ IA.(IdRedTy.outTy)]) by now symmetry.
+  assert [Γ |- IA.(IdRedTy.ty) ≅ IA'.(IdRedTy.ty)] by now eapply escapeEq.
+  assert [Γ |- IA'.(IdRedTy.ty) ≅ IA.(IdRedTy.ty)] by now symmetry.
   assert [IA'.(IdRedTy.tyRed) | Γ ||- IA'.(IdRedTy.lhs) ≅  IA.(IdRedTy.lhs) : _ ] by (apply eqv; now symmetry).
   assert [IA'.(IdRedTy.tyRed) | Γ ||- IA'.(IdRedTy.rhs) ≅  IA.(IdRedTy.rhs) : _ ] by (apply eqv; now symmetry).
   constructor.
