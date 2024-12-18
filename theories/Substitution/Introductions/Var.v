@@ -10,22 +10,18 @@ Set Printing Primitive Projection Parameters.
 
 Section Var.
   Context `{GenericTypingProperties}.
-  
+
   Lemma var0Valid {Γ l A} (VΓ : [||-v Γ]) (VA : [Γ ||-v<l> A | VΓ]) :
     [Γ,, A ||-v<l> tRel 0 : _ | validSnoc VΓ VA | wk1ValidTy _ VA ].
   Proof.
-    constructor; intros; cbn.
-    + epose (validHead Vσ); irrelevance.
-    + epose (eqHead Vσσ'); irrelevance.
+    constructor; intros; cbn; epose (eqHead Vσσ'); irrelevance.
   Qed.
-  
+
   Lemma var0Valid' {Γ l A} (VΓ : [||-v Γ,,A]) (VA : [Γ,,A ||-v<l> A⟨↑⟩ | VΓ]) :
     [Γ,, A ||-v<l> tRel 0 : _ | VΓ | VA ].
   Proof.
     pose proof (invValiditySnoc VΓ) as [? [? [? ]]]; subst.
-    constructor; intros; cbn.
-    + epose (validHead Vσ); irrelevance.
-    + epose (eqHead Vσσ'); irrelevance.
+    constructor; intros; cbn; epose (eqHead Vσσ'); irrelevance.
   Qed.
 
   Lemma in_ctx_valid {Γ A n} (hin : in_ctx Γ n A) : forall (VΓ : [||-v Γ]), ∑ l, [Γ ||-v<l> A | VΓ].
@@ -48,11 +44,11 @@ Section Var.
     eapply irrelevanceTm'; tea.
     now rewrite wk1_ren_on.
   Qed.
-  
+
   Lemma var1Valid {Γ l A B} (VΓ : [||-v (Γ,, A) ,, B]) (VA : [_ ||-v<l> A⟨↑⟩⟨↑⟩ | VΓ]) :
     [(Γ,, A) ,, B ||-v<l> tRel 1 : _ | VΓ | VA ].
   Proof.
     eapply varnValid; do 2 constructor.
   Qed.
-  
+
 End Var.

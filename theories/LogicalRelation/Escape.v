@@ -33,7 +33,7 @@ Section Escapes.
       [Γ |- A ≅ B].
   Proof.
     pattern l, Γ, A, lr ; eapply LR_rect_TyUr.
-    + intros ??? [] []. 
+    + intros ??? [] [].
       gen_typing.
     + intros ??? [] [].
       cbn in *.
@@ -45,26 +45,26 @@ Section Escapes.
     + intros ??? [] []; gen_typing.
     + intros ??? [] * ? ? []; cbn in *.
       eapply convty_exp. all: gen_typing.
-    + intros ??? [???? red] ?? [???? red']; cbn in *. 
+    + intros ??? [???? red] ?? [???? red']; cbn in *.
       eapply convty_exp; tea;[eapply red | eapply red'].
   Qed.
 
-  Definition escapeTerm {l Γ t A} (lr : [Γ ||-< l > A ]) :
-    [Γ ||-< l > t : A | lr ] ->
+  Definition escapeTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
+    [Γ ||-< l > t ≅ u : A | lr ] ->
     [Γ |- t : A].
   Proof.
     pattern l, Γ, A, lr ; eapply LR_rect_TyUr.
-    - intros ??? [] [] ; cbn in *.
+    - intros ??? [] [[]] ; cbn in *.
       gen_typing.
     - intros ??? [] [] ; cbn in *.
       gen_typing.
-    - intros ??? [] * ?? [] ; cbn in *.
+    - intros ??? [] * ?? [[]] ; cbn in *.
       gen_typing.
     - intros ??? [] []; gen_typing.
     - intros ??? [] []; gen_typing.
-    - intros ??? [] * ?? [] ; cbn in *.
+    - intros ??? [] * ?? [[]] ; cbn in *.
       gen_typing.
-    - intros ??? IA _ _ []. 
+    - intros ??? IA _ _ [].
       unfold_id_outTy; destruct IA; cbn in *; gen_typing.
   Qed.
 
@@ -81,7 +81,7 @@ Section Escapes.
       assert (isPosType ty).
       {
       constructor.
-      now eapply convneu_whne. 
+      now eapply convneu_whne.
       }
       eapply (convtm_conv (A := ty)).
       eapply convtm_exp ; tea.
@@ -119,25 +119,34 @@ Section Escapes.
     - intros * ??? []; gen_typing.
     - intros * _ _ ? []; gen_typing.
   Qed.
-  
+
 End Escapes.
+
+
+(* hack to redefine the symmetric version for term later *)
+Ltac sym_escape RA H := idtac.
+Ltac eqty_escape_right RA H := idtac.
 
 Ltac escape :=
   repeat lazymatch goal with
-  | [H : [_ ||-< _ > _] |- _] => 
-    let X := fresh "Esc" H in
-    try pose proof (X := escape H) ;
+  | [H : [_ ||-< _ > _] |- _] =>
+    try
+     (let X := fresh "Esc" H in
+     pose proof (X := escape H));
     block H
   | [H : [_ ||-<_> _ ≅ _ | ?RA ] |- _] =>
-    let X := fresh "Esc" H in
-    try pose proof (X := escapeEq RA H) ;
+    try
+      (let X := fresh "Esc" H in
+      pose proof (X := escapeEq RA H)) ;
+    try (eqty_escape_right RA H) ;
     block H
-  | [H : [_ ||-<_> _ : _ | ?RA] |- _] =>
+  (* | [H : [_ ||-<_> _ : _ | ?RA] |- _] =>
     let X := fresh "R" H in
     try pose proof (X := escapeTerm RA H) ;
-    block H
+    block H *)
   | [H : [_ ||-<_> _ ≅ _ : _ | ?RA] |- _] =>
-    let X := fresh "R" H in
-    try pose proof (X := escapeEqTerm RA H) ;
+    try (let X := fresh "R" H in pose proof (X := escapeEqTerm RA H)) ;
+    try (let X := fresh "Rl" H in pose proof (X := escapeTerm RA H)) ;
+    try (sym_escape RA H) ;
     block H
   end; unblock.

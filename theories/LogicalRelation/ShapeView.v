@@ -14,8 +14,8 @@ Section ShapeViews.
   in the same way. *)
 
   Definition ShapeView@{i j k l i' j' k' l'} Γ
-    A {lA eqTyA redTmA redTyA} B {lB eqTyB redTmB redTyB}
-    (lrA : LogRel@{i j k l} lA Γ A eqTyA redTmA redTyA) (lrB : LogRel@{i' j' k' l'} lB Γ B eqTyB redTmB redTyB) : Set :=
+    A {lA eqTyA redTyA} B {lB eqTyB redTyB}
+    (lrA : LogRel@{i j k l} lA Γ A eqTyA redTyA) (lrB : LogRel@{i' j' k' l'} lB Γ B eqTyB redTyB) : Set :=
     match lrA, lrB with
       | LRU _ _, LRU _ _ => True
       | LRne _ _, LRne _ _ => True
@@ -27,7 +27,7 @@ Section ShapeViews.
       | _, _ => False
     end.
 
-  Arguments ShapeView Γ A {lA eqTyA redTmA redTyA} B {lB eqTyB redTmB redTyB}
+  Arguments ShapeView Γ A {lA eqTyA redTyA} B {lB eqTyB redTyB}
   !lrA !lrB.
 
 (** ** The main property *)
@@ -37,32 +37,32 @@ if two reducible types are reducibly convertible, then they must be reducible in
 This lets us relate different reducibility proofs when we have multiple such proofs, typically
 when showing symmetry or transitivity of the logical relation. *)
 
-  Arguments ShapeView Γ A {lA eqTyA redTmA redTyA} B {lB eqTyB redTmB redTyB}
+  Arguments ShapeView Γ A {lA eqTyA redTyA} B {lB eqTyB redTyB}
   !lrA !lrB.
 
 
-  Lemma red_whnf@{i j k l} {Γ A lA eqTyA redTmA eqTmA}
-    (lrA : LogRel@{i j k l} lA Γ A eqTyA redTmA eqTmA) : 
+  Lemma red_whnf@{i j k l} {Γ A lA eqTyA eqTmA}
+    (lrA : LogRel@{i j k l} lA Γ A eqTyA eqTmA) :
     ∑ nf, [Γ |- A :⤳*: nf] × whnf nf.
   Proof.
-    pattern lA, Γ, A, eqTyA, redTmA, eqTmA, lrA; eapply LR_rect; intros ??[].
+    pattern lA, Γ, A, eqTyA, eqTmA, lrA; eapply LR_rect; intros ??[].
     all: eexists; split; tea; constructor; tea.
     now eapply convneu_whne.
   Defined.
 
-  Lemma eqTy_red_whnf@{i j k l} {Γ A lA eqTyA redTmA eqTmA B}
-    (lrA : LogRel@{i j k l} lA Γ A eqTyA redTmA eqTmA) : 
+  Lemma eqTy_red_whnf@{i j k l} {Γ A lA eqTyA eqTmA B}
+    (lrA : LogRel@{i j k l} lA Γ A eqTyA eqTmA) :
     eqTyA B -> ∑ nf, [Γ |- B :⤳*: nf] × whnf nf.
   Proof.
-    pattern lA, Γ, A, eqTyA, redTmA, eqTmA, lrA.
+    pattern lA, Γ, A, eqTyA, eqTmA, lrA.
     eapply LR_rect_LogRelRec@{i j k l k}; intros ??? [].
     3,6,7: intros ??.
     all: intros []; eexists; split; tea; constructor; tea.
     eapply convneu_whne; now symmetry.
   Defined.
 
-  Lemma ShapeViewConv@{i j k l i' j' k' l'} {Γ A lA eqTyA redTmA eqTmA B lB eqTyB redTmB eqTmB}
-    (lrA : LogRel@{i j k l} lA Γ A eqTyA redTmA eqTmA) (lrB : LogRel@{i' j' k' l'} lB Γ B eqTyB redTmB eqTmB) :
+  Lemma ShapeViewConv@{i j k l i' j' k' l'} {Γ A lA eqTyA eqTmA B lB eqTyB eqTmB}
+    (lrA : LogRel@{i j k l} lA Γ A eqTyA eqTmA) (lrB : LogRel@{i' j' k' l'} lB Γ B eqTyB eqTmB) :
     eqTyA B ->
     ShapeView@{i j k l i' j' k' l'} Γ A B lrA lrB.
   Proof.
@@ -70,7 +70,7 @@ when showing symmetry or transitivity of the logical relation. *)
     pose (x := eqTy_red_whnf lrA eqAB).
     pose (y:= red_whnf lrB).
     pose proof (h := redtywf_det (snd x.π2) (snd y.π2) (fst x.π2) (fst y.π2)).
-    revert eqAB x y h. 
+    revert eqAB x y h.
     destruct lrA; destruct lrB; intros []; cbn; try easy; try discriminate.
     all: try now (intros e; destruct neA as [? ? ne]; subst; apply convneu_whne in ne; inversion ne).
     all: try now (intros e; subst; symmetry in eq; apply convneu_whne in eq; inversion eq).

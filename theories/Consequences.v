@@ -56,20 +56,20 @@ Section NatCanonicityInduction.
   Qed.
 
   Lemma nat_red_empty_ind :
-    (forall t, [ε ||-Nat t : tNat | red_nat_empty] ->
+    (forall t u, [ε ||-Nat t ≅ u : tNat | red_nat_empty] ->
     ∑ n : nat, [ε |- t ≅ n : tNat]) ×
-    (forall t, NatProp red_nat_empty t -> ∑ n : nat, [ε |- t ≅ n : tNat]).
+    (forall t u, NatPropEq red_nat_empty t u -> ∑ n : nat, [ε |- t ≅ n : tNat]).
   Proof.
-    apply NatRedInduction.
-    - intros * [? []] ? _ [n] ; refold.
+    apply NatRedEqInduction.
+    - intros * [? []] ? ? _ [n] ; refold.
       exists n.
       now etransitivity.
     - exists 0 ; cbn.
       now repeat constructor.
-    - intros ? _ [n].
+    - intros ? ? _ [n].
       exists (S n) ; simpl.
       now econstructor.
-    - intros ? [? [? _ _]].
+    - intros ? ? [? ? []].
       exfalso.
       now eapply no_neutral_empty_ctx.
   Qed.
@@ -80,7 +80,7 @@ Section NatCanonicityInduction.
     intros Ht.
     assert [LRNat_ one red_nat_empty | ε ||- t : tNat] as ?%nat_red_empty_ind.
     {
-      apply Fundamental in Ht as [?? Vt%reducibleTm].
+      apply Fundamental in Ht as [?? Vt%reducibleTmEq].
       irrelevance.
     }
     now assumption.

@@ -11,7 +11,7 @@ times with different instances of this abstract notion of typing, gathering more
 and more properties. *)
 
 (**
-More precisely, an instance consists of giving notions of 
+More precisely, an instance consists of giving notions of
 - context well-formation [|- Γ]
 - type well-formation [Γ |- A]
 - term well-formation [Γ |- t : A]
@@ -48,7 +48,7 @@ Section RedDefinitions.
     }.
 
   Record TypeConvWf (Γ : context) (A B : term) : Type :=
-    { 
+    {
       tyc_wf_l : [Γ |- A] ;
       tyc_wf_r : [Γ |- B] ;
       tyc_wf_conv :> [Γ |- A ≅ B]
@@ -151,7 +151,7 @@ Notation "[ Γ |- A ↘ B ]" := (TypeRedWhnf Γ A B) (only parsing) : typing_sco
 Notation "[ Γ |-[ ta  ] A ↘ B ]" := (TypeRedWhnf (ta := ta) Γ A B) : typing_scope.
 Notation "[ Γ |- t ↘ u : A ]" := (TermRedWhnf Γ A t u) (only parsing ): typing_scope.
 Notation "[ Γ |-[ ta  ] t ↘ u : A ]" := (TermRedWhnf (ta := ta) Γ A t u) : typing_scope.
-Notation "[ Γ |- A :≅: B ]" := (TypeConvWf Γ A B) (only parsing) : typing_scope.  
+Notation "[ Γ |- A :≅: B ]" := (TypeConvWf Γ A B) (only parsing) : typing_scope.
 Notation "[ Γ |-[ ta  ] A :≅: B ]" := (TypeConvWf (ta := ta) Γ A B) : typing_scope.
 Notation "[ Γ |- t :≅: u : A ]" := (TermConvWf Γ A t u) (only parsing) : typing_scope.
 Notation "[ Γ |-[ ta  ] t :≅: u : A ]" := (TermConvWf (ta := ta) Γ A t u) : typing_scope.
@@ -209,16 +209,16 @@ Section GenericTyping.
   {
     wft_wk {Γ Δ A} (ρ : Δ ≤ Γ) :
       [|- Δ ] -> [Γ |- A] -> [Δ |- A⟨ρ⟩] ;
-    wft_U {Γ} : 
+    wft_U {Γ} :
       [ |- Γ ] ->
       [ Γ |- U ] ;
-    wft_prod {Γ} {A B} : 
-      [ Γ |- A ] -> 
-      [Γ ,, A |- B ] -> 
+    wft_prod {Γ} {A B} :
+      [ Γ |- A ] ->
+      [Γ ,, A |- B ] ->
       [ Γ |- tProd A B ] ;
-    wft_sig {Γ} {A B} : 
-      [ Γ |- A ] -> 
-      [Γ ,, A |- B ] -> 
+    wft_sig {Γ} {A B} :
+      [ Γ |- A ] ->
+      [Γ ,, A |- B ] ->
       [ Γ |- tSig A B ] ;
     wft_Id {Γ} {A x y} :
       [Γ |- A] ->
@@ -226,7 +226,7 @@ Section GenericTyping.
       [Γ |- y : A] ->
       [Γ |- tId A x y] ;
     wft_term {Γ} {A} :
-      [ Γ |- A : U ] -> 
+      [ Γ |- A : U ] ->
       [ Γ |- A ] ;
   }.
 
@@ -239,16 +239,16 @@ Section GenericTyping.
       in_ctx Γ n decl ->
       [ Γ |- tRel n : decl ] ;
     ty_prod {Γ} {A B} :
-        [ Γ |- A : U] -> 
+        [ Γ |- A : U] ->
         [Γ ,, A |- B : U ] ->
         [ Γ |- tProd A B : U ] ;
     ty_lam {Γ}  {A B t} :
         [ Γ |- A ] ->
-        [ Γ ,, A |- t : B ] -> 
+        [ Γ ,, A |- t : B ] ->
         [ Γ |- tLambda A t : tProd A B] ;
     ty_app {Γ}  {f a A B} :
-        [ Γ |- f : tProd A B ] -> 
-        [ Γ |- a : A ] -> 
+        [ Γ |- f : tProd A B ] ->
+        [ Γ |- a : A ] ->
         [ Γ |- tApp f a : B[a ..] ] ;
     ty_nat {Γ} :
         [|-Γ] ->
@@ -273,11 +273,11 @@ Section GenericTyping.
       [Γ |- e : tEmpty] ->
       [Γ |- tEmptyElim P e : P[e..]] ;
     ty_sig {Γ} {A B} :
-        [ Γ |- A : U] -> 
+        [ Γ |- A : U] ->
         [Γ ,, A |- B : U ] ->
         [ Γ |- tSig A B : U ] ;
     ty_pair {Γ} {A B a b} :
-        [ Γ |- A ] -> 
+        [ Γ |- A ] ->
         [Γ ,, A |- B ] ->
         [Γ |- a : A] ->
         [Γ |- b : B[a..]] ->
@@ -528,7 +528,7 @@ Section GenericTyping.
       [Γ |- y : A] ->
       [Γ |- e ⤳* e' : tId A x y] ->
       [Γ |- tIdElim A x P hr y e ⤳* tIdElim A x P hr y e' : P[e .: y..]];
-    redtm_conv {Γ t u A A'} : 
+    redtm_conv {Γ t u A A'} :
       [Γ |- t ⤳* u : A] ->
       [Γ |- A ≅ A'] ->
       [Γ |- t ⤳* u : A'] ;
@@ -662,8 +662,8 @@ Ltac renToWk :=
   fold ren_term;
   repeat change (ren_term ?x ?y) with y⟨x⟩;
   repeat change S with ↑;
-  repeat lazymatch goal with 
-  | [ _ : _ |- ?G] => renToWk0 G 
+  repeat lazymatch goal with
+  | [ _ : _ |- ?G] => renToWk0 G
   end.
 
 
@@ -723,7 +723,7 @@ Section GenericConsequences.
     A' = A ->
     [Γ |- t :⤳*: u : A'].
   Proof.
-    now intros ? ->. 
+    now intros ? ->.
   Qed.
 
   (** *** Properties of well-typed reduction *)
@@ -732,7 +732,7 @@ Section GenericConsequences.
   Proof.
     intros []; now eapply redty_ty_src.
   Qed.
-  
+
   Lemma tmr_wf_l {Γ t u A} : [Γ |- t :⤳*: u : A] -> [Γ |- t : A].
   Proof.
     intros []; now eapply redtm_ty_src.
@@ -746,11 +746,11 @@ Section GenericConsequences.
   Lemma redty_red {Γ A B} :
       [Γ |- A ⤳* B] -> [ A ⤳* B ].
   Proof.
-    intros ?%redty_sound. 
+    intros ?%redty_sound.
     assumption.
   Qed.
 
-  Lemma redtm_red {Γ t u A} : 
+  Lemma redtm_red {Γ t u A} :
       [Γ |- t ⤳* u : A] ->
       [t ⤳* u].
   Proof.
@@ -770,7 +770,7 @@ Section GenericConsequences.
   Proof.
     intros []; now eapply redty_red.
   Qed.
-  
+
   Lemma redtywf_term {Γ A B} :
       [ Γ |- A :⤳*: B : U] -> [Γ |- A :⤳*: B ].
   Proof.
@@ -786,10 +786,10 @@ Section GenericConsequences.
     intros ??? [] []; unshelve econstructor; try etransitivity; tea.
   Qed.
 
-  (** Almost all of the RedTermProperties can be derived 
+  (** Almost all of the RedTermProperties can be derived
     for the well-formed reduction [Γ |- t :⤳*: u : A]
     but for application (which requires stability of typing under substitution). *)
-    
+
   Definition redtmwf_wk {Γ Δ t u A} (ρ : Δ ≤ Γ) :
       [|- Δ ] -> [Γ |- t :⤳*: u : A] -> [Δ |- t⟨ρ⟩ :⤳*: u⟨ρ⟩ : A⟨ρ⟩].
   Proof.  intros ? []; constructor; gen_typing. Qed.
@@ -827,7 +827,7 @@ Section GenericConsequences.
   Proof.
     intros [] ?; constructor; gen_typing.
   Qed.
-  
+
   Lemma redtmwf_appwk {Γ Δ A B B' t u a} (ρ : Δ ≤ Γ) :
     [Γ |- t :⤳*: u : tProd A B] ->
     [Δ |- a : A⟨ρ⟩] ->
@@ -874,10 +874,10 @@ Section GenericConsequences.
 
   (** *** Derived typing, reduction and conversion judgements *)
 
-  Lemma ty_var0 {Γ A} : 
+  Lemma ty_var0 {Γ A} :
     [Γ |- A] ->
     [Γ ,, A |- tRel 0 : A⟨↑⟩].
-  Proof. 
+  Proof.
     intros; refine (ty_var _ (in_here _ _)); gen_typing.
   Qed.
 
@@ -923,8 +923,8 @@ Section GenericConsequences.
 
   #[local]
   Hint Resolve ty_simple_app : gen_typing.
-  
-  Lemma ty_id {Γ A B C} : 
+
+  Lemma ty_id {Γ A B C} :
     [Γ |- A] ->
     [Γ |- A ≅ B] ->
     [Γ |- A ≅ C] ->
@@ -937,7 +937,7 @@ Section GenericConsequences.
     now eapply ty_var0.
   Qed.
 
-  Lemma ty_id' {Γ A} : 
+  Lemma ty_id' {Γ A} :
     [Γ |- A] ->
     [Γ |- idterm A : arr A A].
   Proof.
@@ -947,7 +947,7 @@ Section GenericConsequences.
     eapply ty_lam; tea.
     now eapply ty_var0.
   Qed.
-  
+
   Lemma redtm_id_beta {Γ a A} :
     [Γ |- A] ->
     [Γ |- A ≅ A] ->
@@ -962,7 +962,7 @@ Section GenericConsequences.
     + now asimpl.
   Qed.
 
-  Lemma convtm_id {Γ A A' B C} : 
+  Lemma convtm_id {Γ A A' B C} :
     [|- Γ] ->
     [Γ |- A] ->
     [Γ |- A'] ->
@@ -985,14 +985,14 @@ Section GenericConsequences.
         now apply wfc_cons. }
     1,2: eapply ty_id; tea; now symmetry.
     assert [|- Γ,, A] by gen_typing.
-    assert [Γ,, A |-[ ta ] A⟨@wk1 Γ A⟩] by now eapply wft_wk. 
+    assert [Γ,, A |-[ ta ] A⟨@wk1 Γ A⟩] by now eapply wft_wk.
     eapply convtm_exp.
     - cbn. eapply redtm_id_beta.
       3: now eapply ty_var0.
       1,2: renToWk; tea; now eapply convty_wk.
-    - cbn. 
+    - cbn.
       assert [Γ,, A |- A'⟨↑⟩ ≅ A⟨↑⟩]
-        by (renToWk; symmetry; now eapply convty_wk). 
+        by (renToWk; symmetry; now eapply convty_wk).
       eapply redtm_conv; tea.
       eapply redtm_id_beta.
       1: renToWk; now eapply wft_wk.
@@ -1014,28 +1014,28 @@ Section GenericConsequences.
     [Γ |- f : arr B C] ->
     [Γ |- comp A f g : arr A C].
   Proof.
-    intros tyA tyB **. 
+    intros tyA tyB **.
     eapply ty_lam; tea.
     assert [|- Γ,, A] by gen_typing.
     pose (r := @wk1 Γ A).
     eapply ty_simple_app; renToWk.
-    - unshelve eapply (wft_wk _ _ tyB) ; tea. 
+    - unshelve eapply (wft_wk _ _ tyB) ; tea.
     - now eapply wft_wk.
     - replace (arr _ _) with (arr B C)⟨r⟩ by (unfold r; now bsimpl).
       now eapply ty_wk.
     - eapply ty_simple_app; renToWk.
-      + unshelve eapply (wft_wk _ _ tyA) ; tea. 
+      + unshelve eapply (wft_wk _ _ tyA) ; tea.
       + now eapply wft_wk.
       + replace (arr _ _) with (arr A B)⟨r⟩ by (unfold r; now bsimpl).
         now eapply ty_wk.
       + unfold r; rewrite wk1_ren_on; now refine (ty_var _ (in_here _ _)).
   Qed.
-  
+
   Lemma wft_wk1 {Γ A B} : [Γ |- A] -> [Γ |- B] -> [Γ ,, A |- B⟨↑⟩].
   Proof.
     intros; renToWk; eapply wft_wk; gen_typing.
   Qed.
-  
+
   Lemma redtm_comp_beta {Γ A B C f g a} :
     [Γ |- A] ->
     [Γ |- B] ->
@@ -1218,8 +1218,8 @@ Section GenericConsequences.
       rewrite scons_eta'.
       now bsimpl.
   Qed.
-  
-  
+
+
   (** *** Lifting determinism properties from untyped reduction to typed reduction. *)
 
   Lemma redtm_whnf {Γ t u A} : [Γ |- t ⤳* u : A] -> whnf t -> t = u.

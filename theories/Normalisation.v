@@ -168,7 +168,7 @@ Section Normalisation.
     - constructor.
     - destruct H as [? ? ? H].
       apply escapeEq in H as []; now split.
-    - destruct H as [? ? ? ? H].
+    - destruct H as [? ?  H].
       apply escapeTmEq in H as []; now split.
   Qed.
 

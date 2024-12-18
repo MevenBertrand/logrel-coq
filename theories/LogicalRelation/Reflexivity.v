@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.Reflexivity: reflexivity of the logical relation. *)
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context NormalForms Weakening GenericTyping LogicalRelation.
+From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Induction Escape.
 
 Set Universe Polymorphism.
@@ -19,91 +19,93 @@ Section Reflexivities.
 
 
   (* Deprecated *)
-  Corollary LRTyEqRefl {l Γ A eqTy redTm eqTm}
-    (lr : LogRel l Γ A eqTy redTm eqTm) : eqTy A.
+  #[deprecated(note="Use reflLRTyEq")]
+  Corollary LRTyEqRefl {l Γ A eqTy eqTm}
+    (lr : LogRel l Γ A eqTy eqTm) : eqTy A.
   Proof.
-    pose (R := Build_LRPack Γ A eqTy redTm eqTm).
+    pose (R := Build_LRPack Γ A eqTy eqTm).
     pose (Rad := Build_LRAdequate (pack:=R) lr).
     change [Rad | _ ||- _ ≅ A ]; now eapply reflLRTyEq.
   Qed.
 
 
-  Lemma NeNfEqRefl {Γ k A} : [Γ ||-NeNf k : A] -> [Γ ||-NeNf k ≅ k : A].
-  Proof.
-    intros []; now econstructor.
-  Qed.
+  Ltac eqrefl := etransitivity; tea; now symmetry.
+
+  Lemma NeNfEqRefl {Γ k l A} : [Γ ||-NeNf k ≅ l : A] -> [Γ ||-NeNf k ≅ k : A] × [Γ ||-NeNf l ≅ l : A].
+  Proof. intros []; split; econstructor; tea; eqrefl. Qed.
+
+  Lemma NeNfEqLRefl {Γ k l A} : [Γ ||-NeNf k ≅ l : A] -> [Γ ||-NeNf k ≅ k : A].
+  Proof. now intros []%NeNfEqRefl. Qed.
+
+  Lemma NeNfEqRRefl {Γ k l A} : [Γ ||-NeNf k ≅ l : A] -> [Γ ||-NeNf l ≅ l : A].
+  Proof. now intros []%NeNfEqRefl. Qed.
 
   Lemma reflNatRedTmEq {Γ A} {NA : [Γ ||-Nat A]} :
-      (forall t : term, [Γ ||-Nat t : A | NA] -> [Γ ||-Nat t ≅ t : A | NA])
-    × (forall t : term, NatProp NA t -> NatPropEq NA t t).
+      (forall t u : term, [Γ ||-Nat t ≅ u : A | NA] -> [Γ ||-Nat t ≅ t : A | NA] × [Γ ||-Nat u ≅ u : A | NA])
+    × (forall t u : term, NatPropEq NA t u -> NatPropEq NA t t × NatPropEq NA u u).
   Proof.
-    eapply NatRedInduction.
-    1-3: now econstructor.
-    intros; econstructor.
-    now eapply NeNfEqRefl.
+    eapply NatRedEqInduction.
+    - intros * ???? [] ; split; econstructor; tea; eqrefl.
+    - split; now econstructor.
+    - intros * ? []; split;  now econstructor.
+    - intros * []%NeNfEqRefl; split; now econstructor.
   Qed.
 
   Lemma reflEmptyRedTmEq {Γ A} {NA : [Γ ||-Empty A]} :
-      (forall t : term, [Γ ||-Empty t : A | NA] -> [Γ ||-Empty t ≅ t : A | NA])
-    × (forall t : term, @EmptyProp _ _ _ Γ t -> @EmptyPropEq _ _ Γ t t).
+      (forall t u : term, [Γ ||-Empty t ≅ u : A | NA] -> [Γ ||-Empty t ≅ t : A | NA] × [Γ ||-Empty u ≅ u : A | NA])
+    × (forall t u : term, EmptyPropEq Γ t u -> EmptyPropEq Γ t t × EmptyPropEq Γ u u).
   Proof.
-    split.
-    - intros t Ht. induction Ht.
-      econstructor; eauto.
-      destruct prop; econstructor.
-      now eapply NeNfEqRefl.
-    - intros ? []. econstructor.
-      now eapply NeNfEqRefl.
+    apply EmptyRedEqInduction.
+    - intros * ???? []; split; econstructor; tea; eqrefl.
+    - intros ?? []%NeNfEqRefl; split; now econstructor.
   Qed.
 
-  Lemma reflIdPropEq {Γ l A} (IA : [Γ ||-Id<l> A]) t (Pt : IdProp IA t) : IdPropEq IA t t.
+  Lemma reflIdPropEq {Γ l A} (IA : [Γ ||-Id<l> A]) t u
+    (Pt : IdPropEq IA t u) : IdPropEq IA t t × IdPropEq IA u u.
   Proof.
-    destruct Pt; constructor; tea; now eapply NeNfEqRefl.
+    destruct Pt as[|??[]%NeNfEqRefl]; split; now constructor.
   Qed.
 
-  Lemma reflIdRedTmEq {Γ l A} (IA : [Γ ||-Id<l> A]) t (Rt : [Γ ||-Id<l> t : _ | IA]) : [Γ ||-Id<l> t ≅ t : _ | IA].
-  Proof. destruct Rt; econstructor; tea; now eapply reflIdPropEq. Qed.
+  Lemma reflIdRedTmEq {Γ l A} (IA : [Γ ||-Id<l> A]) t u (Rt : [Γ ||-Id<l> t ≅ u : _ | IA]) : [Γ ||-Id<l> t ≅ t : _ | IA] × [Γ ||-Id<l> u ≅ u : _ | IA].
+  Proof. destruct Rt as [????? []%reflIdPropEq] ; split; econstructor; tea; eqrefl. Qed.
 
+(*
   Definition reflLRTmEq@{h i j k l} {l Γ A} (lr : [ LogRel@{i j k l} l | Γ ||- A ] ) :
-    forall t,
-      [ Γ ||-<l> t : A | lr ] ->
-      [ Γ ||-<l> t ≅ t : A | lr ].
+    forall t u,
+      [ Γ ||-<l> t ≅ u : A | lr ] ->
+      [ Γ ||-<l> t ≅ t : A | lr ] × [ Γ ||-<l> u ≅ u : A | lr ].
   Proof.
     pattern l, Γ, A, lr; eapply LR_rect_TyUr; clear l Γ A lr; intros l Γ A.
-    - intros h t [? ? ? ? Rt%RedTyRecFwd@{h i j k}] ; cbn in *.
-      (* Need an additional universe level h < i *)
-      Unset Printing Notations.
-      pose proof (reflLRTyEq@{h i k j} Rt).
-      unshelve econstructor.
-      all : cbn.
-      1-2: econstructor ; tea ; cbn.
-      1-3,5: eapply RedTyRecBwd; tea.
-      1: cbn; easy.
-      now eapply TyEqRecBwd.
-    - intros [] t [].
-      econstructor ; cbn in *.
-      all: eassumption.
-    - intros ??? t [].
-      unshelve econstructor ; cbn in *.
-      1-2: now econstructor.
-      all: cbn; now eauto.
+    - intros h t u [? ? ? Rt Ru Rtu%TyEqRecFwd]; cbn in *.
+      pose proof (Rt' := reflLRTyEq@{h i k j} (RedTyRecFwd@{h i j k} _ Rt)).
+      pose proof (Ru' := reflLRTyEq@{h i k j} (RedTyRecFwd@{h i j k} _ Ru)).
+      split; unshelve econstructor; tea.
+      1,3: eqrefl.
+      all: now eapply TyEqRecFwd.
+    - intros [] t u [].
+      split; econstructor ; cbn in *; tea; eqrefl.
+    - intros ??? t u [].
+      split; unshelve econstructor ; cbn in *; tea; try eqrefl.
+      all: apply PiRedTmEq.app.
     - intros; now apply reflNatRedTmEq.
     - intros; now apply reflEmptyRedTmEq.
-    - intros ??? t [].
-      unshelve econstructor ; cbn in *.
-      1-2: now econstructor.
-      all: cbn; now eauto.
+    - intros ? ihdom ihcod t u [??? eqfst eqsnd].
+      split; unshelve econstructor ; cbn in *; tea; try eqrefl.
+      all: intros Δ ρ h; pose proof (ihdom Δ ρ h _ _ (eqfst _ _ _)) as [hL hR]; tea.
+      (* Problem of irrelevance of the relation *)
+      1,2: admit.
     - intros; now eapply reflIdRedTmEq.
-  Qed.
+  Admitted.
+  (* Qed. *)
 
   (* Deprecated *)
-  Corollary LRTmEqRefl@{h i j k l} {l Γ A eqTy redTm eqTm} (lr : LogRel@{i j k l} l Γ A eqTy redTm eqTm) :
-    forall t, redTm t -> eqTm t t.
+  Corollary LRTmEqRefl@{h i j k l} {l Γ A eqTy eqTm} (lr : LogRel@{i j k l} l Γ A eqTy eqTm) :
+    forall t u, eqTm t u -> eqTm t t × eqTm u u.
   Proof.
-    pose (R := Build_LRPack Γ A eqTy redTm eqTm).
+    pose (R := Build_LRPack Γ A eqTy eqTm).
     pose (Rad := Build_LRAdequate (pack:=R) lr).
-    intros t ?; change [Rad | _ ||- t ≅ t : _ ]; now eapply reflLRTmEq.
+    intros t u ?; change ([Rad | _ ||- t ≅ t : _ ] × [Rad | _ ||- u ≅ u : _ ]); now eapply reflLRTmEq.
   Qed.
-
+*)
 End Reflexivities.
 

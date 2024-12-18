@@ -5,7 +5,7 @@ From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakenin
   GenericTyping DeclarativeTyping DeclarativeInstance.
 From LogRel Require Import LogicalRelation Validity Fundamental DeclarativeSubst.
 From LogRel.LogicalRelation Require Import Escape Irrelevance Neutral Induction NormalRed.
-From LogRel.Substitution Require Import Escape Poly.
+From LogRel.Substitution Require Import Escape Poly Reflexivity.
 
 Set Printing Primitive Projection Parameters.
 
@@ -53,15 +53,15 @@ Section TypeConstructors.
     clearbody HTred.
     clear HT.
     eapply reducibleTy in HT'.
-    revert nfT T' nfT' HΓ HT' Hconv. 
-    revert HTred. 
+    revert nfT T' nfT' HΓ HT' Hconv.
+    revert HTred.
     generalize (eq_refl : one = one).
     generalize one at 1 3; intros l eql HTred; revert eql.
     pattern l, Γ, T, HTred; apply LR_rect_TyUr; clear l Γ T HTred.
     all: intros ? Γ T.
     - intros [] -> nfT T' nfT' HΓ HT' [].
       assert (T' = U) as HeqT' by (eapply redtywf_whnf ; gen_typing); subst.
-      assert (T = U) as HeqU by (eapply redtywf_whnf ; gen_typing). 
+      assert (T = U) as HeqU by (eapply redtywf_whnf ; gen_typing).
       destruct nfT ; inversion HeqU ; subst.
       2: now exfalso ; gen_typing.
       clear HeqU.
@@ -81,7 +81,7 @@ Section TypeConstructors.
       1-6: symmetry in ne'; apply convneu_whne in ne'; inversion ne'.
       cbn. gen_typing.
     - intros [dom cod red] _ _ -> nfT T' nfT' HΓ HT'[dom' cod' red']; cbn in *.
-      assert (T = tProd dom cod) as HeqT by (apply red_whnf ; gen_typing). 
+      assert (T = tProd dom cod) as HeqT by (apply red_whnf ; gen_typing).
       assert (T' = tProd dom' cod') as HeqT' by (apply red_whnf ; gen_typing).
       destruct nfT; cycle -1.
       1: subst ; exfalso ; gen_typing.
@@ -109,7 +109,7 @@ Section TypeConstructors.
         * exfalso; subst; inversion w.
       + exfalso; subst; inversion w.
     - intros [dom cod red] _ _ -> nfT T' nfT' HΓ HT' [dom' cod' red'].
-      assert (T = tSig dom cod) as HeqT by (apply red_whnf ; gen_typing). 
+      assert (T = tSig dom cod) as HeqT by (apply red_whnf ; gen_typing).
       assert (T' = tSig dom' cod') as HeqT' by (apply red_whnf ; gen_typing).
       destruct nfT; cycle -1.
       1: subst; inv_whne.
@@ -214,7 +214,7 @@ Section TypeConstructors.
     pose proof HT as HT'.
     unshelve eapply red_ty_complete in HT as (T''&[? nfT]).
     2: econstructor.
-    assert [Γ |- tProd A B ≅ T''] as Hconv by 
+    assert [Γ |- tProd A B ≅ T''] as Hconv by
       (etransitivity ; [eassumption|now eapply RedConvTyC]).
     unshelve eapply ty_conv_inj in Hconv.
     1: constructor.
@@ -242,7 +242,7 @@ Section TypeConstructors.
     pose proof HT as HT'.
     unshelve eapply red_ty_complete in HT as (T''&[? nfT]).
     2: econstructor.
-    assert [Γ |- tSig A B ≅ T''] as Hconv by 
+    assert [Γ |- tSig A B ≅ T''] as Hconv by
       (etransitivity ; [eassumption|now eapply RedConvTyC]).
     unshelve eapply ty_conv_inj in Hconv.
     1: constructor.
@@ -251,7 +251,7 @@ Section TypeConstructors.
     do 2 eexists ; split.
     all: eassumption.
   Qed.
-  
+
   Corollary red_ty_compl_sig_r Γ A B T :
     [Γ |- T ≅ tSig A B] ->
     ∑ A' B', [× [Γ |- T ⤳* tSig A' B'], [Γ |- A' ≅ A] & [Γ,, A' |- B ≅ B']].
@@ -277,7 +277,7 @@ Section TypeConstructors.
     pose proof HT as HT'.
     unshelve eapply red_ty_complete in HT as (T''&[? nfT]).
     2: econstructor.
-    assert [Γ |- tId A x y ≅ T''] as Hconv by 
+    assert [Γ |- tId A x y ≅ T''] as Hconv by
       (etransitivity ; [eassumption|now eapply RedConvTyC]).
     unshelve eapply ty_conv_inj in Hconv.
     1: constructor.
@@ -285,7 +285,7 @@ Section TypeConstructors.
     destruct nfT, Hconv.
     do 3 eexists ; split; eassumption.
   Qed.
-  
+
   Corollary red_ty_compl_id_r Γ A x y T :
     [Γ |- T ≅ tId A x y] ->
     ∑ A' x' y', [× [Γ |- T ⤳* tId A' x' y'], [Γ |- A' ≅ A], [Γ |- x ≅ x' : A] & [Γ |- y ≅ y' : A]].
@@ -322,7 +322,7 @@ Section Boundary.
       now eapply typing_wk.
   Qed.
 
-  Lemma scons2_well_subst {Γ A B} : 
+  Lemma scons2_well_subst {Γ A B} :
     (forall a b, [Γ |- a : A] -> [Γ |- b : B[a..]] -> [Γ |-s (b .: a ..) : (Γ ,, A),, B])
     × (forall a a' b b', [Γ |- a ≅ a' : A] -> [Γ |- b ≅ b' : B[a..]] -> [Γ |-s (b .: a..) ≅ (b' .: a'..) : (Γ ,, A),, B]).
   Proof.
@@ -350,7 +350,7 @@ Section Boundary.
   Lemma shift_subst_eq t a : t⟨↑⟩[a..] = t.
   Proof. now asimpl. Qed.
 
-  Lemma idElimMotiveCtx {Γ A x} : 
+  Lemma idElimMotiveCtx {Γ A x} :
     [Γ |- A] ->
     [Γ |- x : A] ->
     [|- (Γ,, A),, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0)].
@@ -359,7 +359,7 @@ Section Boundary.
     assert [|- Γ,, A] by now econstructor.
     econstructor; tea.
     econstructor.
-    1: now eapply wft_wk. 
+    1: now eapply wft_wk.
     1:  eapply ty_wk; tea; econstructor; tea.
     rewrite wk1_ren_on; now eapply ty_var0.
   Qed.
@@ -398,7 +398,9 @@ Section Boundary.
     - intros Γ A B H; apply Fundamental in H as [? VA VB _]; split.
       + now eapply escapeTy.
       + now eapply escapeTy.
-    - intros Γ A t u H; apply Fundamental in H as [? VA Vt Vu]; prod_splitter.
+    - intros Γ A t u H; apply Fundamental in H as [? VA Vtu].
+      pose proof (ureflValidTm Vtu).
+      prod_splitter.
       + now eapply escapeTy.
       + now eapply escapeTm.
       + now eapply escapeTm.
@@ -548,7 +550,7 @@ End Stability.
 
 (** ** Generation *)
 
-(** The generation lemma (the name comes from the PTS literature), gives a 
+(** The generation lemma (the name comes from the PTS literature), gives a
 stronger inversion principle on typing derivations, that give direct access
 to the last non-conversion rule, and bundle together all conversions.
 
@@ -580,7 +582,7 @@ Definition termGenData (Γ : context) (t T : term) : Type :=
     | tSnd p => ∑ A B, T = B[(tFst p)..] × [Γ |- p : tSig A B]
     | tId A x y => [× T = U, [Γ |- A : U], [Γ |- x : A] & [Γ |- y : A]]
     | tRefl A x => [× T = tId A x x, [Γ |- A] & [Γ |- x : A]]
-    | tIdElim A x P hr y e => 
+    | tIdElim A x P hr y e =>
       [× T = P[e .: y..], [Γ |- A], [Γ |- x : A], [Γ,, A,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P], [Γ |- hr : P[tRefl A x .: x..]], [Γ |- y : A] & [Γ |- e : tId A x y]]
   end.
 
@@ -801,7 +803,7 @@ Proof.
   all: try now econstructor.
   all: try now cbn in Hconv.
 Qed.
-  
+
 Lemma type_isType Γ A :
   [Γ |-[de] A] ->
   whnf A ->

@@ -12,26 +12,6 @@ Set Printing Primitive Projection Parameters.
 
 Set Printing Universes.
 
-Lemma appValid {Γ F G t u l}
-  {VΓ : [||-v Γ]}
-  {VF : [Γ ||-v<l> F | VΓ]}
-  {VΠFG : [Γ ||-v<l> tProd F G | VΓ]}
-  (Vt : [Γ ||-v<l> t : tProd F G | VΓ | VΠFG])
-  (Vu : [Γ ||-v<l> u : F | VΓ | VF])
-  (VGu := substSΠ VΠFG Vu) :
-  [Γ ||-v<l> tApp t u : G[u..] | VΓ | VGu].
-Proof.
-  opector; intros.
-  - instValid Vσ.
-    epose (appTerm RVΠFG RVt RVu (substSΠaux VΠFG Vu _ _ wfΔ Vσ)).
-    irrelevance.
-  - instAllValid Vσ Vσ' Vσσ'. 
-    unshelve epose (appcongTerm _ REVt RVu _ REVu (substSΠaux VΠFG Vu _ _ wfΔ Vσ)).
-    2: irrelevance.
-    eapply LRTmRedConv; tea.
-    unshelve eapply LRTyEqSym. 2,3: tea.
-Qed.
-
 Lemma appcongValid {Γ F G t u a b l}
   {VΓ : [||-v Γ]}
   {VF : [Γ ||-v<l> F | VΓ]}
@@ -43,10 +23,25 @@ Lemma appcongValid {Γ F G t u a b l}
   (VGa := substSΠ VΠFG Va) :
   [Γ ||-v<l> tApp t a ≅ tApp u b : G[a..] | VΓ | VGa].
 Proof.
-  constructor; intros; instValid Vσ.
-  unshelve epose proof (appcongTerm _ RVtu _ _ _ (substSΠaux VΠFG Va _ _ wfΔ Vσ)); fold subst_term; cycle 5.
-  all: try irrelevance.
-  now eapply LRCumulative.
+  constructor; intros; instValid Vσσ'.
+  pose proof (h := substSΠaux VΠFG Va _ _ _ wfΔ Vσσ').
+  pose proof (appcongTerm _ RVtu RVab h).
+  irrelevance.
 Qed.
+
+Lemma appValid {Γ F G t u l}
+  {VΓ : [||-v Γ]}
+  {VF : [Γ ||-v<l> F | VΓ]}
+  {VΠFG : [Γ ||-v<l> tProd F G | VΓ]}
+  (Vt : [Γ ||-v<l> t : tProd F G | VΓ | VΠFG])
+  (Vu : [Γ ||-v<l> u : F | VΓ | VF])
+  (VGu := substSΠ VΠFG Vu) :
+  [Γ ||-v<l> tApp t u : G[u..] | VΓ | VGu].
+Proof.
+  eapply lreflValidTm, appcongValid.
+  1,3: now eapply reflValidTm.
+  tea.
+Qed.
+
 
 End Application.

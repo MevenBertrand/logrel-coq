@@ -12,7 +12,7 @@ Set Printing Primitive Projection Parameters.
 
 Set Printing Universes.
 
- Lemma transEq@{i j k l} {Γ A B C lA lB} 
+ Lemma transEq@{i j k l} {Γ A B C lA lB}
   {RA : [LogRel@{i j k l} lA | Γ ||- A]}
   {RB : [LogRel@{i j k l} lB | Γ ||- B]}
   (RAB : [Γ ||-<lA> A ≅ B | RA])
@@ -30,7 +30,7 @@ Proof.
     unshelve erewrite (redtmwf_det _ _ (URedTm.red redR) (URedTm.red redL0))  ; tea.
     all: apply isType_whnf; apply URedTm.type.
   + apply TyEqRecFwd; unshelve eapply transEq@{h i j k}.
-    4,5: now apply (TyEqRecFwd h). 
+    4,5: now apply (TyEqRecFwd h).
 Qed.
 
 Lemma transEqTermNeu {Γ A t u v} {RA : [Γ ||-ne A]} :
@@ -50,8 +50,8 @@ Lemma transEqTermΠ {Γ lA A t u v} {ΠA : [Γ ||-Π<lA> A]}
     [PolyRed.shpRed ΠA ρ h | Δ ||- t ≅ u : _] ->
     [PolyRed.shpRed ΠA ρ h | Δ ||- u ≅ v : _] ->
     [PolyRed.shpRed ΠA ρ h | Δ ||- t ≅ v : _])
-  (ihcod : forall (Δ : context) (a : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-    (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a : _]) (t u v : term),
+  (ihcod : forall (Δ : context) (a b: term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
+    (ha : [PolyRed.shpRed ΠA ρ h | Δ ||- a ≅ b : _]) (t u v : term),
     [PolyRed.posRed ΠA ρ h ha | Δ ||- t ≅ u : _] ->
     [PolyRed.posRed ΠA ρ h ha | Δ ||- u ≅ v : _] ->
     [PolyRed.posRed ΠA ρ h ha | Δ ||- t ≅ v : _]) :
@@ -60,16 +60,16 @@ Lemma transEqTermΠ {Γ lA A t u v} {ΠA : [Γ ||-Π<lA> A]}
   [Γ ||-Π t ≅ v : A | ΠA ].
 Proof.
   intros [tL] [? tR].
-  assert (forall t (red : [Γ ||-Π t : _ | ΠA]), whnf (PiRedTm.nf red)).
-  { intros ? [? ? isfun]; simpl; destruct isfun; constructor; tea.
-    now eapply convneu_whne. }
-  unshelve epose proof (e := redtmwf_det _ _ (PiRedTm.red redR) (PiRedTm.red redL)); tea.
-  1,2: now eauto.
+  unshelve epose proof (e := redtmwf_det _ _ (PiRedTmEq.red redR) (PiRedTmEq.red redL)); tea.
+  1,2: now apply PiRedTmEq.whnf.
   exists tL tR.
   + etransitivity; tea. now rewrite e.
-  + intros. eapply ihcod.
-    1: eapply eqApp.
-    rewrite e; apply eqApp0.
+  + cbn in *; intros. eapply ihcod.
+    2: eapply eqApp0.
+    irrelevanceRefl.
+    rewrite <- e.
+    unshelve apply eqApp; [assumption|].
+    eapply ihdom; [| eapply LRTmEqSym]; eassumption.
 Qed.
 
 Lemma transEqTermΣ {Γ lA A t u v} {ΣA : [Γ ||-Σ<lA> A]}
@@ -77,8 +77,8 @@ Lemma transEqTermΣ {Γ lA A t u v} {ΣA : [Γ ||-Σ<lA> A]}
     [PolyRed.shpRed ΣA ρ h | Δ ||- t ≅ u : _] ->
     [PolyRed.shpRed ΣA ρ h | Δ ||- u ≅ v : _] ->
     [PolyRed.shpRed ΣA ρ h | Δ ||- t ≅ v : _])
-  (ihcod : forall (Δ : context) (a : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
-    (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a : _]) (t u v : term),
+  (ihcod : forall (Δ : context) (a b : term) (ρ : Δ ≤ Γ) (h : [ |-[ ta ] Δ])
+    (ha : [PolyRed.shpRed ΣA ρ h | Δ ||- a ≅ b : _]) (t u v : term),
     [PolyRed.posRed ΣA ρ h ha | Δ ||- t ≅ u : _] ->
     [PolyRed.posRed ΣA ρ h ha | Δ ||- u ≅ v : _] ->
     [PolyRed.posRed ΣA ρ h ha | Δ ||- t ≅ v : _]) :
@@ -87,23 +87,20 @@ Lemma transEqTermΣ {Γ lA A t u v} {ΣA : [Γ ||-Σ<lA> A]}
   [Γ ||-Σ t ≅ v : A | ΣA ].
 Proof.
   intros [tL ?? eqfst eqsnd] [? tR ? eqfst' eqsnd'].
-  assert (forall t (red : [Γ ||-Σ t : _ | ΣA]), whnf (SigRedTm.nf red)).
-  { intros ? [? ? ispair]; simpl; destruct ispair; constructor; tea.
-    now eapply convneu_whne. }
-  unshelve epose proof (e := redtmwf_det _ _ (SigRedTm.red redR) (SigRedTm.red redL)); tea.
-  1,2: now eauto.
-  exists tL tR.
-  + etransitivity; tea. now rewrite e.
-  + intros; eapply ihdom ; [eapply eqfst| rewrite e; eapply eqfst'].
-  + intros; eapply ihcod; [eapply eqsnd|].
-    rewrite e. 
-    eapply LRTmEqRedConv.
+  unshelve epose proof (e := redtmwf_det _ _ (SigRedTmEq.red redR) (SigRedTmEq.red redL)); tea.
+  1,2: now apply SigRedTmEq.whnf.
+  induction e.
+  unshelve eexists tL tR _.
+  + intros; eapply ihdom ; [eapply eqfst| eapply eqfst'].
+  + etransitivity; tea.
+  + intros; eapply ihcod.
+    1: irrelevanceRefl; eapply eqsnd.
+    eapply LRTmEqConv.
     2: eapply eqsnd'.
-    eapply PolyRed.posExt.
-    1: eapply (SigRedTm.fstRed tL).
-    eapply LRTmEqSym. rewrite <- e.
-    eapply eqfst.
-    Unshelve. tea.
+    irrelevanceRefl; unshelve eapply PolyRed.posExt.
+    4: eapply LRTmEqSym, eqfst.
+    assumption.
+    Unshelve. all:tea.
 Qed.
 
 
@@ -116,9 +113,9 @@ Proof.
 Qed.
 
 Lemma transEqTermNat {Γ A} (NA : [Γ ||-Nat A]) :
-  (forall t u, 
+  (forall t u,
     [Γ ||-Nat t ≅ u : A | NA] -> forall v,
-    [Γ ||-Nat u ≅ v : A | NA] ->  
+    [Γ ||-Nat u ≅ v : A | NA] ->
     [Γ ||-Nat t ≅ v : A | NA]) ×
   (forall t u,
     NatPropEq NA t u -> forall v,
@@ -127,7 +124,7 @@ Lemma transEqTermNat {Γ A} (NA : [Γ ||-Nat A]) :
 Proof.
   apply NatRedEqInduction.
   - intros * ???? ih ? uv; inversion uv; subst.
-    destruct (NatPropEq_whnf prop), (NatPropEq_whnf prop0). 
+    destruct (NatPropEq_whnf prop), (NatPropEq_whnf prop0).
     unshelve epose proof (redtmwf_det _ _ redR redL0); tea; subst.
     econstructor; tea.
     1: now etransitivity.
@@ -148,9 +145,9 @@ Proof.
 Qed.
 
 Lemma transEqTermEmpty {Γ A} (NA : [Γ ||-Empty A]) :
-  (forall t u, 
+  (forall t u,
     [Γ ||-Empty t ≅ u : A | NA] -> forall v,
-    [Γ ||-Empty u ≅ v : A | NA] ->  
+    [Γ ||-Empty u ≅ v : A | NA] ->
     [Γ ||-Empty t ≅ v : A | NA]) ×
   (forall t u,
     EmptyPropEq Γ t u -> forall v,
@@ -200,12 +197,12 @@ Proof.
 Qed.
 
 
-Lemma transEqTerm@{h i j k l} {Γ lA A t u v} 
+Lemma transEqTerm@{h i j k l} {Γ lA A t u v}
   {RA : [LogRel@{i j k l} lA | Γ ||- A]} :
   [Γ ||-<lA> t ≅ u : A | RA] ->
   [Γ ||-<lA> u ≅ v : A | RA] ->
   [Γ ||-<lA> t ≅ v : A | RA].
-Proof. 
+Proof.
   revert t u v; pattern lA, Γ, A, RA; apply LR_rect_TyUr; clear lA Γ A RA; intros l Γ.
   - intros *; apply transEqTermU@{h i j k}.
   - intros *; apply transEqTermNeu.
@@ -217,35 +214,35 @@ Proof.
 Qed.
 
 
-#[global]
-Instance perLRTmEq@{i j k l} {Γ l A} (RA : [LogRel@{i j k l} l | Γ ||- A]):
-  PER (fun t u => [RA | _ ||- t ≅ u : _]).
-Proof.
-  econstructor.
-  - intros ???; now eapply LRTmEqSym.
-  - intros ???; now eapply transEqTerm.
-Qed.
-
 Lemma LREqTermSymConv {Γ t u G G' l RG RG'} :
-  [Γ ||-<l> t ≅ u : G | RG] -> 
+  [Γ ||-<l> t ≅ u : G | RG] ->
   [Γ ||-<l> G' ≅ G | RG'] ->
   [Γ ||-<l> u ≅ t : G' | RG'].
 Proof.
   intros Rtu RGG'.
-  eapply LRTmEqSym; eapply LRTmEqRedConv; tea.
+  eapply LRTmEqSym; eapply LRTmEqConv; tea.
   now eapply LRTyEqSym.
-Qed.  
+Qed.
 
 Lemma LREqTermHelper {Γ t t' u u' G G' l RG RG'} :
-  [Γ ||-<l> t ≅ u : G | RG] -> 
-  [Γ ||-<l> t' ≅ u' : G' | RG'] -> 
+  [Γ ||-<l> t ≅ u : G | RG] ->
+  [Γ ||-<l> t' ≅ u' : G' | RG'] ->
   [Γ ||-<l> G ≅ G' | RG] ->
-  [Γ ||-<l> u ≅ u' : G | RG] -> 
+  [Γ ||-<l> u ≅ u' : G | RG] ->
   [Γ ||-<l> t ≅ t' : G | RG].
 Proof.
   intros Rtu Rtu' RGG' Ruu'.
   do 2  (eapply transEqTerm; tea).
   now eapply LREqTermSymConv.
-Qed.  
+Qed.
 
 End Transitivity.
+
+#[global]
+Instance LRTmEqTransitive `{GenericTypingProperties} {Γ A l} (RA : [Γ ||-<l> A]): Transitive (RA.(LRPack.eqTm)).
+Proof. intros x y z ; apply transEqTerm. Defined.
+
+#[global]
+Instance LRTmEqPER@{i j k l} `{GenericTypingProperties} {Γ l A} (RA : [LogRel@{i j k l} l | Γ ||- A]):
+  PER (RA.(LRPack.eqTm)).
+Proof. econstructor; typeclasses eauto. Qed.

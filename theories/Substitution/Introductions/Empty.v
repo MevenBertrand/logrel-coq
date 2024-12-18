@@ -1,8 +1,9 @@
+From Coq Require Import CRelationClasses.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening GenericTyping LogicalRelation Validity.
-From LogRel.LogicalRelation Require Import Induction Irrelevance Escape Reflexivity Weakening Neutral Transitivity Reduction Application Universe SimpleArr.
-From LogRel.Substitution Require Import Irrelevance Properties Conversion SingleSubst Reflexivity.
-From LogRel.Substitution.Introductions Require Import Universe Pi SimpleArr Var.
+From LogRel.LogicalRelation Require Import Induction  Escape Irrelevance Reflexivity Irrelevance Weakening Neutral Transitivity Reduction Application Universe EqRedRight SimpleArr.
+From LogRel.Substitution Require Import Irrelevance Properties Conversion SingleSubst Reflexivity Reduction.
+From LogRel.Substitution.Introductions Require Import Universe Pi SimpleArr Var Application.
 
 Set Universe Polymorphism.
 
@@ -13,7 +14,7 @@ Set Printing Primitive Projection Parameters.
 
 
 Lemma emptyRed {Γ l} : [|- Γ] -> [Γ ||-<l> tEmpty].
-Proof. 
+Proof.
   intros; eapply LREmpty_; constructor; eapply redtywf_refl; gen_typing.
 Defined.
 
@@ -24,7 +25,7 @@ Proof.
   + cbn; constructor; eapply redtywf_refl; gen_typing.
 Defined.
 
-Lemma emptyconvValid {Γ l} (VΓ : [||-v Γ]) (VEmpty : [Γ ||-v<l> tEmpty | VΓ]) : 
+Lemma emptyconvValid {Γ l} (VΓ : [||-v Γ]) (VEmpty : [Γ ||-v<l> tEmpty | VΓ]) :
   [Γ ||-v<l> tEmpty ≅ tEmpty | VΓ | VEmpty].
 Proof.
   constructor; intros.
@@ -32,105 +33,31 @@ Proof.
   constructor; cbn; eapply redtywf_refl; gen_typing.
 Qed.
 
-(* TODO: also appears in Nat.v, should probably be more central *)
-Lemma redUOne {Γ} : [|- Γ] -> [Γ ||-U<one> U].
+Lemma emptyURedTm {Δ} (wfΔ : [|-Δ]) : URedTm (LogRelRec one) Δ tEmpty U (redUOneCtx wfΔ).
 Proof.
-  intros ; econstructor; [easy| gen_typing|eapply redtywf_refl; gen_typing].
+  exists tEmpty; [| constructor].
+  eapply redtmwf_refl; gen_typing.
 Defined.
 
-Lemma emptyTermRed {Δ} (wfΔ : [|-Δ]) : [Δ ||-<one> tEmpty : U | LRU_ (redUOne wfΔ)].
+Lemma emptyTermRed {Δ} (wfΔ : [|-Δ]) : [Δ ||-<one> tEmpty : U | LRU_ (redUOneCtx wfΔ)].
 Proof.
-  econstructor.
-  + eapply redtmwf_refl; gen_typing.
-  + constructor.
-  + gen_typing.
-  + now eapply (emptyRed (l:= zero)).
+  unshelve eexists (emptyURedTm wfΔ) (emptyURedTm wfΔ) _; cbn.
+  1,3: now eapply (emptyRed (l:=zero)).
+  1: gen_typing.
+  apply reflLRTyEq.
 Defined.
 
 Lemma emptyTermValid {Γ} (VΓ : [||-v Γ]):  [Γ ||-v<one> tEmpty : U | VΓ | UValid VΓ].
 Proof.
-  constructor; intros.
-  - eapply emptyTermRed. 
-  - eexists (emptyTermRed wfΔ) (emptyTermRed wfΔ) (emptyRed wfΔ); cbn.
-    + gen_typing.
-    + now eapply (emptyRed (l:=zero)).
-    + constructor; eapply redtywf_refl; gen_typing.
+  constructor; intros; eapply emptyTermRed.
 Qed.
 
-
-(* TODO: move *)
-Lemma up_single_subst {t σ u} : t[up_term_term σ][u..] = t[u .:  σ].
-Proof.  now bsimpl. Qed.
-
-(* TODO: move *)
-Lemma up_liftSubst_eq {σ t u} : t[up_term_term σ][u]⇑ = t[u .: ↑ >> up_term_term σ].
-Proof.
-  bsimpl. eapply ext_term; intros [|n]; cbn.
-  1: reflexivity.
-  unfold funcomp; now rewrite  rinstInst'_term.
-Qed.
-
-(* TODO: move *)
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
 Proof. now bsimpl. Qed.
 
-Definition emptyElim {Γ A} (P : term) {n} (NA : [Γ ||-Empty A]) (p : EmptyProp Γ n) : term.
-Proof.
-  destruct p.
-  - exact (tEmptyElim P ne).
-Defined.
-
-Section EmptyElimRed.
-  Context {Γ l P}
-    (wfΓ : [|- Γ])
-    (NN : [Γ ||-Empty tEmpty])
-    (RN := LREmpty_ _ NN)
-    (RP : [Γ,, tEmpty ||-<l> P])
-    (RPpt : forall n, [Γ ||-<l> n : _ | RN] -> [Γ ||-<l> P[n..]])
-    (RPext : forall n n' (Rn : [Γ ||-<l> n : _ | RN]),
-      [Γ ||-<l> n' : _ | RN] ->
-      [Γ ||-<l> n ≅ n' : _ | RN] ->
-      [Γ ||-<l> P[n..] ≅ P[n'..] | RPpt _ Rn]).
-
-  Definition emptyRedElimStmt :=
-    (forall n (Rn : [Γ ||-<l> n : _ | RN]), 
-      [Γ ||-<l> tEmptyElim P n : _ | RPpt _ Rn ] ×
-      [Γ ||-<l> tEmptyElim P n ≅ tEmptyElim P (EmptyRedTm.nf Rn) : _ | RPpt _ Rn]) ×
-    (forall n (Nn : EmptyProp Γ n) (Rn : [Γ ||-<l> n : _ | RN]), 
-      [Γ ||-<l> tEmptyElim P n : P[n..] | RPpt _ Rn ] ×
-      [Γ ||-<l> tEmptyElim P n ≅ emptyElim P NN Nn : _ | RPpt _ Rn]).
-
-  Lemma emptyElimRedAux : emptyRedElimStmt.
-  Proof.
-    escape.
-    apply EmptyRedInduction.
-    - intros ? nf red ? nfprop ih.
-      assert [Γ ||-<l> nf : _ | RN]. 1:{
-        econstructor; tea.
-        eapply redtmwf_refl; gen_typing.
-      }
-      eapply redSubstTerm.
-      + eapply LRTmRedConv. 
-        2: unshelve eapply ih; tea.
-        eapply RPext. 
-        2: eapply LRTmEqSym.
-        1,2: eapply redwfSubstTerm; tea.
-      + eapply redtm_emptyelim; tea.
-        cbn; gen_typing.
-    - intros ? [] ?.
-      apply reflect.
-      + apply completeness.
-      + now eapply ty_emptyElim.
-      + now eapply ty_emptyElim.
-      + eapply convneu_emptyElim; tea.
-        { eapply escapeEq, reflLRTyEq. }
-    Unshelve. all: tea.
-  Qed.
-
-  Lemma emptyElimRed : forall n (Rn : [Γ ||-<l> n : _ | RN]), [Γ ||-<l> tEmptyElim P n : _ | RPpt _ Rn ].
-  Proof. intros. apply (fst emptyElimRedAux). Qed.
-End EmptyElimRed.
-
+(* TODO: move in Neutral *)
+Lemma NeNfRed {Γ l A n n'} (RA : [Γ ||-<l> A]) : [Γ ||-NeNf n ≅ n' : A] -> [RA | Γ ||- n ≅ n' : A].
+Proof.  intros []; now eapply neuTermEq. Qed.
 
 Section EmptyElimRedEq.
   Context {Γ l P Q}
@@ -140,182 +67,87 @@ Section EmptyElimRedEq.
     (RP : [Γ,, tEmpty ||-<l> P])
     (RQ : [Γ,, tEmpty ||-<l> Q])
     (eqPQ : [Γ,, tEmpty |- P ≅ Q])
-    (RPpt : forall n, [Γ ||-<l> n : _ | RN] -> [Γ ||-<l> P[n..]])
-    (RQpt : forall n, [Γ ||-<l> n : _ | RN] -> [Γ ||-<l> Q[n..]])
-    (RPQext : forall n n' (Rn : [Γ ||-<l> n : _ | RN]),
-      [Γ ||-<l> n' : _ | RN] ->
-      [Γ ||-<l> n ≅ n' : _ | RN] ->
-      [Γ ||-<l> P[n..] ≅ Q[n'..] | RPpt _ Rn]).    
+    (RPpt : forall n n', [Γ ||-<l> n ≅ n' : _ | RN] -> [Γ ||-<l> P[n..]])
+    (RPQext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
+      [Γ ||-<l> P[n..] ≅ Q[n'..] | RPpt _ _ Rn]).
 
-  Lemma RPext : forall n n' (Rn : [Γ ||-<l> n : _ | RN]),
-      [Γ ||-<l> n' : _ | RN] ->
-      [Γ ||-<l> n ≅ n' : _ | RN] ->
-      [Γ ||-<l> P[n..] ≅ P[n'..] | RPpt _ Rn].
+  #[local]
+  Lemma RQpt : forall n n', [Γ ||-<l> n ≅ n': _ | RN] -> [Γ ||-<l> Q[n..]].
+  Proof. intros; now unshelve eapply LRTyEqRedRight, RPQext. Qed.
+
+  #[local]
+  Lemma RPext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
+      [Γ ||-<l> P[n..] ≅ P[n'..] | RPpt _ _ Rn].
   Proof.
-    intros. eapply transEq; [| eapply LRTyEqSym ]; eapply RPQext; cycle 1; tea.
-    now eapply reflLRTmEq.
-    Unshelve. 2,3: eauto.
+    intros; eapply transEq; [| eapply LRTyEqSym ].
+    all: unshelve (eapply RPQext; cycle 1; tea); now eapply urefl.
+    Unshelve. 2: eapply RQpt; now symmetry.
   Qed.
 
-  Lemma emptyElimRedAuxLeft : @emptyRedElimStmt _ _ P NN RPpt.
+  Lemma emptyElimRedEq n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]) :
+    [Γ ||-<l> tEmptyElim P n ≅ tEmptyElim Q n' : _ | RPpt _ _ Rnn' ].
   Proof.
-    eapply emptyElimRedAux; tea.
-    + eapply RPext.
-  Qed.
-
-  Lemma emptyElimRedAuxRight : @emptyRedElimStmt _ _ Q NN RQpt.
-  Proof.
-    eapply emptyElimRedAux; tea.
-    + intros. eapply transEq; [eapply LRTyEqSym |]; eapply RPQext; cycle 1; tea.
-      now eapply reflLRTmEq.
-    Unshelve. all:tea.
-  Qed.
-
-  Lemma emptyElimRedEqAux :
-    (forall n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]) (Rn : [Γ ||-<l> n : _ | RN]) (Rn' : [Γ ||-<l> n' : _ | RN]),
-      [Γ ||-<l> tEmptyElim P n ≅ tEmptyElim Q n' : _ | RPpt _ Rn ]) ×
-    (forall n n' (Rnn' : EmptyPropEq Γ n n') (Rn : [Γ ||-<l> n : _ | RN]) (Rn' : [Γ ||-<l> n' : _ | RN]),
-      [Γ ||-<l> tEmptyElim P n ≅ tEmptyElim Q n' : _ | RPpt _ Rn ]).
-  Proof.
-    apply EmptyRedEqInduction.
-    - intros ?? nfL nfR redL redR ? prop ih RL RR; edestruct @EmptyPropEq_whnf; eauto. 
-      assert [Γ ||-<l> nfL : _ | RN] by (eapply redTmFwd; cycle 1; tea).
-      assert [Γ ||-<l> nfR : _ | RN] by (eapply redTmFwd; cycle 1; tea).
-      eapply LREqTermHelper.
-      * eapply (fst emptyElimRedAuxLeft).
-      * eapply (fst emptyElimRedAuxRight).
-      * eapply RPQext. 1: tea.
-        now econstructor.
-      * eapply LRTmEqRedConv.
-        + eapply RPext; tea. 
-          eapply LRTmEqSym; eapply redwfSubstTerm; cycle 1; tea.
-        + unshelve erewrite (redtmwf_det _ _ (EmptyRedTm.red RL) redL); tea.
-          1: dependent inversion RL; subst; cbn; now eapply EmptyProp_whnf.
-          unshelve erewrite (redtmwf_det _ _ (EmptyRedTm.red RR) redR); tea.
-          1: dependent inversion RR; subst; cbn; now eapply EmptyProp_whnf.
-          now eapply ih.
-        Unshelve. tea. 2, 4: tea. 
-    - intros ?? neueq ??. escape. inversion neueq.
-      assert [Γ |- P[ne..] ≅ Q[ne'..]]. 1:{
-        eapply escapeEq. eapply RPQext; tea.
-        econstructor.
-        1,2: now eapply redtmwf_refl.
-        2: now constructor.
-        gen_typing.
-      }
+    inversion Rnn'  as [??????? prop]; subst.
+    inversion prop as [?? h]; pose proof h as [?? conv]; subst.
+    pose proof (convneu_whne conv); pose proof (convneu_whne (symmetry conv)).
+    pose proof (Rne := neNfTermEq RN h); pose proof (Rnne := redwfSubstTmEq _ (lrefl Rne) redL).
+    pose proof (RPQext _ _ Rne).
+    escape.
+    eapply redSubstTmEq; cycle 1.
+    + eapply redtm_emptyelim; tea; gen_typing.
+    + eapply redtm_emptyelim; tea; gen_typing.
+    + now unshelve eapply escapeEq, RPQext.
+    + eapply LRTmEqConv; [unshelve eapply RPext;[|now symmetry]|].
       eapply neuTermEq.
-      + eapply ty_emptyElim; tea.
-      + eapply ty_conv. 
-        1: eapply ty_emptyElim; tea.
-        now symmetry.
-      + eapply convneu_emptyElim ; tea.
-      Unshelve. tea.
+      * eapply ty_emptyElim; tea.
+      * eapply ty_conv; [now eapply ty_emptyElim|now symmetry].
+      * now eapply convneu_emptyElim.
   Qed.
-
-  Lemma emptyElimRedEq :
-    (forall n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]) (Rn : [Γ ||-<l> n : _ | RN]) (Rn' : [Γ ||-<l> n' : _ | RN]), 
-      [Γ ||-<l> tEmptyElim P n ≅ tEmptyElim Q n' : _ | RPpt _ Rn ]).
-  Proof. apply emptyElimRedEqAux. Qed.
 End EmptyElimRedEq.
 
 
-
 Section EmptyElimValid.
-  Context {Γ l P}
+  Context {Γ l}
     (VΓ : [||-v Γ])
     (VN := emptyValid (l:=l) VΓ)
     (VΓN := validSnoc VΓ VN)
-    (VP : [Γ ,, tEmpty ||-v<l> P | VΓN]).
-  
+    { P P' }
+    (VP : [Γ ,, tEmpty ||-v<l> P | VΓN])
+    (VPP' : [Γ ,, tEmpty ||-v<l> P ≅ P' | VΓN | VP ])
+    (VP' := ureflValidTy VPP').
 
-  Lemma emptyElimValid {n}
-    (Vn : [Γ ||-v<l> n : tEmpty | VΓ | VN])
+  Lemma emptyElimCongValid {n n'}
+    (Vn : [Γ ||-v<l> n ≅ n' : tEmpty | VΓ | VN])
     (VPn := substS VP Vn)
-    : [Γ ||-v<l> tEmptyElim P n : _ | VΓ | VPn].
+    : [Γ ||-v<l> tEmptyElim P n ≅ tEmptyElim P' n' : _ | VΓ | VPn].
   Proof.
-    constructor; intros.
-    - instValid Vσ; cbn.
-      irrelevance0.  1: now rewrite singleSubstComm'.
-      epose proof (Vuσ := liftSubstS' VN Vσ).
-      instValid Vuσ; escape.
-      unshelve eapply emptyElimRed; tea.
-      + intros m Rm.
-        rewrite up_single_subst. 
-        unshelve eapply validTy; cycle 1; tea.
-        unshelve econstructor; [now bsimpl| now cbn].
-      + intros m m' Rm Rm' Rmm'; cbn.
-        irrelevance0. 1: now rewrite up_single_subst.
-        rewrite up_single_subst.
-        unshelve eapply validTyExt; cycle 1 ; tea.
-        1,2: unshelve econstructor; [now bsimpl| now cbn].
-        unshelve econstructor; [|now cbn].
-        bsimpl; cbn; eapply reflSubst.
-    - instAllValid Vσ Vσ' Vσσ'.
-      irrelevance0.  1: now rewrite singleSubstComm'.
-      pose (Vuσ := liftSubstS' VN Vσ).
-      pose proof (Vuσ' := liftSubstS' VN Vσ').
-      pose proof (Vuσrea :=  liftSubstSrealign' VN Vσσ' Vσ').
-      pose proof (Vuσσ' := liftSubstSEq' VN Vσσ').
-      instValid Vuσ'; instAllValid Vuσ Vuσrea Vuσσ'; escape.
-      unshelve eapply emptyElimRedEq; tea; fold subst_term.
-      all: try now (irrelevance; now rewrite elimSuccHypTy_subst).
-      + intros m Rm.
-        rewrite up_single_subst. 
-        unshelve eapply validTy; cycle 1; tea.
-        unshelve econstructor; [now bsimpl| now cbn].
-      + intros m Rm.
-        rewrite up_single_subst. 
-        unshelve eapply validTy; cycle 1; tea.
-        unshelve econstructor; [now bsimpl| now cbn].
-      + intros m m' Rm Rm' Rmm'; cbn.
-        irrelevance0. 1: now rewrite up_single_subst.
-        rewrite up_single_subst.
-        unshelve eapply validTyExt; cycle 1 ; tea.
-        1,2: unshelve econstructor; [now bsimpl| now cbn].
-        unshelve econstructor; [|now cbn].
-        now bsimpl.
+    constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubstEq' VN Vσσ').
+    instValid Vuσ; cbn in *; escape.
+    irrelevance0. 1: now rewrite singleSubstComm'.
+    eapply emptyElimRedEq; rewrite ?elimSuccHypTy_subst; tea.
+    + intros; irrelevance0; rewrite up_single_subst; [reflexivity|].
+      unshelve eapply validTyEq; cycle 1 ; tea.
+      now unshelve eapply consSubstEq.
+    Unshelve.
+      2: tea.
+      intros ?? Rn; rewrite up_single_subst.
+      unshelve eapply validTy.
+      5: tea.
+      3: unshelve eapply consSubstEq; tea.
   Qed.
-
 End EmptyElimValid.
 
-Lemma emptyElimCongValid {Γ l P Q n n'}
+Lemma emptyElimValid {Γ l P n n'}
     (VΓ : [||-v Γ])
     (VN := emptyValid (l:=l) VΓ)
     (VΓN := validSnoc VΓ VN)
     (VP : [Γ ,, tEmpty ||-v<l> P | VΓN])
-    (VQ : [Γ ,, tEmpty ||-v<l> Q | VΓN])
-    (VPQ : [Γ ,, tEmpty ||-v<l> P ≅ Q | VΓN | VP])
-    (Vn : [Γ ||-v<l> n : _ | VΓ | VN])
-    (Vn' : [Γ ||-v<l> n' : _ | VΓ | VN])
-    (Veqn : [Γ ||-v<l> n ≅ n' : _ | VΓ | VN])
-    (VPn := substS VP Vn) :
-    [Γ ||-v<l> tEmptyElim P n ≅ tEmptyElim Q n' : _ | VΓ | VPn].
+    (Vn : [Γ ||-v<l> n ≅ n' : _ | VΓ | VN])
+    (VPn := substS VP Vn):
+    [Γ ||-v<l> tEmptyElim P n : _ | VΓ | VPn].
 Proof.
-  constructor; intros.
-  pose (Vuσ := liftSubstS' VN Vσ).
-  instValid Vσ; instValid Vuσ; escape.
-  irrelevance0.  1: now rewrite singleSubstComm'.
-  unshelve eapply emptyElimRedEq; tea; fold subst_term.
-  all: try (irrelevance; now rewrite elimSuccHypTy_subst).
-  + intros m Rm.
-    rewrite up_single_subst. 
-    unshelve eapply validTy; cycle 1; tea.
-    unshelve econstructor; [now bsimpl| now cbn].
-  + intros m Rm.
-    rewrite up_single_subst. 
-    unshelve eapply validTy; cycle 1; tea.
-    unshelve econstructor; [now bsimpl| now cbn].
-  + intros m m' Rm Rm' Rmm'; cbn.
-    irrelevance0. 1: now rewrite up_single_subst.
-    rewrite up_single_subst.
-    eapply transEq; cycle 1.
-    - unshelve eapply validTyEq. 
-      7: tea. 1: tea.
-      unshelve econstructor; [now bsimpl| now cbn].
-    - unshelve eapply validTyExt; cycle 1 ; tea.
-    1,2: unshelve econstructor; [now bsimpl| now cbn].
-    unshelve econstructor; [|now cbn].
-    bsimpl. eapply reflSubst.
+  eapply lreflValidTm , emptyElimCongValid; tea.
+  now eapply reflValidTy.
 Qed.
 
 End Empty.

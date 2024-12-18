@@ -68,8 +68,6 @@ Module FundTmEq.
   : Type := {
     VΓ : [||-v Γ ];
     VA : [ Γ ||-v< one > A | VΓ ];
-    Vt : [ Γ ||-v< one > t : A | VΓ | VA ];
-    Vu : [ Γ ||-v< one > u : A | VΓ | VA ];
     Vtu : [ Γ ||-v< one > t ≅ u : A | VΓ | VA ];
   }.
   Arguments FundTmEq {_ _ _ _ _ _ _ _ _ _ _ _}.
@@ -94,9 +92,7 @@ Module FundSubstConv.
     {Γ Δ : context} {wfΓ : [|- Γ]} {σ σ' : nat -> term}
   : Type := {
     VΔ : [||-v Δ ] ;
-    Vσ : [VΔ | Γ ||-v σ : Δ | wfΓ] ;
-    Vσ' : [VΔ | Γ ||-v σ' : Δ | wfΓ ] ;
-    Veq : [VΔ | Γ ||-v σ ≅ σ' : Δ | wfΓ | Vσ] ;
+    Veq : [VΔ | Γ ||-v σ ≅ σ' : Δ | wfΓ ] ;
   }.
   Arguments FundSubstConv {_ _ _ _ _ _ _ _ _ _ _ _}.
 End FundSubstConv.
@@ -117,9 +113,7 @@ Section Fundamental.
   Lemma FundConNil : FundCon ε.
   Proof.
   unshelve econstructor.
-  + unshelve econstructor.
-    - intros; exact unit.
-    - intros; exact unit.
+  + unshelve econstructor; intros; exact unit.
   + constructor.
   Qed.
 
@@ -132,14 +126,7 @@ Section Fundamental.
 
   Lemma FundTyU (Γ : context) (fΓ : FundCon Γ) : FundTy Γ U.
   Proof.
-    unshelve econstructor.
-    - assumption.
-    - unshelve econstructor.
-      + intros * _. apply LRU_.  
-        econstructor; tea; [constructor|]. 
-        cbn; eapply redtywf_refl; gen_typing.
-      + intros * _ _. simpl. constructor.
-        cbn; eapply redtywf_refl; gen_typing.
+    now unshelve (econstructor; eapply UValid).
   Qed.
 
   Lemma FundTyPi (Γ : context) (F G : term)
@@ -157,21 +144,17 @@ Section Fundamental.
     (fA : FundTm Γ U A)
     : FundTy Γ A.
   Proof.
-    destruct fA as [ VΓ VU [ RA RAext ] ]. econstructor.
-    unshelve econstructor.
-    - intros * vσ.
-      eapply UnivEq. exact (RA _ _ wfΔ vσ).
-    - intros * vσ' vσσ'.
-      eapply UnivEqEq. exact (RAext _ _ _ wfΔ vσ vσ' vσσ').
+    destruct fA as [ VΓ VU RA]. econstructor.
+    now eapply univValid.
   Qed.
 
   Lemma FundTmVar : forall (Γ : context) (n : nat) decl,
     FundCon Γ ->
     in_ctx Γ n decl -> FundTm Γ decl (tRel n).
   Proof.
-    intros Γ n d FΓ hin. 
+    intros Γ n d FΓ hin.
     unshelve econstructor; tea.
-    + eapply in_ctx_valid in hin as []; now eapply embValidTyOne. 
+    + eapply in_ctx_valid in hin as []; now eapply embValidTyOne.
     + now eapply varnValid.
   Qed.
 
@@ -181,9 +164,9 @@ Section Fundamental.
   Proof.
     intros * [] []; econstructor.
     eapply PiValidU; irrValid.
-    Unshelve. 
-    3: eapply UValid. 
-    2: eapply univValid. 
+    Unshelve.
+    3: eapply UValid.
+    2: eapply univValid.
     all:tea.
   Qed.
 
@@ -209,7 +192,7 @@ Section Fundamental.
     FundTm Γ A t ->
     FundTyEq Γ A B -> FundTm Γ B t.
   Proof.
-    intros * [] []; econstructor. 
+    intros * [] []; econstructor.
     eapply conv; irrValid.
     Unshelve. all: tea.
   Qed.
@@ -246,13 +229,16 @@ Section Fundamental.
   Proof.
     intros * [] []; unshelve econstructor; tea. 1:irrValid.
     eapply transValidTyEq; irrValid.
-    Unshelve. tea.
+    Unshelve. 2:tea.
   Qed.
 
   Lemma FundTyEqUniv : forall (Γ : context) (A B : term),
     FundTmEq Γ U A B -> FundTyEq Γ A B.
   Proof.
-    intros * []; unshelve econstructor; tea.
+    intros * [?? VAB].
+    pose proof (lreflValidTm _ VAB).
+    pose proof (ureflValidTm VAB).
+    unshelve econstructor; tea.
     1,2: now eapply univValid.
     now eapply univEqValid.
   Qed.
@@ -263,12 +249,8 @@ Section Fundamental.
     FundTm Γ A a -> FundTmEq Γ B[a..] (tApp (tLambda A t) a) t[a..].
   Proof.
     intros * [] [] []; econstructor.
-    - eapply appValid. eapply lamValid. irrValid.
-    - unshelve epose (substSTm _ _).
-      8-12: irrValid.
-      tea.
     - unshelve epose (betaValid VA _ _ _). 2,5-7:irrValid.
-      Unshelve. all: tea; try irrValid.
+      Unshelve. 1:tea. eapply substS; tea; irrValid.
   Qed.
 
   Lemma FundTmEqPiCong : forall (Γ : context) (A B C D : term),
@@ -279,25 +261,17 @@ Section Fundamental.
   Proof.
     intros * [] [] [].
     assert (VA' : [Γ ||-v<one> A | VΓ]) by now eapply univValid.
-    assert [Γ ||-v<one> A ≅ B | VΓ | VA'] by (eapply univEqValid; irrValid).
+    assert (VAB : [Γ ||-v<one> A ≅ B | VΓ | VA']) by (eapply univEqValid; irrValid).
+    pose proof (ureflValidTy VAB).
     opector; tea.
     - eapply UValid.
-    - edestruct FundTmProd. 3: irrValid.
-      all: unshelve econstructor; irrValid.
-    - edestruct FundTmProd. 3: irrValid.
-      1: unshelve econstructor; irrValid.
-      unshelve econstructor.
-      + eapply validSnoc; now eapply univValid.
-      + eapply UValid.
-      + eapply irrelevanceTmLift; irrValid.
     - unshelve epose (PiCongTm _ _ _ _ _ _ _ _ _ _ _).
-      16: irrValid.
+      17: irrValid.
       2: tea.
-      2,3,8: irrValid.
-      all: try irrValid.
-      + eapply univValid; irrValid.
-      + eapply irrelevanceLift; irrValid.
-      + eapply irrelevanceTmLift; irrValid.
+      2,3,8: eapply irrelevanceTmEq; tea; first [now eapply lreflValidTm| now eapply ureflValidTm].
+      all: try (irrValid + eapply irrelevanceTmEq ;now eapply ureflValidTm).
+      + eapply UValid.
+      + eapply irrelevanceTmLift; tea; now eapply irrelevanceTmEq, ureflValidTm.
       Unshelve.
       all: try irrValid.
   Qed.
@@ -308,13 +282,8 @@ Section Fundamental.
     FundTmEq Γ B[a..] (tApp f a) (tApp g b).
   Proof.
     intros * [] []; econstructor.
-    - eapply appValid; irrValid.
-    - eapply conv. 2: eapply appValid; irrValid.
-      eapply substSΠeq; try irrValid.
-      1: eapply reflValidTy.
-      now eapply symValidTmEq.
-    - eapply appcongValid; irrValid.
-    Unshelve. all: irrValid.
+    eapply appcongValid; first [irrValid | now eapply ureflValidTm].
+    Unshelve. 1: irrValid. now eapply lreflValidTm.
   Qed.
 
   Lemma FundTmEqLambdaCong : forall (Γ : context) (t u A A' A'' B : term),
@@ -324,158 +293,34 @@ Section Fundamental.
     FundTmEq (Γ,, A) B t u -> FundTmEq Γ (tProd A B) (tLambda A' t) (tLambda A'' u).
   Proof.
     intros * [VΓ] [? ? VA'] [? ? VA''] [].
-    assert (VΠAB : [Γ ||-v< one > tProd A B | VΓ]).
-    { unshelve eapply PiValid; irrValid. }
-    assert (VB' : [Γ,, A' ||-v< one > B | validSnoc _ VA']).
-    { eapply irrelevanceLift; [tea|]; irrValid. }
-    assert (VB'' : [Γ,, A'' ||-v< one > B | validSnoc _ VA'']).
-    { eapply irrelevanceLift; [tea|]; irrValid. }
-    assert (Vλt : [Γ ||-v< one > tLambda A' t : tProd A B | VΓ | VΠAB ]).
-    { eapply conv; [|eapply lamValid].
-      + eapply symValidTyEq, PiCong; tea; try irrValid.
-        eapply reflValidTy.
-      + eapply irrelevanceTmLift; irrValid.
+    econstructor.
+    eapply conv.
+    2:{ eapply lamCongValid; tea.
+      + unshelve (eapply transValidTyEq; tea; eapply symValidTyEq); try irrValid.
+      + now eapply convCtx1.
+      + eapply convEqCtx1; tea; now eapply reflValidTy.
+      + now eapply convTmEqCtx1.
     }
-    assert (Vλu : [Γ ||-v< one > tLambda A'' u : tProd A B | VΓ | VΠAB ]).
-    { eapply conv; [|eapply lamValid].
-      + eapply symValidTyEq, PiCong; tea; try irrValid.
-        eapply reflValidTy.
-      + eapply irrelevanceTmLift; irrValid.
-    }
-    Unshelve. all: try irrValid.
-    assert [Γ,, A ||-v< one > A⟨@wk1 Γ A⟩ | validSnoc VΓ VA].
-    { apply wk1ValidTy; irrValid. }
-    assert (VΓAA' : [Γ,, A ||-v< one > A'⟨@wk1 Γ A⟩ | validSnoc VΓ VA]).
-    { apply wk1ValidTy; irrValid. }
-    assert (VΓAA'' : [Γ,, A ||-v< one > A''⟨@wk1 Γ A⟩ | validSnoc VΓ VA]).
-    { apply wk1ValidTy; irrValid. }
-    assert (VAdequate (ta := ta) (Γ,, A) VR).
-    { now eapply validSnoc. }
-    assert (VAdequate (ta := ta) (Γ,, A,, A'⟨@wk1 Γ A⟩) VR).
-    { unshelve eapply validSnoc; tea; try irrValid. }
-    assert (VAdequate (ta := ta) (Γ,, A,, A''⟨@wk1 Γ A⟩) VR).
-    { unshelve eapply validSnoc; tea; try irrValid. }
-    assert (eq0 : forall t, t⟨upRen_term_term ↑⟩[(tRel 0)..] = t).
-    { clear; intros; bsimpl; apply idSubst_term; intros []; reflexivity. }
-    econstructor; tea.
-    eapply irrelevanceTmEq, etaeqValid; try irrValid.
-    eapply transValidTmEq; [|eapply transValidTmEq]; [|eapply irrelevanceTmEq; tea|].
-    + eapply irrelevanceTmEq'; [eapply eq0|].
-      eapply transValidTmEq; [eapply betaValid|]; refold.
-      - eapply irrelevanceTm'.
-        2: eapply (wkValidTm  (A := B)) with (ρ := wk_up A' (@wk1 Γ A)).
-        * now bsimpl.
-        * eapply irrelevanceTmLift; irrValid.
-      - eapply irrelevanceTmEq'; [symmetry; eapply eq0|].
-        match goal with |- [_ ||-v< _ > ?t ≅ ?u : _ | _ | _ ] => assert (Hrw : t = u) end.
-        { bsimpl; apply idSubst_term; intros []; reflexivity. }
-        set (t' := t) at 2; rewrite Hrw.
-        apply reflValidTm; tea.
-    + apply symValidTmEq; eapply irrelevanceTmEq'; [eapply eq0|].
-      eapply transValidTmEq; [eapply betaValid|]; refold.
-      - eapply irrelevanceTm'.
-        2: eapply (wkValidTm  (A := B)) with (ρ := wk_up A'' (@wk1 Γ A)).
-        * now bsimpl.
-        * eapply irrelevanceTmLift; irrValid.
-      - eapply irrelevanceTmEq'; [symmetry; eapply eq0|].
-        match goal with |- [_ ||-v< _ > ?t ≅ ?u : _ | _ | _ ] => assert (Hrw : t = u) end.
-        { bsimpl; apply idSubst_term; intros []; reflexivity. }
-        set (u' := u) at 2; rewrite Hrw.
-        apply reflValidTm; tea.
+    unshelve (eapply PiCong; [|eapply symValidTyEq|eapply reflValidTy]; irrValid); try irrValid.
     Unshelve.
-    all: refold; try irrValid.
-    * unshelve eapply irrelevanceTy; tea.
-      rewrite <- (wk_up_wk1_ren_on Γ A' A).
-      eapply wkValidTy, irrelevanceLift; irrValid.
-    * eapply conv; [now eapply irrelevanceTyEq, wk1ValidTyEq|].
-      eapply irrelevanceTm'; [symmetry; eapply wk1_ren_on|].
-      eapply var0Valid'.
-    * eapply irrelevanceTy.
-      rewrite <- (wk_up_wk1_ren_on Γ A'' A).
-      eapply wkValidTy, irrelevanceLift; irrValid.
-    * eapply conv; [now eapply irrelevanceTyEq, wk1ValidTyEq|].
-      eapply irrelevanceTm'; [symmetry; eapply wk1_ren_on|].
-      eapply var0Valid'.
-  Unshelve.
-  all: try irrValid.
-  2,4: rewrite <- (wk1_ren_on Γ A); irrValid.
+    5: tea.
+    3: now eapply convCtx1.
+    2: irrValid.
+    unshelve eapply PiValid; irrValid.
   Qed.
 
   Lemma FundTmEqFunEta : forall (Γ : context) (f A B : term),
     FundTm Γ (tProd A B) f -> FundTmEq Γ (tProd A B) (tLambda A (tApp f⟨↑⟩ (tRel 0))) f.
   Proof.
-  intros * [VΓ VΠ Vf].
-  assert (eq0 : forall t, t⟨upRen_term_term ↑⟩[(tRel 0)..] = t).
-  { clear; intros; bsimpl; apply idSubst_term; intros []; reflexivity. }
-  assert (VA : [Γ ||-v< one > A | VΓ]).
-  { now eapply PiValidDom. }
-  assert (VΓA := validSnoc VΓ VA).
-  assert (VΓAA : [Γ,, A ||-v< one > A⟨@wk1 Γ A⟩ | VΓA]).
-  { now eapply irrelevanceTy, wk1ValidTy. }
-  assert (VΓAA0 : VAdequate (ta := ta) (Γ,, A,, A⟨@wk1 Γ A⟩) VR).
-  { now eapply validSnoc. }
-  assert (VΓAA' : [Γ,, A ||-v< one > A⟨↑⟩ | VΓA]).
-  { now rewrite wk1_ren_on in VΓAA. }
-  assert [Γ,, A ||-v< one > B | VΓA].
-  { eapply irrelevanceTy, PiValidCod. }
-  assert ([Γ,, A ||-v< one > tProd A⟨@wk1 Γ A⟩ B⟨upRen_term_term ↑⟩ | VΓA]).
-  { rewrite <- (wk_up_wk1_ren_on Γ A A).
-    now eapply irrelevanceTy, (wk1ValidTy (A := tProd A B)). }
-  assert ([Γ,, A ||-v< one > tRel 0 : A⟨wk1 A⟩ | VΓA | VΓAA]).
-  { eapply irrelevanceTm'; [rewrite wk1_ren_on; reflexivity|].
-    unshelve apply var0Valid'. }
-  assert ([(Γ,, A),, A⟨wk1 A⟩ ||-v< one > tProd A⟨↑⟩⟨↑⟩ B⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩ | VΓAA0]).
-  { assert (eq1 : (tProd A B)⟨@wk1 Γ A⟩⟨@wk1 (Γ,, A) A⟨@wk1 Γ A⟩⟩ = tProd (A⟨↑⟩⟨↑⟩) (B⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩)).
-    { rewrite wk1_ren_on, wk1_ren_on; reflexivity. }
-    eapply irrelevanceTy'; [|eapply eq1|reflexivity].
-    now eapply wkValidTy, wkValidTy. }
-  assert ([Γ ||-v< one > tLambda A (tApp f⟨↑⟩ (tRel 0)) : tProd A B | VΓ | VΠ]).
-  { eapply irrelevanceTm, lamValid.
-    eapply irrelevanceTm'; [apply eq0|eapply (appValid (F := A⟨@wk1 Γ A⟩))].
-    rewrite <- (wk1_ren_on Γ A).
-    eapply irrelevanceTm'; [|now eapply wkValidTm].
-    rewrite <- (wk_up_wk1_ren_on Γ A A).
-    reflexivity. }
-  Unshelve. all: try irrValid.
-  econstructor; tea.
-  eapply irrelevanceTmEq, etaeqValid; try irrValid.
-  eapply transValidTmEq; refold.
-  + eapply irrelevanceTmEq'; [eapply eq0|].
-    eapply betaValid; refold.
-    eapply irrelevanceTm'; [apply eq0|].
-    eapply appValid.
-    rewrite <- shift_upRen.
-    assert (eq1 : (tProd A B)⟨@wk1 Γ A⟩⟨@wk1 (Γ,, A) A⟨@wk1 Γ A⟩⟩ = tProd (A⟨↑⟩⟨↑⟩) (B⟨upRen_term_term ↑⟩⟨upRen_term_term ↑⟩)).
-    { rewrite wk1_ren_on, wk1_ren_on; reflexivity. }
-    eapply irrelevanceTm'; [eapply eq1|].
-    rewrite <- (wk1_ren_on (Γ,, A)  A⟨@wk1 Γ A⟩).
-    now eapply wkValidTm, wkValidTm.
-  + refold.
-    match goal with |- [_ ||-v< _ > ?t ≅ ?u : _ | _ | _ ] => assert (Hrw : t = u) end.
-    { rewrite <- eq0; now bsimpl. }
-    rewrite Hrw.
-    apply reflValidTm; tea.
-    eapply irrelevanceTm'; [apply eq0|].
-    eapply (appValid (F := A⟨@wk1 Γ A⟩)).
-    eapply irrelevanceTm'; [|now eapply wk1ValidTm].
-    now rewrite <- (wk_up_wk1_ren_on Γ A A).
+  intros * [VΓ VΠ Vf]; econstructor.
+  eapply etaValid; irrValid.
   Unshelve.
-  all: refold; try irrValid.
-  { unshelve eapply irrelevanceTy; [tea|].
-    rewrite <- (wk_up_wk1_ren_on Γ A A).
-    now eapply wkValidTy. }
-  { eapply (irrelevanceTy' (A := A⟨↑⟩⟨@wk1 (Γ,, A) A⟨@wk1 Γ A⟩⟩)); [|now rewrite wk1_ren_on|reflexivity].
-    now eapply wkValidTy. }
-  { eapply (irrelevanceTm' (A := A⟨@wk1 Γ A⟩⟨↑⟩)); [now rewrite wk1_ren_on|].
-    apply var0Valid'. }
-  Unshelve.
-  all: try irrValid.
-  { shelve. }
-  { rewrite <- (wk1_ren_on (Γ,, A)  A⟨@wk1 Γ A⟩).
-    now eapply wkValidTy. }
+  + tea.
+  + now eapply PiValidDom.
+  + now eapply PiValidCod.
   Qed.
 
-  Lemma FundTmEqFunExt : forall (Γ : context) (f g A B : term),
+  (* Lemma FundTmEqFunExt : forall (Γ : context) (f g A B : term),
     FundTy Γ A ->
     FundTm Γ (tProd A B) f ->
     FundTm Γ (tProd A B) g ->
@@ -485,18 +330,18 @@ Section Fundamental.
     intros * [] [VΓ0 VA0] [] [].
     assert [Γ ||-v< one > g : tProd A B | VΓ0 | VA0].
     1:{
-      eapply conv. 
+      eapply conv.
       2: irrValid.
       eapply symValidTyEq. eapply PiCong.
-      eapply irrelevanceLift. 
+      eapply irrelevanceLift.
       1,3,4: eapply reflValidTy.
       irrValid.
     }
-    econstructor. 
-    3: eapply etaeqValid. 
+    econstructor.
+    3: eapply etaeqValid.
     5: do 2 rewrite wk1_ren_on.
     Unshelve. all: irrValid.
-  Qed.
+  Qed. *)
 
   Lemma FundTmEqRefl : forall (Γ : context) (t A : term),
     FundTm Γ A t ->
@@ -518,8 +363,8 @@ Section Fundamental.
     FundTmEq Γ A t t''.
   Proof.
     intros * [] []; econstructor; tea.
-    1: irrValid.
     eapply transValidTmEq; irrValid.
+    Unshelve. all: tea.
   Qed.
 
   Lemma FundTmEqConv : forall (Γ : context) (t t' A B : term),
@@ -528,8 +373,7 @@ Section Fundamental.
     FundTmEq Γ B t t'.
   Proof.
     intros * [] []; econstructor.
-    1,2: eapply conv; irrValid.
-    eapply convEq; irrValid.
+    eapply conv; irrValid.
     Unshelve. all: irrValid.
   Qed.
 
@@ -546,7 +390,7 @@ Section Fundamental.
 
   Lemma FundTmZero : forall Γ : context, FundCon Γ -> FundTm Γ tNat tZero.
   Proof.
-    intros; unshelve econstructor; tea. 
+    intros; unshelve econstructor; tea.
     2:eapply zeroValid.
   Qed.
 
@@ -566,7 +410,8 @@ Section Fundamental.
   Proof.
     intros * [] [] [] []; unshelve econstructor; tea.
     2: eapply natElimValid; irrValid.
-    Unshelve. all: irrValid.
+    Unshelve.
+    2,3: irrValid.
   Qed.
 
   Lemma FundTyEmpty : forall Γ : context, FundCon Γ -> FundTy Γ tEmpty.
@@ -586,14 +431,13 @@ Section Fundamental.
   Proof.
     intros * [] []; unshelve econstructor; tea.
     2: eapply emptyElimValid; irrValid.
-    Unshelve. 1,2: irrValid. 
+    Unshelve. 2,3: irrValid.
   Qed.
 
   Lemma FundTmEqSuccCong : forall (Γ : context) (n n' : term),
     FundTmEq Γ tNat n n' -> FundTmEq Γ tNat (tSucc n) (tSucc n').
   Proof.
     intros * []; unshelve econstructor; tea.
-    1,2: eapply irrelevanceTm; eapply succValid; irrValid.
     eapply irrelevanceTmEq; eapply succcongValid; irrValid.
     Unshelve. all: tea.
   Qed.
@@ -606,32 +450,10 @@ Section Fundamental.
     FundTmEq Γ tNat n n' ->
     FundTmEq Γ P[n..] (tNatElim P hz hs n) (tNatElim P' hz' hs' n').
   Proof.
-    intros * [? VP0 VP0'] [VΓ0] [] [].
-    pose (VN := natValid (l:=one) VΓ0).
-    assert (VP' : [ _ ||-v<one> P' | validSnoc VΓ0 VN]) by irrValid. 
-    assert [Γ ||-v< one > hz' : P'[tZero..] | VΓ0 | substS VP' (zeroValid VΓ0)]. 1:{
-      eapply conv. 2: irrValid.
-      eapply substSEq. 2,3: irrValid.
-      1: eapply reflValidTy.
-      2: eapply reflValidTm.
-      all: eapply zeroValid.
-    }
-    assert [Γ ||-v< one > hs' : elimSuccHypTy P' | VΓ0 | elimSuccHypTyValid VΓ0 VP']. 1:{
-      eapply conv. 2: irrValid.
-      eapply elimSuccHypTyCongValid; irrValid.
-    } 
-    unshelve econstructor; tea.
-    2: eapply natElimValid; irrValid.
-    + eapply conv.
-      2: eapply irrelevanceTm; now eapply natElimValid.
-      eapply symValidTyEq. 
-      eapply substSEq; tea. 
-      2,3: irrValid.
-      eapply reflValidTy.
-    + eapply natElimCongValid; tea; try irrValid.
-    Unshelve. all: try irrValid.
-    1: eapply zeroValid.
-    1: unshelve eapply substS; try irrValid.
+    intros * [? VP0 VP0'] [VΓ0] [] []; unshelve econstructor.
+    3:eapply natElimCongValid; try irrValid.
+    tea.
+    Unshelve. all: irrValid.
   Qed.
 
   Lemma FundTmEqNatElimZero : forall (Γ : context) (P hz hs : term),
@@ -641,9 +463,8 @@ Section Fundamental.
     FundTmEq Γ P[tZero..] (tNatElim P hz hs tZero) hz.
   Proof.
     intros * [] [] []; unshelve econstructor; tea.
-    3: irrValid.
-    3: eapply natElimZeroValid; irrValid.
-    eapply natElimValid; irrValid.
+    2: eapply natElimZeroValid; try irrValid.
+    now eapply reflValidTy.
     Unshelve. irrValid.
   Qed.
 
@@ -656,17 +477,9 @@ Section Fundamental.
       (tApp (tApp hs n) (tNatElim P hz hs n)).
   Proof.
     intros * [] [] [] []; unshelve econstructor; tea.
-    4: eapply natElimSuccValid; irrValid.
-    1: eapply natElimValid; irrValid.
-    eapply simple_appValid.
-    2: eapply natElimValid; irrValid.
-    eapply irrelevanceTm'.
-    2: now eapply appValid.
-    now bsimpl.
-    Unshelve. all: try irrValid.
-    eapply simpleArrValid; eapply substS; tea.
-    1,2: irrValid.
-    eapply succValid; irrValid.
+    2: eapply natElimSuccValid; try irrValid.
+    now eapply reflValidTy.
+    Unshelve. all: irrValid.
   Qed.
 
   Lemma FundTmEqEmptyElimCong : forall (Γ : context)
@@ -675,20 +488,9 @@ Section Fundamental.
     FundTmEq Γ tEmpty n n' ->
     FundTmEq Γ P[n..] (tEmptyElim P n) (tEmptyElim P' n').
   Proof.
-    intros * [? VP0 VP0'] [VΓ0].
-    pose (VN := emptyValid (l:=one) VΓ0).
-    assert (VP' : [ _ ||-v<one> P' | validSnoc VΓ0 VN]) by irrValid.
-    unshelve econstructor; tea.
-    2: eapply emptyElimValid; irrValid.
-    + eapply conv.
-      2: eapply irrelevanceTm; now eapply emptyElimValid.
-      eapply symValidTyEq.
-      eapply substSEq; tea.
-      2,3: irrValid.
-      eapply reflValidTy.
-    + eapply emptyElimCongValid; tea; try irrValid.
-    Unshelve. all: try irrValid.
-    1: unshelve eapply substS; try irrValid.
+    intros * [? VP0 VP0'] [VΓ0]; unshelve econstructor; tea.
+    2: eapply emptyElimCongValid; irrValid.
+    Unshelve. all: irrValid.
   Qed.
 
   Lemma FundTySig : forall (Γ : context) (A B : term),
@@ -702,11 +504,12 @@ Section Fundamental.
     FundTm Γ U A ->
     FundTm (Γ,, A) U B -> FundTm Γ U (tSig A B).
   Proof.
-    intros * [] []; unshelve econstructor.
-    3: unshelve eapply SigValidU.
-    3-5: irrValid.
-    1: tea.
-    unshelve eapply univValid; tea.
+    intros * [] []; unshelve econstructor; tea.
+    unshelve epose (SigCongValidU (F:=A) (G:=B) _ _ ).
+    6,7,8: irrValid.
+    + tea.
+    + now eapply univValid.
+    + irrValid.
   Qed.
 
   Lemma FundTmPair : forall (Γ : context) (A B a b : term),
@@ -759,13 +562,11 @@ Section Fundamental.
     FundTmEq (Γ,, A) U B B' -> FundTmEq Γ U (tSig A B) (tSig A' B').
   Proof.
     intros * [] [] []; unshelve econstructor.
-    5: eapply SigCongTm; tea; try irrValid.
-    4: eapply irrelevanceTmLift ; try irrValid; now eapply univEqValid.
-    1,2: unshelve eapply SigValidU; try irrValid.
-    1,2: now eapply univValid.
-    1: eapply UValid.
-    eapply irrelevanceTmLift ; try irrValid; now eapply univEqValid.
-    Unshelve. all: solve [ eapply UValid | now eapply univValid | irrValid].
+    3: eapply SigCongValidU ; tea; try irrValid.
+    1: tea.
+    Unshelve.
+    + unshelve (eapply univValid; irrValid); irrValid.
+    + irrValid.
   Qed.
 
   Lemma FundTmEqPairCong : forall (Γ : context) (A A' A'' B B' B'' a a' b b' : term),
@@ -777,166 +578,41 @@ Section Fundamental.
     FundTmEq Γ A a a' ->
     FundTmEq Γ B[a..] b b' -> FundTmEq Γ (tSig A B) (tPair A' B' a b) (tPair A'' B'' a' b').
   Proof.
-    intros * [VΓ VA] [] [] [] [] [] [].
-    assert (VΣ : [Γ ||-v< one > tSig A B | VΓ]).
-    { unshelve eapply SigValid; irrValid. }
-    assert (VA' : [Γ ||-v< one > A' | VΓ]) by irrValid.
-    assert (VA'' : [Γ ||-v< one > A'' | VΓ]) by irrValid.
-    assert ([Γ ||-v< one > a : A' | VΓ | VA']).
-    { eapply conv; [|irrValid]; irrValid. Unshelve. tea. }
-    assert ([Γ ||-v< one > a : A'' | VΓ | VA'']).
-    { eapply conv; [irrValid|]; irrValid. Unshelve. tea. }
-    assert ([Γ ||-v< one > a' : A'' | VΓ | VA'']).
-    { eapply conv; [irrValid|]; irrValid. Unshelve. tea. }
-    assert (VΓA' : VAdequate (ta := ta) (Γ,, A') VR) by now eapply validSnoc.
-    assert (VΓA'' : VAdequate (ta := ta) (Γ,, A'') VR) by now eapply validSnoc.
-    assert (VA'B : [Γ,, A' ||-v< one > B | VΓA']).
-    { eapply irrelevanceTy, irrelevanceLift; irrValid.
-      Unshelve. all: irrValid. }
-    assert (VA''B : [Γ,, A'' ||-v< one > B | VΓA'']).
-    { eapply irrelevanceTy, irrelevanceLift; irrValid.
-      Unshelve. all: irrValid. }
-    assert (VA'B' : [Γ,, A' ||-v< one > B' | VΓA']).
-    { eapply irrelevanceTy, irrelevanceLift; try irrValid.
-      Unshelve. all: irrValid. }
-    assert (VA''B' : [Γ,, A'' ||-v< one > B' | VΓA'']).
-    { eapply irrelevanceTy, irrelevanceLift; try irrValid.
-      Unshelve. all: irrValid. }
-    assert (VA''B'' : [Γ,, A'' ||-v< one > B'' | VΓA'']).
-    { eapply irrelevanceTy, irrelevanceLift; try irrValid.
-      Unshelve. all: irrValid. }
-    assert (VBa : [Γ ||-v< one > B[a..] | VΓ]).
-    { irrValid. }
-    assert (VB'a : [Γ ||-v< one > B'[a..] | VΓ]).
-    { eapply substS; irrValid. Unshelve. all: irrValid. }
-    assert (VB''a : [Γ ||-v< one > B''[a..] | VΓ]).
-    { eapply substS; irrValid. Unshelve. all: irrValid. }
-    assert (VB''a' : [Γ ||-v< one > B''[a'..] | VΓ]).
-    { eapply substS; irrValid. Unshelve. all: irrValid. }
-    assert [Γ ||-v< one > B[a..] ≅ B'[a..] | VΓ | VBa].
-    { eapply irrelevanceTyEq, substSEq; try irrValid.
-      apply reflValidTm. irrValid. Unshelve. all: irrValid. }
-    assert [Γ ||-v< one > B[a..] ≅ B''[a'..] | VΓ | VBa].
-    { eapply irrelevanceTyEq, substSEq; [..|irrValid|irrValid].
-      all: irrValid. Unshelve. all: irrValid. }
-    assert (VΣA'B' : [Γ ||-v< one > tSig A' B' | VΓ]).
-    { unshelve eapply SigValid; try irrValid. }
-    assert (VΣA''B'' : [Γ ||-v< one > tSig A'' B'' | VΓ]).
-    { unshelve eapply SigValid; try irrValid. }
-    assert ([Γ ||-v< one > tSig A B ≅ tSig A' B' | VΓ | VΣ]).
-    { unshelve eapply irrelevanceTyEq, SigCong; try irrValid. }
-    assert ([Γ ||-v< one > tSig A B ≅ tSig A'' B'' | VΓ | VΣ]).
-    { unshelve eapply irrelevanceTyEq, SigCong; try irrValid. }
-    assert [Γ ||-v< one > tPair A' B' a b : tSig A B | _ | VΣ ].
-    { eapply conv; [|unshelve eapply pairValid]; try irrValid.
-      - unshelve eapply symValidTyEq; irrValid.
-      - eapply conv; irrValid. Unshelve. all: irrValid. }
-    assert [Γ ||-v< one > tPair A'' B'' a' b' : tSig A B | _ | VΣ ].
-    { eapply conv; [|unshelve eapply pairValid]; try irrValid.
-      - unshelve eapply symValidTyEq; irrValid.
-      - eapply conv; irrValid.
-        Unshelve. all: irrValid. }
-    assert [Γ ||-v< one > b : B'[a..] | VΓ | VB'a].
-    { eapply conv; irrValid. Unshelve. all: irrValid. }
-    assert [Γ ||-v< one > b' : B''[a'..] | VΓ | VB''a'].
-    { eapply conv; irrValid. Unshelve. all: irrValid. }
-    assert ([Γ ||-v< one > tFst (tPair A' B' a b) ≅ a : A | VΓ | VA]).
-    { eapply (convEq (A := A')); [eapply symValidTyEq; irrValid|].
-      eapply pairFstValid. Unshelve. all: try irrValid. }
-    assert ([Γ ||-v< one > tFst (tPair A'' B'' a' b') ≅ a' : A | VΓ | VA]).
-    { eapply (convEq (A := A'')); [eapply symValidTyEq; irrValid|].
-      eapply pairFstValid. Unshelve. all: irrValid. }
-    assert ([Γ ||-v< one > tFst (tPair A' B' a b) ≅ tFst (tPair A'' B'' a' b') : A | VΓ | VA]).
-    { eapply transValidTmEq; [irrValid|].
-      eapply transValidTmEq; [irrValid|].
-      eapply symValidTmEq; irrValid. }
-    assert ([Γ ||-v< one > tFst (tPair A' B' a b) : A | VΓ | VA]).
-    { eapply fstValid. Unshelve. all: try irrValid. }
-    assert ([Γ ||-v< one > tFst (tPair A'' B'' a' b') : A | VΓ | VA]).
-    { eapply fstValid. Unshelve. all: try irrValid. }
-    assert (VBfst : [Γ ||-v< one > B[(tFst (tPair A' B' a b))..] | VΓ]).
-    { eapply (substS (F := A)). Unshelve. all: try  irrValid. }
-    assert (VB'fst : [Γ ||-v< one > B'[(tFst (tPair A' B' a b))..] | VΓ]).
-    { eapply (substS (F := A)). Unshelve. all: try  irrValid. }
-    assert (VB''fst' : [Γ ||-v< one > B''[(tFst (tPair A'' B'' a' b'))..] | VΓ]).
-    { eapply (substS (F := A)). Unshelve. all: try irrValid. }
-    assert ([Γ ||-v< one > B[(tFst (tPair A' B' a b))..] ≅ B[a..] | VΓ | VBfst]).
-    { eapply irrelevanceTyEq, substSEq; [..|irrValid|irrValid].
-      Unshelve. all: try irrValid. eapply reflValidTy. }
-    assert ([Γ ||-v< one > B'[(tFst (tPair A' B' a b))..] ≅ B[a..] | VΓ | VB'fst]).
-    { eapply irrelevanceTyEq, substSEq; [..|irrValid|irrValid].
-      Unshelve. all: try irrValid.
-      eapply symValidTyEq; irrValid. Unshelve. all: try irrValid. }
-    assert ([Γ ||-v< one > B''[(tFst (tPair A'' B'' a' b'))..] ≅ B[a'..] | VΓ | VB''fst']).
-    { eapply irrelevanceTyEq, substSEq; [..|irrValid|].
-      Unshelve. all: try irrValid.
-      eapply symValidTyEq; irrValid. Unshelve. all: try irrValid. }
-    assert ([Γ ||-v< one > B''[(tFst (tPair A'' B'' a' b'))..] ≅ B[a..] | VΓ | VB''fst']).
-    { eapply irrelevanceTyEq, substSEq; [..|irrValid|].
-      Unshelve. all: try irrValid.
-      eapply symValidTyEq; irrValid. Unshelve. all: try irrValid.
-      eapply transValidTmEq; [irrValid|].
-      eapply symValidTmEq; irrValid.
-    }
-    assert ([Γ ||-v< one > tSnd (tPair A' B' a b) ≅ b : B[(tFst (tPair A' B' a b))..] | VΓ | VBfst]).
-    { eapply (convEq (A := B'[(tFst (tPair A' B' a b))..])).
-      shelve. eapply pairSndValid.
-      Unshelve. all: try irrValid.
-      eapply irrelevanceTyEq, substSEq; [..|irrValid|apply reflValidTm; irrValid].
+    intros * [VΓ VA] [?? VA'] [] [] [] [] [].
+    assert [Γ ,, A' ||-v<one> B' | validSnoc _ VA'].
+    1:{ eapply convCtx1; tea. }
+    econstructor.
+    eapply conv; cycle 1.
+    - eapply pairCongValid.
+      + eapply transValidTyEq; tea; eapply symValidTyEq; irrValid.
+      + eapply convEqCtx1; tea; eapply transValidTyEq; tea.
+        eapply symValidTyEq; irrValid.
+      + eapply conv; [eapply substSEq; tea|]; irrValid.
+    - eapply symValidTyEq; eapply SigCong; try irrValid.
+    Unshelve.
       all: try irrValid.
-      - unshelve apply reflValidTy.
-      - unshelve eapply symValidTyEq; irrValid. }
-    assert ([Γ ||-v< one > tSnd (tPair A'' B'' a' b') ≅ b' : B[a..] | VΓ | VBa]).
-    { eapply (convEq (A := B''[(tFst (tPair A'' B'' a' b'))..])).
-      shelve. eapply pairSndValid.
-      Unshelve. all: try irrValid. }
-    unshelve econstructor. 1-4: irrValid.
-    eapply irrelevanceTmEq, sigEtaValid; try irrValid.
-    eapply transValidTmEq; [irrValid|].
-    eapply transValidTmEq.
-    - eapply convEq; [|irrValid].
-      eapply symValidTyEq; try irrValid.
-    - eapply symValidTmEq; try irrValid.
-      eapply convEq; [|irrValid].
-      eapply symValidTyEq; try irrValid.
-  Unshelve. all: try irrValid.
+      + unshelve eapply SigValid; irrValid.
+      + unshelve (eapply conv; tea; irrValid); irrValid.
+      + eapply lreflValidTm; irrValid.
   Qed.
 
   Lemma FundTmEqSigEta : forall (Γ : context) (A B p : term),
     FundTm Γ (tSig A B) p -> FundTmEq Γ (tSig A B) (tPair A B (tFst p) (tSnd p)) p.
   Proof.
-  intros * [VΓ VΣ Vp].
-  assert (VA := domSigValid _ VΣ).
-  assert (VB := codSigValid _ VΣ).
-  assert (Vfst : [Γ ||-v< one > tFst p : A | _ | VA]).
-  { unshelve eapply irrelevanceTm, fstValid; try irrValid. }
-  assert (VBfst : [Γ ||-v< one > B[(tFst p)..] | VΓ]).
-  { unshelve eapply substS; try irrValid. }
-  assert (Vsnd : [Γ ||-v< one > tSnd p : B[(tFst p)..] | _ | VBfst]).
-  { unshelve eapply irrelevanceTm, sndValid.
-    5: irrValid. all: irrValid. }
-  assert (Vηp : [Γ ||-v< one > tPair A B (tFst p) (tSnd p) : tSig A B | VΓ | VΣ]).
-  { unshelve eapply irrelevanceTm, pairValid; try irrValid. }
-  unshelve econstructor; try irrValid.
-  eapply irrelevanceTmEq, sigEtaValid; try irrValid.
-  - eapply transValidTmEq; [eapply pairFstValid|eapply reflValidTm].
-    Unshelve. all: try irrValid.
-  - eapply transValidTmEq; [unshelve eapply irrelevanceTmEq, pairSndValid|unshelve eapply reflValidTm]; try irrValid.
-    unshelve eapply conv; try irrValid.
-    eapply irrelevanceTyEq, substSEq; try irrValid.
-    1,2: unshelve apply reflValidTy.
-    { unshelve eapply fstValid; try irrValid. }
-    { unshelve eapply symValidTmEq, pairFstValid; try irrValid. }
-    Unshelve. all: try irrValid.
+  intros * [VΓ VΣ Vp]; econstructor.
+  eapply sigEtaValid; irrValid.
+  Unshelve.
+  + tea.
+  + now eapply domSigValid.
+  + now eapply codSigValid.
   Qed.
 
   Lemma FundTmEqFstCong : forall (Γ : context) (A B p p' : term),
     FundTmEq Γ (tSig A B) p p' -> FundTmEq Γ A (tFst p) (tFst p').
   Proof.
     intros * []; unshelve econstructor.
-    5: eapply fstCongValid; irrValid.
+    3: eapply fstValid; irrValid.
     2: now eapply domSigValid.
-    1,2: eapply fstValid; irrValid.
     Unshelve. all: now eapply codSigValid.
   Qed.
 
@@ -948,8 +624,8 @@ Section Fundamental.
   Proof.
     intros * [] [] [] [].
     unshelve econstructor.
-    3,5: eapply pairFstValid; irrValid.
-    2,3: irrValid. 
+    3: eapply pairFstValid; irrValid.
+    2: irrValid.
     tea.
     Unshelve. all: irrValid.
   Qed.
@@ -958,19 +634,12 @@ Section Fundamental.
     FundTmEq Γ (tSig A B) p p' -> FundTmEq Γ B[(tFst p)..] (tSnd p) (tSnd p').
   Proof.
     intros * []; unshelve econstructor.
-    5: eapply sndCongValid; irrValid.
+    3: eapply sndValid; irrValid.
     1: tea.
-    1: eapply sndValid.
-    eapply conv; [| eapply sndValid].
-    eapply substSEq.
-    5: eapply fstCongValid.
-    4: eapply fstValid.
-    4-6: irrValid.
-    + eapply reflValidTy.
-    + eapply codSigValid.
-    + eapply reflValidTy.
-    + eapply symValidTmEq; irrValid.
-    Unshelve. all: try solve [now eapply domSigValid| now eapply codSigValid| irrValid].
+    Unshelve.
+      2: now eapply domSigValid.
+      1: now eapply codSigValid.
+      irrValid.
   Qed.
 
   Lemma FundTmEqSndBeta : forall (Γ : context) (A B a b : term),
@@ -981,15 +650,8 @@ Section Fundamental.
     FundTmEq Γ B[(tFst (tPair A B a b))..] (tSnd (tPair A B a b)) b.
   Proof.
     intros * [] [] [] []; unshelve econstructor.
-    3,5: unshelve eapply pairSndValid; irrValid.
-    + tea.
-    + eapply conv; tea.
-      eapply irrelevanceTyEq.
-      eapply substSEq.
-      1,3: eapply reflValidTy.
-      1: irrValid.
-      2: eapply symValidTmEq.
-      1,2: eapply pairFstValid; irrValid.
+    3: eapply pairSndValid.
+    1: tea.
     Unshelve. all: irrValid.
   Qed.
 
@@ -998,7 +660,7 @@ Section Fundamental.
   Proof.
     intros * [] [] [].
     unshelve econstructor; tea.
-    unshelve eapply IdValid; irrValid.
+    unshelve eapply IdValid; try irrValid.
   Qed.
 
 
@@ -1028,6 +690,7 @@ Section Fundamental.
   Proof.
     intros * [] [] [] [] [] []; unshelve econstructor.
     3: unshelve eapply IdElimValid; try irrValid.
+    2,3: eapply reflValidTy.
     tea.
   Qed.
 
@@ -1039,7 +702,7 @@ Section Fundamental.
     unshelve econstructor; tea.
     3: eapply IdCongValid; irrValid.
     1,2: eapply IdValid; try irrValid.
-    1,2: eapply conv; irrValid.
+    1,2: eapply ureflValidTm, conv; tea; try irrValid.
     Unshelve. all: irrValid.
   Qed.
 
@@ -1048,10 +711,8 @@ Section Fundamental.
     FundTmEq Γ A x x' -> FundTmEq Γ A y y' -> FundTmEq Γ U (tId A x y) (tId A' x' y').
   Proof.
     intros * [] [] []; unshelve econstructor.
-    5: eapply IdTmCongValid; try irrValid; tea.
-    2,3: eapply IdTmValid; try irrValid; tea.
+    3: eapply IdTmCongValid; try irrValid; tea.
     1: tea.
-    1,2: eapply conv; try irrValid; eapply univEqValid; irrValid.
     Unshelve. all: first [eapply UValid| irrValid | tea].
   Qed.
 
@@ -1059,14 +720,9 @@ Section Fundamental.
     FundTyEq Γ A A' -> FundTmEq Γ A x x' -> FundTmEq Γ (tId A x x) (tRefl A x) (tRefl A' x').
   Proof.
     intros * [] []; unshelve econstructor.
-    5: eapply reflCongValid; tea; irrValid.
-    3: eapply conv.
-    2,4: eapply reflValid; try irrValid.
-    2: eapply conv; irrValid.
-    2: eapply symValidTyEq; eapply IdCongValid; tea; try irrValid.
+    3: eapply reflCongValid; tea; irrValid.
     eapply IdValid; irrValid.
-    Unshelve. all: try eapply IdValid; try irrValid; eapply conv; irrValid.
-    Unshelve. all: irrValid.
+    Unshelve. tea.
   Qed.
 
   Lemma FundTmEqIdElimCong : forall (Γ : context) (A A' x x' P P' hr hr' y y' e e' : term),
@@ -1080,34 +736,11 @@ Section Fundamental.
     FundTmEq Γ (tId A x y) e e' -> FundTmEq Γ P[e .: y..] (tIdElim A x P hr y e) (tIdElim A' x' P' hr' y' e').
   Proof.
     intros * [] [] [] [] [] [] [] [].
-    assert [_ ||-v<one> x' : _ | _ | VB] by (eapply conv; irrValid).
-    assert [_ ||-v<one> y' : _ | _ | VB] by (eapply conv; irrValid).
-    assert (VId' : [_ ||-v<one> tId A' x' y' | VΓ]) by (eapply IdValid; irrValid).
-    assert [_ ||-v<one> _ ≅ tId A' x' y' | _ | VA6] by (eapply IdCongValid; irrValid).
-    assert [_ ||-v<one> e' : _ | _ | VId'] by (eapply conv; irrValid).
-    unshelve econstructor.
-    5: eapply IdElimCongValid; tea; irrValid.
-    1: eapply IdElimValid; irrValid.
-    eapply convsym.
-    2: eapply IdElimValid; eapply conv; [|irrValid].
-    1:{
-      eapply substEqIdElimMotive. 7: tea. 2,3,5-12: tea; try irrValid. 1,2: irrValid.
-    } 
-   eapply substEqIdElimMotive. 7: tea. 2,3,5-9: tea; try irrValid.
-    1,2: irrValid.
-    2: eapply convsym. 
-    1,3: eapply reflValid; first [irrValid| eapply conv; irrValid].
-    1:eapply IdCongValid; irrValid.
-    eapply reflCongValid; irrValid.
-    Unshelve. all: tea; try irrValid.
-    3,4: eapply IdValid; irrValid.
-    1: eapply validSnoc; now eapply idElimMotiveCtxIdValid.
-    eapply convCtx2'; tea.
-    1: eapply convCtx1; tea; [eapply symValidTyEq; irrValid| ].
-    1,3: now eapply idElimMotiveCtxIdValid.
-    eapply idElimMotiveCtxIdCongValid; tea; irrValid.
+    econstructor.
+    eapply IdElimValid; tea; irrValid.
     Unshelve.
-    3: eapply idElimMotiveCtxIdValid. all: irrValid.
+    3: unshelve (eapply IdValid; irrValid); irrValid.
+    all: irrValid.
   Qed.
 
   Lemma FundTmEqIdElimRefl : forall (Γ : context) (A x P hr y A' z : term),
@@ -1123,32 +756,22 @@ Section Fundamental.
     FundTmEq Γ A x z -> FundTmEq Γ P[tRefl A' z .: y..] (tIdElim A x P hr y (tRefl A' z)) hr.
   Proof.
     intros * [] [] [] [] [] [] [] [] [] [].
-    assert (VId : [_ ||-v<one> tId A x y | VΓ]) by (unshelve eapply IdValid; irrValid).
-    assert [Γ ||-v< one > tRefl A' z : tId A x y | _ | VId].
-    1:{
-      eapply convsym ; [| eapply reflValid; try irrValid].
-      2: eapply conv; irrValid.
-      eapply IdCongValid; try irrValid.
-      eapply transValidTmEq; [eapply symValidTmEq|]; irrValid.
-      Unshelve.
-       1: unshelve eapply IdValid; try eapply conv. 
-       all: try irrValid.
-       Unshelve. all: irrValid.
-    } 
-    unshelve econstructor.
-    5: eapply IdElimReflValid; tea; try irrValid.
-    3: eapply conv; irrValid.
-    2:{
-      eapply conv; [|irrValid].
-      eapply substExtIdElimMotive; cycle 1; tea.
-      + eapply reflValid; irrValid.
-      + irrValid.
-      + eapply reflCongValid; tea; irrValid.
-    }
-    eapply IdElimValid; irrValid.
-    Unshelve. all: tea; try irrValid.
-      unshelve eapply IdValid; irrValid.
+    econstructor.
+    eapply IdElimReflValid; tea; try irrValid.
+    Unshelve. all: try irrValid.
+      + unshelve (eapply IdValid; irrValid); irrValid.
+      + assert (VId : [Γ ||-v<one> tId A x y | VΓ]) by (unshelve (eapply IdValid; irrValid); irrValid).
+        assert [_ ||-v<one> y ≅ z : _ | _ | VA].
+        1: eapply transValidTmEq; [eapply symValidTmEq|]; irrValid.
+        assert [Γ ||-v<one> tId A x y ≅ tId A' z z | _ | VId ].
+        1: eapply IdCongValid; irrValid.
+        eapply conv; [|eapply reflValid, ureflValidTm, conv; irrValid].
+        eapply symValidTyEq; irrValid.
+        Unshelve.
+          2: unshelve eapply ureflValidTy.
+          all: try irrValid.
   Qed.
+
 
 Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) Γ)
     × (forall (Γ : context) (A : term), [Γ |-[ de ] A] -> FundTy (ta := ta) Γ A)
@@ -1233,7 +856,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
       destruct IH ; tea.
       apply Fundamental in Hσ0 as [?? Hσ0].
       cbn in *.
-      eapply reducibleTm in Hσ0.
+      eapply reducibleTmEq in Hσ0.
       eapply Fundamental in HA as [].
       unshelve econstructor.
       1: now eapply validSnoc.
@@ -1256,7 +879,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
       all: now econstructor.
     - inversion HΔ as [|?? HΔ' HA] ; subst ; clear HΔ ; refold.
       destruct IH ; tea.
-      apply Fundamental in Hσ0 as [?? Hσ0 Hτ0 Ηστ] ; cbn in *.
+      apply Fundamental in Hσ0 as [?? Ηστ] ; cbn in *.
       eapply Fundamental in HA as [? HA].
       unshelve econstructor.
       + now eapply validSnoc.
@@ -1264,24 +887,7 @@ Lemma Fundamental : (forall Γ : context, [ |-[ de ] Γ ] -> FundCon (ta := ta) 
         1: now irrValid.
         cbn.
         irrelevanceRefl.
-        now eapply reducibleTm.
-      + unshelve econstructor.
-        1: now eapply irrelevanceSubst.
-        cbn.
-        unshelve irrelevanceRefl.
-        2: now unshelve eapply HA ; tea ; irrValid.
-        cbn.
-        unshelve eapply LRTmRedConv.
-        3: now eapply reducibleTy.
-        * irrelevanceRefl.
-          unshelve eapply HA ; tea.
-          all: now irrValid.
-        * irrelevanceRefl.
-          now eapply reducibleTm.
-      + unshelve econstructor ; cbn in *.
-        * now irrValid.
-        * irrelevanceRefl.
-          now eapply reducibleTmEq.
+        now eapply reducibleTmEq.
   Qed.
 
 End Fundamental.

@@ -7,7 +7,7 @@ From LogRel Require Import LogicalRelation Validity Fundamental.
 From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Transitivity.
 From LogRel.Substitution Require Import Properties Irrelevance.
 
-(** Currently, this is obtained as a consequence of the fundamental lemma. 
+(** Currently, this is obtained as a consequence of the fundamental lemma.
 However, it could be alternatively proven much earlier, by a direct induction. *)
 
 Set Printing Primitive Projection Parameters.
@@ -44,20 +44,14 @@ Proof.
     unshelve eapply transEq.
     4: now apply Vconv.
     2-3: unshelve eapply VB ; tea.
-    all: irrValid.
+    eapply urefl; now eapply irrelevanceSubstEq.
   - intros * Ht * HΔ Hσ.
     unshelve eapply Fundamental_subst_conv in Hσ as [].
     1,3: boundary.
-    apply Fundamental in Ht as [VΓ VA Vt Vu Vtu] ; cbn in *.
+    apply Fundamental in Ht as [VΓ VA Vtu] ; cbn in *.
     unshelve eapply escapeEqTerm.
     2: now unshelve eapply VA ; tea ; irrValid.
-    cbn.
-    eapply transEqTerm.
-    + cbn.
-      unshelve eapply Vtu.
-    + cbn.
-      eapply Vu.
-      all: irrValid.
+    cbn. unshelve eapply Vtu.
 Qed.
 
 
@@ -149,16 +143,16 @@ Section MoreSubst.
 
   Theorem typing_substmap1 Γ T :
   (forall (t : term), [Γ ,, T |- t : T⟨↑⟩] ->
-    forall (A : term), [Γ,, T |- A] -> 
+    forall (A : term), [Γ,, T |- A] ->
       [Γ,, T |- A[t]⇑]) ×
   (forall (t : term), [Γ ,, T |- t : T⟨↑⟩] ->
-    forall (A u : term), [Γ,, T |- u : A] -> 
+    forall (A u : term), [Γ,, T |- u : A] ->
       [Γ,, T |- u[t]⇑ : A[t]⇑]) ×
   (forall (t t' : term), [Γ ,, T |- t ≅ t' : T⟨↑⟩] ->
     forall (A B : term), [Γ,, T |- A ≅ B] ->
       [Γ,, T |- A[t]⇑ ≅ B[t']⇑]) ×
   (forall (t t' : term), [Γ ,, T |- t ≅ t' : T⟨↑⟩] ->
-    forall (A u v : term), [Γ,, T |- u ≅ v : A] -> 
+    forall (A u v : term), [Γ,, T |- u ≅ v : A] ->
       [Γ,, T |- u[t]⇑ ≅ v[t']⇑ : A[t]⇑]).
   Proof.
     repeat match goal with |- _ × _ => split end.

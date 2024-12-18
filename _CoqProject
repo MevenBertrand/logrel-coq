@@ -31,6 +31,8 @@ theories/LogicalRelation/Weakening.v
 theories/LogicalRelation/Universe.v
 theories/LogicalRelation/Neutral.v
 theories/LogicalRelation/Transitivity.v
+theories/LogicalRelation/InstKripke.v
+theories/LogicalRelation/EqRedRight.v
 theories/LogicalRelation/Reduction.v
 theories/LogicalRelation/NormalRed.v
 theories/LogicalRelation/Application.v
