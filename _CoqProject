@@ -30,11 +30,26 @@ theories/TypingProperties/NeutralConvProperties.v
 theories/TypingProperties/NormalisationConsequences.v
 theories/TypingProperties/LogRelConsequences.v
 
+
+theories/LogicalRelation/Definition/Prelude.v
+theories/LogicalRelation/Definition/Universe.v
+theories/LogicalRelation/Definition/Ne.v
+theories/LogicalRelation/Definition/Poly.v
+theories/LogicalRelation/Definition/Pi.v
+theories/LogicalRelation/Definition/Sig.v
+theories/LogicalRelation/Definition/Nat.v
+theories/LogicalRelation/Definition/Empty.v
+theories/LogicalRelation/Definition/Id.v
+theories/LogicalRelation/Definition/Def.v
+theories/LogicalRelation/Definition/Helper.v
+
+
+
 theories/LogicalRelation.v
 theories/LogicalRelation/Induction.v
 theories/LogicalRelation/Escape.v
 theories/LogicalRelation/ShapeView.v
-theories/LogicalRelation/Reflexivity.v
+# theories/LogicalRelation/Reflexivity.v
 theories/LogicalRelation/Irrelevance.v
 theories/LogicalRelation/Weakening.v
 theories/LogicalRelation/Neutral.v
