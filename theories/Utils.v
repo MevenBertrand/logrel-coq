@@ -36,7 +36,7 @@ Definition tr@{u v} {A : Type@{u}} (P : A -> Type@{v}) {x y : A} (e: x = y) : P 
 Lemma lrefl {A R} `{!PER R} {a b : A} : R a b -> R a a.
 Proof.
   intros; etransitivity;[|symmetry]; eassumption.
-Qed.  
+Qed.
 
 #[universes(polymorphic)]
 Lemma urefl {A R} `{!PER R} {a b : A} : R a b -> R b b.
@@ -93,7 +93,7 @@ Notation "[ × P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 , P9 & P10 ]" := (and10 P1 
 
 #[global] Hint Constructors prod and3 and3 and5 and6 and7 and8 and9 : core.
 
-Inductive sigT {A : Type} (P : A -> Type) : Type := 
+Inductive sigT {A : Type} (P : A -> Type) : Type :=
   | existT (projT1 : A) (projT2 : P projT1) : sigT P.
 
 Definition projT1 {A P} (x : @sigT A P) : A := let '(existT _ a _) := x in a.
@@ -116,10 +116,10 @@ Section ReflexiveTransitiveClosure.
   Universe u v.
   Context {A : Type@{u}} (R : A -> A -> Type@{v}).
 
-  Inductive reflTransClos : A -> A -> Type@{v} := 
+  Inductive reflTransClos : A -> A -> Type@{v} :=
   | rtc_refl {x} : reflTransClos x x
   | rtc_step {x y z} : R x y -> reflTransClos y z -> reflTransClos x z.
-  
+
   #[global] Instance rtc_reflexive : Reflexive reflTransClos.
   Proof. constructor; apply rtc_refl. Defined.
 
@@ -151,8 +151,8 @@ Ltac prod_splitter :=
 Ltac prod_hyp_splitter :=
   repeat match goal with
     | H : ∑ _, _ |- _ => destruct H
-    | H : [× _ & _] |- _ => destruct H 
-    | H : [× _, _ & _] |- _ => destruct H 
+    | H : [× _ & _] |- _ => destruct H
+    | H : [× _, _ & _] |- _ => destruct H
     | H : [× _, _, _ & _] |- _ => destruct H
     | H : [× _, _, _, _ & _] |- _ => destruct H
     | H : [× _, _, _, _, _ & _] |- _ => destruct H
@@ -170,6 +170,7 @@ Create HintDb gen_typing.
 #[global] Hint Variables Transparent : gen_typing.
 
 Ltac gen_typing := typeclasses eauto bfs 6 with gen_typing typeclass_instances.
+Ltac gtyping := timeout 2 gen_typing.
 
 (** A general refolding tactic to recover lost typeclasses
   (due for instance to the cbn or constructor tactics).
@@ -243,7 +244,7 @@ Ltac opector :=
     | |- Shelved ?g => change g; gen_shelved_evar_rec
   end; revgoals.
 
-(** To block and unblock hypotheses from the context 
+(** To block and unblock hypotheses from the context
   (see the tactic escape in LogicalRelations/Escape.v for example)*)
 Definition Block (A : Type) := A.
 
