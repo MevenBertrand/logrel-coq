@@ -314,7 +314,51 @@ Section Inversions.
     - now eapply IdRedTy.whredR.
   Defined.
 
-  Definition invLRTy {Γ l A B A'} (lr : [Γ ||-<l> A ≅ B]) (rA : [A ⤳* A']) (w : isType A') :=
+  Definition invLRTyEq {Γ l A B A'} (lr : [Γ ||-<l> A ≅ B]) (w : isType A') :=
+    match w return Type with
+    | UnivType => ∑ (h : [Γ ||-U<l> A ≅ B]), lr = LRU_ h
+    | ProdType => ∑ (h : [Γ ||-Π<l> A ≅ B]), lr = LRPi' h
+    | NatType => ∑ (h : [Γ ||-Nat A ≅ B]), lr = LRNat_ l h
+    | EmptyType => ∑ (h : [Γ ||-Empty A ≅ B]), lr = LREmpty_ l h
+    | SigType => ∑ (h : [Γ ||-Σ<l> A ≅ B]), lr = LRSig' h
+    | IdType => ∑ (h : [Γ||-Id<l> A ≅ B]), lr = LRId' h
+    | NeType _ => ∑ (h : [Γ ||-ne A ≅ B]), lr = LRne_ l h
+    end.
+
+
+  Lemma invLREqL {Γ l A B A'} (lr : [Γ ||-<l> A ≅ B]) (r : [A ⤳* A']) (w : isType A') : invLRTyEq lr w.
+  Proof.
+    unfold invLRTyEq.
+    assert (A' = (whredL lr).(tyred_whnf)); subst.
+    1: eapply whred_det; try apply isType_whnf; tea; gtyping.
+    rewrite (isType_uniq w (whredL lr).(tyred_whnf_isType)).
+    clear r w;  indLR lr; cbn; now intros.
+  Qed.
+
+  Lemma invLREqR {Γ l A B B'} (lr : [Γ ||-<l> A ≅ B]) (r : [B ⤳* B']) (w : isType B') : invLRTyEq lr w.
+  Proof.
+    unfold invLRTyEq; assert (B' = (whredR lr).(tyred_whnf)); subst.
+    1: eapply whred_det; try apply isType_whnf; tea; gtyping.
+    rewrite (isType_uniq w (whredR lr).(tyred_whnf_isType)).
+    clear r w;  indLR lr; cbn; now intros.
+  Qed.
+
+  Lemma invLREqBothL_whred {Γ l lA lB A A' B B'} (RAB : [Γ ||-<l> A ≅ B]) (lrA : [Γ ||-<lA> A ≅ A']) (lrB : [Γ ||-<lB> B ≅ B']) :
+    invLRTyEq lrA (whredL RAB).(tyred_whnf_isType) × invLRTyEq lrB (whredR RAB).(tyred_whnf_isType).
+  Proof. split; apply invLREqL; gtyping. Qed.
+
+  Lemma invLREqBothR_whred {Γ l lA lB A A' B B'} (RAB : [Γ ||-<l> A ≅ B]) (lrA : [Γ ||-<lA> A' ≅ A]) (lrB : [Γ ||-<lB> B' ≅ B]) :
+    invLRTyEq lrA (whredL RAB).(tyred_whnf_isType) × invLRTyEq lrB (whredR RAB).(tyred_whnf_isType).
+  Proof. split; apply invLREqR; gtyping. Qed.
+
+  Lemma invLREqL_whred {Γ l l' A A' B} (RAA' : [Γ ||-<l'> A ≅ A']) (lr : [Γ ||-<l> A ≅ B]) : invLRTyEq lr (whredL RAA').(tyred_whnf_isType).
+  Proof. apply invLREqL; gtyping. Qed.
+
+  Lemma invLREqR_whred {Γ l l' A B B'} (RBB' : [Γ ||-<l'> B ≅ B']) (lr : [Γ ||-<l> A ≅ B]) : invLRTyEq lr (whredL RBB').(tyred_whnf_isType).
+  Proof. apply invLREqR; gtyping. Qed.
+
+
+  Definition invLRTy {Γ l A B A'} (lr : [Γ ||-<l> A ≅ B]) (w : isType A') :=
     match w return Type with
     | UnivType => [Γ ||-U<l> A ≅ B]
     | ProdType => [Γ ||-Π<l> A ≅ B]

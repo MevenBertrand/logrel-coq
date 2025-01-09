@@ -15,7 +15,7 @@ Inductive TypeLevel : Set :=
   | one  : TypeLevel.
 
 Inductive TypeLevelLt : TypeLevel -> TypeLevel -> Set :=
-    | Oi : TypeLevelLt zero one.
+  | Oi : TypeLevelLt zero one.
 
 Notation "A << B" := (TypeLevelLt A B).
 
@@ -29,6 +29,7 @@ Definition elim {l : TypeLevel} (h : l << zero) : False :=
   match h in _ << lz return (match lz with | zero => False | one => True end) with
     | Oi => I
   end.
+
 
 
 (** ** Reducibility of the universe *)
@@ -63,25 +64,54 @@ Export URedTy(URedTy,Build_URedTy).
 
 Notation "[ Γ ||-U< l > A ≅ B ]" := (URedTy l Γ A B) (at level 0, Γ, l, A, B at level 50).
 
+Import EqNotations.
+
+Lemma level_unique `{ta : tag} `{!WfType ta} `{!RedType ta} `{WfContext ta}
+  {Γ lA lB l A A' B B'}
+  (RA : [Γ ||-U<lA> A ≅ A'])
+  (RB : [Γ ||-U<lB> B ≅ B'])
+  (RAB : [Γ ||-U<l> A ≅ B]) : RA.(URedTy.level) = RB.(URedTy.level).
+Proof.
+  (* If we introduce more universes this lemma should still hold because
+    RAB entails that A ⤳* U RAB.(level), B ⤳* U RAB.(level)
+    also A ⤳* RA.(level) and B ⤳* RB.(level) and by determinism of reduction
+    RA.(level) = RAB.(level) = RB.(level)
+  *)
+  destruct RA as [? []], RB as [? []]; reflexivity.
+Qed.
+
+Lemma level_unique' `{ta : tag} `{!WfType ta} `{!RedType ta} `{WfContext ta}
+  {Γ lA lB l A A' B B'}
+  (RA : [Γ ||-U<lA> A' ≅ A])
+  (RB : [Γ ||-U<lB> B' ≅ B])
+  (RAB : [Γ ||-U<l> A ≅ B]) : RA.(URedTy.level) = RB.(URedTy.level).
+Proof.
+  (* If we introduce more universes this lemma should still hold because
+    RAB entails that A ⤳* U RAB.(level), B ⤳* U RAB.(level)
+    also A ⤳* RA.(level) and B ⤳* RB.(level) and by determinism of reduction
+    RA.(level) = RAB.(level) = RB.(level)
+  *)
+  destruct RA as [? []], RB as [? []]; reflexivity.
+Qed.
+
 Module URedTm.
 
-  Record URedTm@{i j} `{ta : tag} `{WfContext ta} `{WfType ta}
+  (* TODO: clean required typeclasses *)
+  Record URedTm `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
-    {l} {rec : forall {l'}, l' << l -> RedRel@{i j}}
-    {Γ : context} {t A B : term} {R : [Γ ||-U<l> A ≅ B]}
-  : Type@{j} := {
+    {level : TypeLevel} {Γ : context} {t : term}
+  : Set := {
     te : term;
-    red : [ Γ |- t :⤳*: te : U ];
+    red : [ Γ |- t :⤳*: te : U (* level *) ];
     type : isType te;
   }.
 
-  Arguments URedTm {_ _ _ _ _ _ _ _} rec.
+  Arguments URedTm {_ _ _ _ _ _ _}.
 
   Definition whred `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
-    {l} {rec : forall l', l' << l -> RedRel}
-    {Γ : context} {t A B : term} {R : [Γ ||-U<l> A ≅ B]} :
-    URedTm rec Γ t A B R -> [Γ |- t ↘  U].
+    {l} {Γ : context} {t: term} :
+    URedTm l Γ t -> [Γ |- t ↘  U].
   Proof. intros []; gtyping. Defined.
 
   Record URedTmEq@{i j} `{ta : tag} `{WfContext ta} `{WfType ta}
@@ -89,10 +119,10 @@ Module URedTm.
     {l} {rec : forall {l'}, l' << l -> RedRel@{i j}}
     {Γ : context} {t u A B : term} {R : [Γ ||-U<l> A ≅ B]}
   : Type@{j} := {
-      redL : URedTm (@rec) Γ t A B R ;
-      redR : URedTm (@rec) Γ u A B R ;
+      redL : URedTm R.(URedTy.level) Γ t ;
+      redR : URedTm R.(URedTy.level) Γ u ;
       eq   : [ Γ |- redL.(te) ≅ redR.(te) : U ];
-      (* relEq : [ rec R.(URedTy.lt) | Γ ||- t ≅ u ] ; *)
+      relEq : [ rec R.(URedTy.lt) | Γ ||- t ≅ u ] ;
   }.
 
   Arguments URedTmEq {_ _ _ _ _ _ _ _} rec.
