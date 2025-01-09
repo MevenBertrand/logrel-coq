@@ -18,12 +18,13 @@ Reserved Notation "[ Γ |- A ~* B ]".
 Reserved Notation "[ Γ |- t ~> u # A ]".
 Reserved Notation "[ Γ |- t ~* u # A ]".
 
+Unset Elimination Schemes.
+
 Inductive ConvCont : context -> context -> Type :=
   | connil :
       [ |- ε ≡ ε ]
   | concons {Γ Γ' A B} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ ≡ Γ' |- A ≡ B]
+      [ Γ ≡ Γ' |- A ≡ B]
    -> [ |- Γ ,, A ≡ Γ' ,, B]
 with ConvTy : forall (_ _ : context) (_ _ : term), Type :=
   | tyNat {Γ Γ' A B} :
@@ -32,8 +33,7 @@ with ConvTy : forall (_ _ : context) (_ _ : term), Type :=
    -> [ Γ' |- B ~* tNat ]
    -> [ Γ ≡ Γ' |- A ≡ B ]
   | tyProd {Γ Γ' A B Dom Dom' Cod Cod'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ |- A ~* tProd Dom Cod ]
+      [ Γ |- A ~* tProd Dom Cod ]
    -> [ Γ' |- B ~* tProd Dom' Cod' ]
    -> [ Γ ≡ Γ' |- Dom ≡ Dom' ]
    -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]
@@ -48,24 +48,21 @@ with ConvTm : forall (_ _ : context) (_ _ : term) (_ _ : term), Type :=
    -> [ Γ' |- t' ~* tZero # tNat ]
    -> [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]
   | tmSucc {Γ Γ' A B t t' u u'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ |- A ~* tNat ]
-   -> [ Γ |- B ~* tNat ]
+      [ Γ |- A ~* tNat ]
+   -> [ Γ' |- B ~* tNat ]
    -> [ Γ |- t ~* tSucc u # tNat ]
    -> [ Γ' |- t' ~* tSucc u' # tNat ]
    -> [ Γ ≡ Γ' |- u ≡ u' # tNat ≡ tNat ]
    -> [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]
   | tmNeNat {Γ Γ' A A' B B' t t' n n'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ |- t ~* n # tNat ]
-   -> [ Γ |- t' ~* n' # tNat ]
+      [ Γ |- t ~* n # tNat ]
+   -> [ Γ' |- t' ~* n' # tNat ]
    -> [ Γ ≡ Γ' |- n ≡ne n' # A ≡ B ]
    -> [ Γ |- A' ~* tNat ]
-   -> [ Γ |- B' ~* tNat ]
+   -> [ Γ' |- B' ~* tNat ]
    -> [ Γ ≡ Γ' |- t ≡ t' # A' ≡ B' ]
   | tmFun {Γ Γ' A B Dom Dom' Cod Cod' t t'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ |- A ~* tProd Dom Cod ]
+      [ Γ |- A ~* tProd Dom Cod ]
    -> [ Γ' |- B ~* tProd Dom' Cod' ]
    -> [ Γ ≡ Γ' |- Dom ≡ Dom' ]
    -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]
@@ -78,8 +75,7 @@ with ConvNeTm : forall (_ _ : context) (_ _ : term) (_ _ : term), Type :=
    -> in_ctx Γ' n B
    -> [ Γ ≡ Γ' |- tRel n ≡ne tRel n # A ≡ B ]
   | tmNeApp {Γ Γ' A B Dom Dom' Cod Cod' t t' u u'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ ≡ Γ' |- t ≡ne t' # A ≡ B ]
+      [ Γ ≡ Γ' |- t ≡ne t' # A ≡ B ]
    -> [ Γ |- A ~* tProd Dom Cod ]
    -> [ Γ' |- B ~* tProd Dom' Cod' ]
    -> [ Γ ≡ Γ' |- Dom ≡ Dom' ]
@@ -96,23 +92,23 @@ with RedTy : forall (_ : context) (_ _ : term), Type :=
    -> [ Γ |- B ~* C ]
    -> [ Γ |- A ~* C ]
 with RedTmStep : forall (_ : context) (_ _ _ : term), Type :=
-  | redBeta {Γ A B C t u} :
-      [ |- Γ ≡ Γ ]
-   -> [ Γ ≡ Γ |- A ≡ A ]
+  | redBeta {Γ A B t u out outTy} :
+      [ Γ ≡ Γ |- A ≡ A ]
    -> [ Γ ,, A ≡ Γ ,, A |- B ≡ B ]
    -> [ Γ ,, A ≡ Γ ,, A |- t ≡ t # B ≡ B ]
    -> [ Γ ≡ Γ |- u ≡ u # A ≡ A ]
-   -> [ Γ ≡ Γ |- B[u..] ≡ C ]
-   -> [ Γ |- tApp (tLambda A t) u ~> t[u..] # C ]
-  | redAppHead {Γ A B C t t' u} :
-      [ |- Γ ≡ Γ]
-   -> [ Γ ≡ Γ |- A ≡ A ]
+   -> out = t[u..]
+   -> outTy = B[u..]
+   -> [ Γ |- tApp (tLambda A t) u ~> out # outTy ]
+  | redAppHead {Γ A B t t' u out outTy} :
+      [ Γ ≡ Γ |- A ≡ A ]
    -> [ Γ ,, A ≡ Γ ,, A |- B ≡ B ]
    -> [ Γ ≡ Γ |- t' ≡ t' # tProd A B ≡ tProd A B ]
    -> [ Γ |- t ~> t' # tProd A B ]
    -> [ Γ ≡ Γ |- u ≡ u # A ≡ A ]
-   -> [ Γ ≡ Γ |- B[u..] ≡ C ]
-   -> [ Γ |- tApp t u ~> tApp t' u # C ]
+   -> out = tApp t' u
+   -> outTy = B[u..]
+   -> [ Γ |- tApp t u ~> out # outTy ]
 with RedTm : forall (_ : context) (_ _ _ : term), Type :=
   | redTmDone {Γ A t} :
       [ Γ |- t ~* t # A ]
@@ -130,6 +126,68 @@ with RedTm : forall (_ : context) (_ _ _ : term), Type :=
     and "[ Γ |- t ~> u # A ]" := (RedTmStep Γ A t u)
     and "[ Γ |- t ~* u # A ]" := (RedTm Γ A t u).
 
+(* Maybe try with a specific conversion relation at each whnf type *)
+(* Also separate reduction and conversion more cleanly *)
+
+Scheme ConvCont_rect_nodep := Minimality for ConvCont Sort Type
+  with ConvTy_rect_nodep := Minimality for ConvTy Sort Type
+  with ConvTm_rect_nodep := Minimality for ConvTm Sort Type
+  with ConvNeTy_rect_nodep := Minimality for ConvNeTy Sort Type
+  with ConvNeTm_rect_nodep := Minimality for ConvNeTm Sort Type
+  with RedTyStep_rect_nodep := Minimality for RedTyStep Sort Type
+  with RedTy_rect_nodep := Minimality for RedTy Sort Type
+  with RedTmStep_rect_nodep := Minimality for RedTmStep Sort Type
+  with RedTm_rect_nodep := Minimality for RedTm Sort Type.
+
+
+Lemma ConvTy_ConvCont : forall {Γ Γ' A B}, [ Γ ≡ Γ' |- A ≡ B ] -> [ |- Γ ≡ Γ' ]
+ with ConvTm_ConvCont : forall {Γ Γ' A B t u}, [ Γ ≡ Γ' |- t ≡ u # A ≡ B ] -> [ |- Γ ≡ Γ' ]
+ with ConvNeTm_ConvCont : forall {Γ Γ' A B t u}, [ Γ ≡ Γ' |- t ≡ne u # A ≡ B ] -> [ |- Γ ≡ Γ' ].
+Proof.
+  - move=> ???? [].
+    * tauto.
+    * move=> *.
+      eapply ConvTy_ConvCont; eassumption.
+  - move=> ?????? [].
+    * tauto.
+    * move=> *.
+      eapply ConvTm_ConvCont; eassumption.
+    * move=> *.
+      eapply ConvNeTm_ConvCont; eassumption.
+    * move=> *.
+      eapply ConvTy_ConvCont; eassumption.
+  - move=> ?????? [].
+    * tauto.
+    * move=> *.
+      eapply ConvNeTm_ConvCont; eassumption.
+Defined.
+
+Fixpoint ConvTm_ConvTy {Γ Γ' t t' A B}
+  (H : [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ])
+  : [ Γ ≡ Γ' |- A ≡ B ].
+Proof.
+  inversion H.
+  - eapply tyNat; eassumption.
+  - eapply tyNat; [eapply ConvTm_ConvCont|..]; eassumption.
+  - eapply tyNat; [eapply ConvNeTm_ConvCont|..]; eassumption.
+  - eapply tyProd; eassumption.
+Defined.
+
+Fixpoint ConvCtx_wk {Γ Γ' Δ Δ'}
+  (H : [ |- Γ ≡ Γ' ])
+  (o ).
+
+Fixpoint ConvNeTm_ConvTy {Γ Γ' t t' A B}
+  (H : [ Γ ≡ Γ' |- t ≡ne t' # A ≡ B ])
+  : [ Γ ≡ Γ' |- A ≡ B ].
+Proof.
+  inversion H.
+  - eapply tyNat; eassumption.
+  - eapply tyNat; [eapply ConvTm_ConvCont|..]; eassumption.
+  - eapply tyNat; [eapply ConvNeTm_ConvCont|..]; eassumption.
+  - eapply tyProd; eassumption.
+Defined.
+
 Lemma reflNat {Γ Γ'} :
   [ |- Γ ≡ Γ' ]
   -> [ Γ ≡ Γ' |- tNat ≡ tNat ].
@@ -141,24 +199,101 @@ Proof.
   - apply redTyDone.
 Defined.
 
+Fixpoint redDet {Γ t u u' A A'}
+  (H1 : [ Γ |- t ~> u # A ])
+  (H2 : [ Γ |- t ~> u' # A' ])  :
+   u = u'.
+Proof.
+  inversion H1; inversion H2; subst.
+    - inversion H11; subst. reflexivity.
+    - inversion H11; subst. inversion X6.
+    - inversion H11; subst. inversion X2.
+    - inversion H11; subst. f_equal. eapply redDet; eassumption.
+Defined.
+
+Fixpoint norm {Γ Γ' t t' A A'}
+  (H : [ Γ ≡ Γ' |- t ≡ t' # A ≡ A' ]) :
+  term
+  with normNe {Γ Γ' t t' A A'}
+  (H : [ Γ ≡ Γ' |- t ≡ne t' # A ≡ A' ]) : term
+  with normTy {Γ Γ' A A'}
+  (H : [ Γ ≡ Γ' |- A ≡ A' ]) : term
+  with normCtx {Γ Γ'}
+  (H : [ |- Γ ≡ Γ' ]) : context.
+Proof.
+  - inversion H.
+    + exact tZero.
+    + refine (tSucc _). eapply norm; exact X3.
+    + eapply normNe; exact X1.
+    + refine (tProd _ _).
+      * eapply normTy; exact X1.
+      * eapply norm; exact X3.
+  - inversion H.
+    + exact (tRel n).
+    + refine (tApp _ _).
+      * eapply normNe; exact X.
+      * eapply norm; exact X4.
+  - inversion H.
+    + exact tNat.
+    + refine (tProd _ _).
+      * eapply normTy; exact X1.
+      * eapply normTy; exact X2.
+  - inversion H.
+    + exact ε.
+    + refine (_ ,, _).
+      * eapply normTy; exact X.
+      * eapply normCtx; eapply ConvTy_ConvCont; exact X.
+Defined.
+
+Fixpoint normCorrect {Γ Γ' t t' A A'}
+  (H : [ Γ ≡ Γ' |- t ≡ t' # A ≡ A' ])
+  : ([ normCtx (ConvTm_ConvCont H) ≡ Γ' |- norm H ≡ t' # normTy (ConvTm_ConvTy H) ≡ A' ])
+  with normNeCorrect {Γ Γ' t t' A A'}
+  (H : [ Γ ≡ Γ' |- t ≡ne t' # A ≡ A' ])
+  : [ normCtx (ConvNeTm_ConvCont H) ≡ Γ' |- normNe H ≡ne t' # normTy (ConvNeTm_ConvTy H) ≡ A' ]
+  with normTyCorrect {Γ Γ' A A'}
+  (H : [ Γ ≡ Γ' |- A ≡ A' ]) :
+  term.
+
+
 Example id (t := tLambda tNat (tRel 0)) (A := tProd tNat tNat) :
   [ ε ≡ ε |- t ≡ t # A ≡ A ].
 Proof.
   assert ([ |- ε ,, tNat ≡ ε ,, tNat ]).
-  { apply concons; [apply connil| apply reflNat ; apply connil]. }
+  { apply concons; apply reflNat ; apply connil. }
   eapply tmFun.
-  - apply connil.
   - apply redTyDone.
   - apply redTyDone.
   - apply reflNat; apply connil.
   - apply reflNat; assumption.
-  - eapply tmNeNat.
-    + assumption.
-    + eapply redTmStep; [|apply redTmDone].
+  - assert [ε,, tNat |- tApp t⟨↑⟩ (tRel 0) ~* tRel 0 # tNat].
+    { eapply redTmStep; [|apply redTmDone].
       eapply redBeta.
-      * assumption.
       * apply reflNat; assumption.
-      * apply reflNat; apply concons; [assumption| apply reflNat; assumption].
-      * 
-    + eapply redTmStep.
-    + eapply (tmNeApp (Cod := tNat) (Cod' := tNat)).
+      * apply reflNat; apply concons; apply reflNat; assumption.
+      * eapply tmNeNat.
+        -- apply redTmDone.
+        -- apply redTmDone.
+        -- apply tmNeVar;[ | apply in_here | apply in_here].
+           apply concons; apply reflNat; assumption.
+        -- apply redTyDone.
+        -- apply redTyDone.
+      * eapply tmNeNat.
+        -- apply redTmDone.
+        -- apply redTmDone.
+        -- apply tmNeVar;[ | apply in_here | apply in_here].
+           assumption.
+        -- apply redTyDone.
+        -- apply redTyDone.
+      * reflexivity.
+      * reflexivity. }
+    eapply tmNeNat.
+    + eassumption.
+    + eassumption.
+    + eapply tmNeVar.
+      * assumption.
+      * apply in_here.
+      * apply in_here.
+    + eapply redTyDone.
+    + eapply redTyDone.
+Defined.
