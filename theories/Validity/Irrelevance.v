@@ -1,3 +1,4 @@
+From Coq Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Irrelevance Reflexivity Transitivity.
 From LogRel.Validity Require Import Validity.
@@ -24,14 +25,14 @@ Proof.
     all: irrelevanceCum.
 Qed.
 
-Fail Fail Constraint u1 < v1.
-Fail Fail Constraint v1 < u1.
-Fail Fail Constraint u2 < v2.
-Fail Fail Constraint v2 < u2.
-Fail Fail Constraint u3 < v3.
-Fail Fail Constraint v3 < u3.
-Fail Fail Constraint u4 < v4.
-Fail Fail Constraint v4 < u4.
+Succeed Constraint u1 < v1.
+Succeed Constraint v1 < u1.
+Succeed Constraint u2 < v2.
+Succeed Constraint v2 < u2.
+Succeed Constraint u3 < v3.
+Succeed Constraint v3 < u3.
+Succeed Constraint u4 < v4.
+Succeed Constraint v4 < u4.
 
 End VRIrrelevant.
 

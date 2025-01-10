@@ -1,4 +1,4 @@
-From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation EqRedRight.
 
 Set Primitive Projections.
 Set Universe Polymorphism.

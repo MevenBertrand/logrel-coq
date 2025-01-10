@@ -1,5 +1,5 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Reflexivity Irrelevance Escape.
+From LogRel.LogicalRelation Require Import Induction Reflexivity Irrelevance Escape Transitivity.
 
 Set Universe Polymorphism.
 

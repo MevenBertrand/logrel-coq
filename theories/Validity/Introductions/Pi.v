@@ -1,7 +1,7 @@
 From Coq Require Import ssrbool.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Escape Reflexivity Neutral Weakening Irrelevance.
-From LogRel.Validity Require Import Validity Irrelevance Properties Universe Poly.
+From LogRel.LogicalRelation Require Import Escape Reflexivity Neutral Weakening Irrelevance Induction NormalRed EqRedRight.
+From LogRel.Validity Require Import Validity Irrelevance Properties SingleSubst Reflexivity Universe Poly.
 
 Set Universe Polymorphism.
 

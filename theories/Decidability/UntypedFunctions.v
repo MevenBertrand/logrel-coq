@@ -227,7 +227,7 @@ Equations uconv_ne : (term × term) -> M unit :=
   | ne_anomaly _ _ => undefined
 }.
 
-Equations _uconv : ∇ _ : uconv_state × term × term, Sing wh_red  ⇒ exn errors ♯ unit :=
+Equations _uconv : ∇ _ : uconv_state × term × term, [Sing wh_red]⇒[exn errors] unit :=
   (* | (ty_state,ts) := uconv_ty ts;
   | (ty_red_state,ts) := uconv_ty_red ts ; *)
   | (tm_state,ts) := uconv_tm ts ;

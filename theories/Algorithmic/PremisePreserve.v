@@ -50,7 +50,7 @@ Section MetaCoqLocallyNameless.
     | tProj proj t => to_ident_set t
     | tFix mfix idx => to_set (fun d => IdentSet.union (to_ident_set d.(dtype)) (to_ident_set d.(dbody))) mfix
     | tCoFix mfix idx => to_set (fun d => IdentSet.union (to_ident_set d.(dtype)) (to_ident_set d.(dbody))) mfix
-    | tInt _ | tFloat _ | tArray _ _ _ _ => IdentSet.empty
+    | tInt _ | tFloat _ | tArray _ _ _ _ | tString _ => IdentSet.empty
     end.
 
     Definition fresh (i : ident) (s : IdentSet.t) : ident :=

@@ -792,7 +792,7 @@ Section CtxTyping.
 
 Variable conv : (context × term × term) ⇀ exn errors unit.
 
-  Equations check_ctx : ∇ (Γ : context), [Sing typing]⇒[exn errors] unit :=
+  Equations check_ctx : ∇ (Γ : context), [Sing (typing conv)]⇒[exn errors] unit :=
     check_ctx ε := ret tt ;
     check_ctx (Γ,,A) :=
       rec Γ ;;[combined_orec (exn _) _ _ _]
