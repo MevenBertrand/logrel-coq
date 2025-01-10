@@ -1,5 +1,5 @@
 From LogRel.AutoSubst Require Import core unscoped.
-From LogRel Require Import BasicAst.
+From LogRel.Syntax Require Import BasicAst.
 From Coq Require Import Setoid Morphisms Relation_Definitions.
 
 

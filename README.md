@@ -22,13 +22,12 @@ Browsing the development
 
 The development, rendered using `coqdoc`, can be [browsed online](https://coqhott.github.io/logrel-coq/). A dependency graph for the project is available [here](https://coqhott.github.io/logrel-coq/dependency_graph.png).
 
-Syntax (re)generation
-============
+Syntax regeneration
+====================
 
-The syntax boilerplate has been generated using AutoSubst OCaml from the root folder, with the options `-s ucoq -v ge813 -no-static -p ./theories/AutoSubst/Ast_preamble` (see the [AutoSubst OCaml documentation](https://github.com/uds-psl/autosubst-ocaml) for installation instructions). Currently, this package works only with older version of Coq (8.14), so we cannot add a recipe to the MakeFile for automatically
-re-generating the syntax.
+For simplicity, we include the syntax file (`Ast.v`) generated using [autosubst-ocaml](https://github.com/uds-psl/autosubst-ocaml).
 
-**If you wish to regenerate the syntax** by hand, you need to install AutoSubst from source using Coq 8.14, and use it with the previous options.
+It can be re-generated using the `make autosubst` recipe, once `autosubst-ocaml` has been installed. Note that we include modified versions of the `core` and `unscoped` files, which fix their dependency inclusion. Thus, when the recipe offers to overwrite these, one should choose __not to__, and only let AutoSubst overwrite `Ast.v`.
 
 Getting started with using the development
 =================

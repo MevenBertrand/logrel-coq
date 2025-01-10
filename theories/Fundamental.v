@@ -1,10 +1,8 @@
 (** * LogRel.Fundamental: declarative typing implies the logical relation for any generic instance. *)
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening
-  DeclarativeTyping GenericTyping LogicalRelation Validity.
+From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Escape Irrelevance Reflexivity Transitivity Universe Weakening Neutral Induction NormalRed.
-From LogRel.Substitution Require Import Irrelevance Properties Conversion Reflexivity SingleSubst Escape.
-From LogRel.Substitution.Introductions Require Import Application Universe Pi Lambda Var Nat Empty SimpleArr Sigma Id.
+From LogRel.Validity Require Import Validity Irrelevance Properties Conversion Reflexivity SingleSubst Escape.
+From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Empty SimpleArr Sigma Id.
 
 Set Primitive Projections.
 Set Universe Polymorphism.

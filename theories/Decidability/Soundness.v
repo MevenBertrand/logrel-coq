@@ -1,9 +1,8 @@
 (** * LogRel.Decidability.Soundness: the implementations imply the inductive predicates. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context Notations UntypedReduction GenericTyping NormalForms.
-From LogRel Require Import AlgorithmicTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping AlgorithmicTyping.
+
 From LogRel.Decidability Require Import Functions.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
@@ -144,10 +143,64 @@ Section CtxAccessCorrect.
 End CtxAccessCorrect.
 
 Ltac funelim_conv :=
-  funelim (conv _); 
+  funelim (_conv _); 
     [ funelim (conv_ty _) | funelim (conv_ty_red _) | 
       funelim (conv_tm _) | funelim (conv_tm_red _) | 
       funelim (conv_ne _) | funelim (conv_ne_red _) ].
+
+Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
+Proof.
+  destruct T ; cbn.
+  all: inversion 1.
+  all: inversion 1.
+Qed.
+
+Lemma tm_view1_neutral_can t n : build_nf_view1 t = nf_view1_ne n -> ~ isCanonical t.
+Proof.
+  destruct t ; cbn.
+  all: inversion 1.
+  all: inversion 1.
+Qed.
+
+Lemma ty_view2_neutral_can T V : build_nf_ty_view2 T V = ty_neutrals T V -> ~ isCanonical T × ~ isCanonical V.
+Proof.
+  destruct T, V ; cbn.
+  all: inversion 1.
+  all: split ; inversion 1.
+Qed.
+
+
+Lemma whnf_view3_ty_neutral_can s t u : build_nf_view3 (tSort s) t u = types s (ty_neutrals t u) -> ~ isCanonical t × ~ isCanonical u.
+Proof.
+  destruct t, u ; cbn.
+  all: inversion 1.
+  all: split ; inversion 1.
+Qed.
+
+Lemma whnf_view3_neutrals_can A t u :
+  whnf A ->
+  build_nf_view3 A t u = neutrals A t u ->
+  [× isPosType A, ~ isCanonical t & ~ isCanonical u].
+Proof.
+  intros HA.
+  simp build_nf_view3.
+  destruct (build_ty_view1 A) eqn:EA ; cbn.
+  all: try solve [inversion 1].
+  1: match goal with | |- context [match ?t with | _ => _ end] => destruct t eqn:? ; cbn end ;
+    try solve [inversion 1].
+  all: simp build_nf_view3 ; cbn.
+  all: destruct (build_nf_view1 t) eqn:? ; cbn.
+  all: try solve [inversion 1].
+  all: repeat (
+    match goal with | |- context [match ?t with | _ => _ end] => destruct t eqn:? ; cbn end ;
+    try solve [inversion 1]).
+  all: intros _.
+  all: split ; try solve [now eapply tm_view1_neutral_can].
+  all: econstructor.
+  eapply ty_view1_small_can in EA.
+  destruct HA ; try easy.
+  all: exfalso ; apply EA ; now constructor.
+Qed.
 
 Section ConversionSound.
 
@@ -158,16 +211,16 @@ Section ConversionSound.
   match x, r with
   | _, (exception _) => True
   | (ty_state;Γ;_;T;V), (success _) =>  [Γ |-[al] T ≅ V]
-  | (ty_red_state;Γ;_;T;V), (success _) => [Γ |-[al] T ≅h V]
+  | (ty_red_state;Γ;_;T;V), (success _) => whnf T -> whnf V -> [Γ |-[al] T ≅h V]
   | (tm_state;Γ;A;t;u), (success _) => [Γ |-[al] t ≅ u : A]
   | (tm_red_state;Γ;A;t;u), (success _) =>
       whnf A -> whnf t -> whnf u -> [Γ |-[al] t ≅h u : A]
-  | (ne_state;Γ;_;m;n), (success T) => [Γ |-[al] m ~ n ▹ T]
-  | (ne_red_state;Γ;_;m;n), (success T) => [Γ |-[al] m ~h n ▹ T] × whnf T
+  | (ne_state;Γ;_;m;n), (success T) => whne m -> whne n -> [Γ |-[al] m ~ n ▹ T]
+  | (ne_red_state;Γ;_;m;n), (success T) => whne m -> whne n -> [Γ |-[al] m ~h n ▹ T] × whnf T
   end.
 
   Lemma _implem_conv_sound :
-    funrect conv (fun _ => True) conv_sound_type.
+    funrect _conv (fun _ => True) conv_sound_type.
   Proof.
     intros x _.
     funelim_conv ; cbn.
@@ -180,14 +233,17 @@ Section ConversionSound.
       | |- context [match ?t with | _ => _ end] => destruct t ; cbn ; try easy
       | s : sort |- _ => destruct s
       | H : graph wh_red _ _ |- _ => eapply red_sound in H as []
-      | H : (_;_;_;_) = (_;_;_;_) |- _ => injection H; clear H; intros; subst 
+      | H : (_;_;_;_) = (_;_;_;_) |- _ => injection H; clear H; intros; subst
+      | H : (build_nf_ty_view2 _ _ = ty_neutrals _ _) |- _ =>
+          eapply ty_view2_neutral_can in H as [?%not_can_whne ?%not_can_whne] ; tea
+      | H : (build_nf_view3 (tSort _) _ _ = types _ (ty_neutrals _ _)) |- _ =>
+        eapply whnf_view3_ty_neutral_can in H as [?%not_can_whne ?%not_can_whne] ; tea
+      | H : (build_nf_view3 _ _ _ = neutrals _ _ _) |- _ =>
+        eapply whnf_view3_neutrals_can in H as [? ?%not_can_whne ?%not_can_whne] ; tea
       end).
+    all: repeat match goal with | H : whne (_ _) |- _ => inversion_clear H end.
     all: try solve [now econstructor].
-    - econstructor ; tea.
-      now econstructor.
-    - econstructor ; tea.
-      destruct H ; simp build_nf_view3 build_ty_view1 in Heq ; try solve [inversion Heq].
-      all: try now econstructor.
+    - econstructor ; eauto. econstructor.
     - econstructor; tea; [intuition (auto with *)| now rewrite 2!Weakening.wk1_ren_on].
     - eapply convne_meta_conv.
       2: reflexivity.
@@ -196,11 +252,14 @@ Section ConversionSound.
       + f_equal.
         symmetry.
         now eapply Nat.eqb_eq.
-    - split; tea. now econstructor.
+    - split; tea. econstructor ; eauto.
   Qed.
 
-  Corollary implem_conv_sound x r :
-    graph conv x r ->
+  Arguments conv_full_cod _ /.
+  Arguments conv_cod _/.
+
+  Corollary implem_conv_graph x r :
+    graph _conv x r ->
     conv_sound_type x r.
   Proof.
     eapply funrect_graph.
@@ -208,23 +267,41 @@ Section ConversionSound.
     easy.
   Qed.
 
+  Corollary implem_tconv_sound Γ T V :
+    graph tconv (Γ,T,V) ok ->
+    [Γ |-[al] T ≅ V].
+  Proof.
+    assert (funrect tconv (fun _ => True)
+      (fun '(Γ,T,V) r => match r with | success _ => [Γ |-[al] T ≅ V] | _ => True end)) as Hrect.
+    {
+     intros ? _.
+     funelim (tconv _) ; cbn.
+     intros [] ; cbn ; [|easy].
+     eintros ?%funrect_graph.
+     2: now apply _implem_conv_sound.
+     all: now cbn in *.
+    }
+    eintros ?%funrect_graph.
+    2: eassumption.
+    all: now cbn in *.
+  Qed.
+
 End ConversionSound.
 
 Ltac funelim_typing :=
-  funelim (typing _); 
-    [ funelim (typing_inf _) | 
-      funelim (typing_check _) |
-      funelim (typing_inf_red _) | 
-      funelim (typing_wf_ty _) ].
+  funelim (typing _ _); 
+    [ funelim (typing_inf _ _) | 
+      funelim (typing_check _ _) |
+      funelim (typing_inf_red _ _) | 
+      funelim (typing_wf_ty _ _) ].
 
-Section TypingCorrect.
+Section TypingSound.
 
-  Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
-  Proof.
-    destruct T ; cbn.
-    all: inversion 1.
-    all: inversion 1.
-  Qed.
+  Variable conv : (context × term × term) ⇀ exn errors unit.
+
+  Hypothesis conv_sound : forall Γ T V,
+    graph conv (Γ,T,V) ok ->
+    [Γ |-[al] T ≅ V].
 
   #[universes(polymorphic)]Definition typing_sound_type
     (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term)
@@ -237,9 +314,8 @@ Section TypingCorrect.
   | (check_state;Γ;T;t), (success _) => [Γ |-[al] t ◃ T]
   end.
 
-
   Lemma _implem_typing_sound :
-    funrect typing (fun _ => True) typing_sound_type.
+    funrect (typing conv) (fun _ => True) typing_sound_type.
   Proof.
     intros x _.
     funelim_typing ; cbn.
@@ -259,10 +335,13 @@ Section TypingCorrect.
       end).
     all: try now econstructor.
     econstructor; tea; now rewrite 2!Weakening.wk1_ren_on.
+    econstructor ; tea.
+    apply conv_sound.
+    now match goal with | H : unit |- _ => destruct H end.
   Qed.
 
   Lemma implem_typing_sound x r:
-    graph typing x r ->
+    graph (typing conv) x r ->
     typing_sound_type x r.
   Proof.
     eapply funrect_graph.
@@ -270,25 +349,21 @@ Section TypingCorrect.
     easy.
   Qed.
 
-End TypingCorrect.
-
-Section CtxTypingSound.
-
   Lemma _check_ctx_sound :
-    funrect check_ctx (fun _ => True) (fun Γ r => if r then [|- Γ] else True).
+    funrect (check_ctx conv) (fun _ => True) (fun Γ r => if r then [|- Γ] else True).
   Proof.
     intros ? _.
-    funelim (check_ctx _) ; cbn.
+    funelim (check_ctx _ _) ; cbn.
     - now constructor.
     - split ; [easy|].
       intros [|] ; cbn ; try easy.
-      intros ? [] ?%implem_typing_sound ; cbn in *.
+      intros ? ? [] ?%implem_typing_sound ; cbn in *.
       2: easy.
       now econstructor.
   Qed.
      
   Lemma check_ctx_sound Γ :
-    graph check_ctx Γ (success tt) ->
+    graph (check_ctx conv) Γ ok ->
     [|-[al] Γ].
   Proof.
     eintros ?%funrect_graph.
@@ -296,4 +371,4 @@ Section CtxTypingSound.
     all: easy.
   Qed.
 
-End CtxTypingSound.
+End TypingSound.

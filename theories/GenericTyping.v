@@ -1,7 +1,6 @@
 (** * LogRel.GenericTyping: the generic interface of typing used to build the logical relation. *)
 From Coq Require Import CRelationClasses ssrbool.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction.
+From LogRel Require Import Utils Syntax.All.
 
 (** In order to factor the work, the logical relation is defined over a generic
 notion of typing (and conversion),
@@ -399,7 +398,7 @@ Section GenericTyping.
 
   Class ConvNeuProperties :=
   {
-    convneu_equiv {Γ A} :: PER (conv_neu_conv Γ A) ;
+    convneu_equiv {Γ A} :: PER (conv_neu_ty Γ A) ;
     convneu_conv {Γ t u A A'} : [Γ |- t ~ u : A] -> [Γ |- A ≅ A'] -> [Γ |- t ~ u : A'] ;
     convneu_wk {Γ Δ t u A} (ρ : Δ ≤ Γ) :
       [|- Δ ] -> [Γ |- t ~ u : A] -> [Δ |- t⟨ρ⟩ ~ u⟨ρ⟩ : A⟨ρ⟩] ;
@@ -570,7 +569,7 @@ Class GenericTypingProperties `(ta : tag)
 #[export] Hint Resolve wft_wk wft_U wft_prod wft_sig wft_Id | 2 : gen_typing.
 #[export] Hint Resolve ty_wk ty_var ty_prod ty_lam ty_app ty_nat ty_empty ty_zero ty_succ ty_natElim ty_emptyElim ty_sig ty_pair ty_fst ty_snd ty_Id ty_refl ty_IdElim| 2 : gen_typing.
 #[export] Hint Resolve convty_wk convty_uni convty_prod convty_sig convty_Id | 2 : gen_typing.
-#[export] Hint Resolve convtm_wk convtm_prod convtm_eta convtm_nat convtm_empty convtm_zero convtm_succ convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
+#[export] Hint Resolve convtm_wk convtm_prod convtm_sig convtm_eta convtm_nat convtm_empty convtm_zero convtm_succ convtm_eta_sig convtm_Id convtm_refl | 2 : gen_typing.
 #[export] Hint Resolve convneu_wk convneu_var convneu_app convneu_natElim convneu_emptyElim convneu_fst convneu_snd convneu_IdElim | 2 : gen_typing.
 #[export] Hint Resolve redty_ty_src redtm_ty_src | 2 : gen_typing.
 (* Priority 4 *)
@@ -1154,7 +1153,6 @@ Section GenericConsequences.
     1: eapply typing_meta_conv; [renToWk; eapply ty_wk; tea;gen_typing|now rewrite wk1_ren_on].
     fold ren_term. bsimpl; rewrite scons_eta'; now asimpl.
   Qed.
-
 
   Lemma lambda_cong {Γ A A' B B' t t'} :
     [Γ |- A] ->

@@ -1,17 +1,26 @@
 (** * LogRel.Decidability: type-checking is decidable. *)
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Context Notations UntypedReduction DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
-From LogRel Require Import AlgorithmicTyping BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping
+  AlgorithmicTyping BundledAlgorithmicTyping AlgorithmicConvProperties
+  AlgorithmicTypingProperties PropertiesDefinition NeutralConvProperties LogRelConsequences.
+
 From LogRel.Decidability Require Import Functions Soundness Completeness Termination.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
-Import AlgorithmicTypingData DeclarativeTypingProperties.
+Import AlgorithmicTypingProperties DeclarativeTypingProperties.
+Set Universe Polymorphism.
 
-Definition inspect {A} (a : A) : {b | a = b} :=
-  exist _ a eq_refl.
+#[local]Existing Instance TypingSubstLogRel.
+#[local]Existing Instance RedCompleteLogRel.
+#[local]Existing Instance TypeConstructorsInjLogRel.
+#[local]Existing Instance NormalisationLogRel.
+#[local]Existing Instance ConvCompleteLogRel.
+#[local]Existing Instance TypingCompleteLogRel.
+
+Definition inspect {A} (a : A) : ∑ b, a = b :=
+  (a;eq_refl).
   
-Notation "x 'eqn:' p" := (exist _ x p) (only parsing, at level 20).
+Notation "x 'eqn:' p" := ((x;p)) (only parsing, at level 20).
 
 #[global]
 Obligation Tactic := idtac.
@@ -19,23 +28,24 @@ Obligation Tactic := idtac.
 Equations check (Γ : context) (t T : term) (hΓ : [|- Γ]) (hT : [Γ |- T]) :
   [Γ |- t : T] + ~[Γ |- t : T] :=
 
-check Γ t T hΓ hT with (inspect (def typing (check_state;Γ;T;t) _)) :=
+check Γ t T hΓ hT with (inspect (def (typing tconv) (check_state;Γ;T;t) _)) :=
   {
     | success _ eqn: e => inl _
     | exception _ eqn: e => inr _
   }.
 Next Obligation.
   intros.
-  now apply typing_terminates.
+  apply typing_terminates ; tea.
+  - apply implem_tconv_sound.
+  - apply tconv_terminates. 
 Qed.
 Next Obligation.
-  intros.
+  intros * e ; cbn in *.
   apply bn_alg_typing_sound.
-  set (Hter := check_obligations_obligation_1 _ _ _ _ _) in *.
-  clearbody Hter.
-  pose proof (def_graph_sound _ _ Hter) as Hgraph.
+  epose proof (def_graph_sound _ _ _) as Hgraph.
   rewrite e in Hgraph.
   apply implem_typing_sound in Hgraph ; cbn in Hgraph.
+  2: apply implem_tconv_sound.
   now constructor.
 Qed.
 Next Obligation.
@@ -43,16 +53,17 @@ Next Obligation.
   set (Hter := check_obligations_obligation_1 _ _ _ _ _) in *.
   clearbody Hter.
   pose proof (def_graph_sound _ _ Hter) as Hgraph.
-  enough (graph typing (check_state;Γ;T;t) ok).
+  enough (graph (typing tconv) (check_state;Γ;T;t) ok).
   {
     eapply orec_graph_functional in Hgraph ; tea.
     assert (ok = exception e0) as [=] by (etransitivity ; eassumption).
   }
-  eapply algo_typing_complete in Hty as [].
+  eapply (tm_compl (ta' := bn)) in Hty as [].
   apply typing_complete.
+  1: now apply implem_conv_complete.
   constructor ; tea.
   econstructor ; tea.
-  now eapply algo_conv_complete.
+  now apply ty_conv_compl.
 Qed.
 
 Print Assumptions check.

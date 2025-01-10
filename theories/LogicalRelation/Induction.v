@@ -1,7 +1,5 @@
 (** * LogRel.LogicalRelation.Induction: good induction principles for the logical relation. *)
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction
-GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 
 Set Universe Polymorphism.
 

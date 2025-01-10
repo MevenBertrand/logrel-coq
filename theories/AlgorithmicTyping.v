@@ -1,7 +1,6 @@
 (** * LogRel.AlgorithmicTyping: definition of algorithmic conversion and typing. *)
 From Coq Require Import ssrbool.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms Weakening UntypedReduction GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping.
 
 Section Definitions.
 
@@ -40,6 +39,8 @@ Section Definitions.
       [ Γ |- y ≅ y' : A] ->
       [ Γ |- tId A x y ≅h tId A' x' y']
     | typeNeuConvAlg {Γ M N T} :
+      whne M ->
+      whne N ->
       [ Γ |- M ~ N ▹ T] -> 
       [ Γ |- M ≅h N]
   (** **** Conversion of neutral terms *)
@@ -71,7 +72,7 @@ Section Definitions.
     | neuSndCongAlg {Γ m n A B} :
       [ Γ |- m ~h n ▹ tSig A B ] ->
       [ Γ |- tSnd m ~ tSnd n ▹ B[(tFst m)..] ]
-    | neuIdEmlimCong {Γ A A' A'' x x' x'' P P' hr hr' y y' y'' e e'} :
+    | neuIdElimCong {Γ A A' A'' x x' x'' P P' hr hr' y y' y'' e e'} :
       [Γ |- e ~h e' ▹ tId A'' x'' y''] ->
       (* [Γ |- A'' ] -> *)
       (* [Γ |- A'' ≅ A] -> *)
@@ -79,11 +80,11 @@ Section Definitions.
       (* [Γ |- x'' ≅ x : A] -> *)
       (* [Γ |- y'' ◃ A] -> *)
       (* [Γ |- y'' ≅ y : A] -> *)
-      [Γ |- A ≅ A'] ->
+      (* [Γ |- A ≅ A'] ->
       [Γ |- x ≅ x' : A] ->
+      [Γ |- y ≅ y' : A] -> *)
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
       [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
-      [Γ |- y ≅ y' : A] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' ▹ P[e .: y..] ]
   (** **** Conversion of neutral terms at a type reduced to weak-head normal form*)
   with ConvNeuRedAlg : context -> term -> term -> term -> Type :=
@@ -136,8 +137,6 @@ Section Definitions.
       [Γ |- y ≅ y' : A] ->
       [Γ |- tId A x y ≅h tId A' x' y' : U]
     | termIdReflCong {Γ A A' A'' x x' y y'} :
-      [Γ |- A ≅ A'] ->
-      [Γ |- x ≅ x' : A] ->
       [Γ |- tRefl A x ≅h tRefl A' x' : tId A'' y y' ]
     | termNeuConvAlg {Γ m n T P} :
       [Γ |- m ~ n ▹ T] ->
@@ -456,7 +455,9 @@ Section TypingWk.
       now eapply IHB.
     - intros; now econstructor.
     - intros.
-      now econstructor.
+      econstructor.
+      3: easy.
+      all: now apply whne_ren.
     - intros * ? ? ?.
       eapply convne_meta_conv.
       1: econstructor ; eauto using in_ctx_wk.
@@ -496,7 +497,7 @@ Section TypingWk.
     - intros ??? A? ? IH *; cbn.
       rewrite (subst_ren_wk_up (A:=A)).
       econstructor; now eapply IH.
-    - intros * ? IHe (*?? ?? ??*) ?? ?? ? IHp **; erewrite <-2!wk_idElim, subst_ren_wk_up2.
+    - intros * ? IHe (*?? ?? ?? ?? ?? *) ? IHp **; erewrite <-2!wk_idElim, subst_ren_wk_up2.
       econstructor; eauto.
       + rewrite 2!(wk_up_wk1 ρ).
         eapply IHp; constructor; tea.
@@ -544,7 +545,7 @@ Section TypingWk.
     - intros.
       econstructor.
       + eauto.
-      + eauto using isPosType_ren.
+      + now eapply isPosType_ren.
   Qed.
 
   Let PTy (Γ : context) (A : term) := forall Δ (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩].
@@ -757,7 +758,7 @@ Proof.
     inversion Hconv; subst; clear Hconv; refold.
     apply IH in H3.
     now inversion H3.
-  - intros * ? IH (*? _ ? _ ? _*) ? _ ? _ ? _ ? _ ? _ * Hconv.
+  - intros * _ * _ * _ * ? ? ? _ ? _ * Hconv.
     inversion Hconv; now subst.
   - intros * ? IH ???? Hconv.
     inversion Hconv ; subst ; clear Hconv ; refold.

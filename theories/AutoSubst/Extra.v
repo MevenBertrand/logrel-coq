@@ -3,8 +3,10 @@
 (** This is the only file in the AutoSubst submodule that is not automatically generated. *)
 From smpl Require Import Smpl.
 From Coq Require Import ssrbool List.
-From LogRel.AutoSubst Require Import core unscoped Ast.
-From LogRel Require Import Utils BasicAst.
+From Equations Require Import Equations.
+From LogRel.AutoSubst Require Export core unscoped Ast.
+From LogRel Require Import Utils.
+From LogRel.Syntax Require Import BasicAst.
 
 (* Export UnscopedNotations.
 #[global] Open Scope subst_scope. *)
@@ -74,6 +76,9 @@ Proof. now asimpl. Qed.
 Lemma shift_up_eq {t σ} : t⟨↑⟩[up_term_term σ] = t[σ]⟨↑⟩.
 Proof. now asimpl. Qed.
 
+Lemma shift_one_eq t a : t⟨↑⟩[a..] = t.
+Proof. now asimpl. Qed.
+
 Lemma up_single_subst {t σ u} : t[up_term_term σ][u..] = t[u .:  σ].
 Proof.  now asimpl. Qed.
 
@@ -89,3 +94,5 @@ Proof. now asimpl. Qed.
 
 Definition elimSuccHypTy P :=
   tProd tNat (arr P P[tSucc (tRel 0)]⇑).
+
+Equations Derive NoConfusion Subterm for term.

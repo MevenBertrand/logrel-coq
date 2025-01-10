@@ -2,7 +2,6 @@
 From Coq Require Import Morphisms List CRelationClasses.
 From Coq Require Import ssrbool.
 From smpl Require Import Smpl.
-From LogRel.AutoSubst Require Import core unscoped Ast.
 
 Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.
@@ -23,6 +22,9 @@ standard library. **)
 #[export] Set Warnings "-notation-overridden".
 Notation "~ x" := (notT x) : type_scope.
 #[export] Set Warnings "notation-overridden".
+
+
+#[global]Hint Unfold notT: core.
 
 (** ** Polymorphic and cumulative redefinitions from the standard library. *)
 
@@ -135,8 +137,11 @@ End ReflexiveTransitiveClosure.
 
 (** ** Tactics *)
 
+(* To use in intro patterns, similar to SSReflects' /dup view *)
+Definition dup {A : Type} : A -> A × A := fun x => (x,x).
+
 Ltac tea := try eassumption.
-Ltac easy ::= solve [intuition eauto 3 with core crelations].
+#[global] Ltac easy ::= solve [intuition eauto 3 with core crelations].
 
 Ltac prod_splitter :=
   repeat match goal with
@@ -192,7 +197,7 @@ Create HintDb boundary.
 #[global] Hint Constants Opaque : boundary.
 #[global] Hint Variables Transparent : boundary.
 
-Ltac boundary := solve[eauto 3 with boundary].
+Ltac boundary := solve[eauto 3 with boundary typeclass_instances].
 
 (** Tactics used to create good induction principles using Scheme *)
 
@@ -251,3 +256,7 @@ Ltac block H :=
   let T := type of H in (change T with (Block T) in H).
 
 Ltac unblock := unfold Block in *.
+
+(** To get warnings whenever needed *)
+
+#[deprecated(note="Fix me!")]Axiom fixme : False.

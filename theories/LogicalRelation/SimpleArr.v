@@ -1,6 +1,5 @@
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Notations Utils BasicAst Context NormalForms Weakening GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Weakening Neutral Escape Reflexivity NormalRed Reduction Transitivity Application InstKripke.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
+From LogRel.LogicalRelation Require Import Induction Irrelevance Weakening Neutral Escape Reflexivity NormalRed Reduction Transitivity Application.
 
 Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.

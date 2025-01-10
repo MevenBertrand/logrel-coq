@@ -1,5 +1,5 @@
 From LogRel.AutoSubst Require Import core unscoped.
-From LogRel Require Import BasicAst.
+From LogRel.Syntax Require Import BasicAst.
 From Coq Require Import Setoid Morphisms Relation_Definitions.
 
 
@@ -1067,25 +1067,25 @@ Instance VarInstance_term : (Var _ _) := @tRel.
   ( at level 1, left associativity, only printing) : fscope. *)
 
 Notation "s [ sigma_term ]" := (subst_term sigma_term s)
-  ( at level 7, left associativity, only printing) : subst_scope.
+( at level 7, left associativity, only printing)  : subst_scope.
 
-Notation "↑__term" := up_term (only printing) : subst_scope.
+Notation "↑__term" := up_term (only printing)  : subst_scope.
 
-Notation "↑__term" := up_term_term (only printing) : subst_scope.
+Notation "↑__term" := up_term_term (only printing)  : subst_scope.
 
 Notation "⟨ xi_term ⟩" := (ren_term xi_term)
-  ( at level 1, left associativity, only printing) : fscope.
+( at level 1, left associativity, only printing)  : fscope.
 
 Notation "s ⟨ xi_term ⟩" := (ren_term xi_term s)
-  ( at level 7, left associativity, only printing) : subst_scope.
+( at level 7, left associativity, only printing)  : subst_scope.
 
-Notation "'var'" := tRel ( at level 1, only printing) : subst_scope.
+Notation "'var'" := tRel ( at level 1, only printing)  : subst_scope.
 
 Notation "x '__term'" := (@ids _ _ VarInstance_term x)
-  ( at level 5, format "x __term", only printing) : subst_scope.
+( at level 5, format "x __term", only printing)  : subst_scope.
 
-Notation "x '__term'" := (tRel x) ( at level 5, format "x __term") :
-  subst_scope.
+Notation "x '__term'" := (tRel x) ( at level 5, format "x __term")  :
+subst_scope.
 
 #[global]
 Instance subst_term_morphism :

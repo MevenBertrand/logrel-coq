@@ -1,7 +1,5 @@
-
 From Coq Require Import CRelationClasses.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import Utils BasicAst Notations Context NormalForms UntypedReduction Weakening GenericTyping LogicalRelation.
+From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Induction Irrelevance Escape Reflexivity Weakening Neutral Transitivity Reduction EqRedRight.
 
 Set Universe Polymorphism.
@@ -178,7 +176,7 @@ Ltac normRedΠ id :=
     enough [_ ||-<_> t ≅ u : _ | LRPi' id] by irrelevance
   end.
 
-(* Normalizes a term reducible at a Π type *)
+(* Normalizes a term reducible at a Σ type *)
 
 Ltac normRedΣin X :=
   let g := type of X in
