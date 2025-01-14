@@ -1,4 +1,5 @@
 From Coq Require Import ssreflect.
+From Equations Require Import Equations.
 From LogRel.AutoSubst Require Import core unscoped Ast Extra.
 From LogRel Require Import Utils Context Weakening.
 
@@ -11,12 +12,14 @@ Inductive nftykind : Type :=
 Reserved Notation "[ |- Γ ≡ Γ' ]".
 Reserved Notation "[ Γ ≡ Γ' |- A ≡ B ]".
 Reserved Notation "[ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]".
+Reserved Notation "[ Γ ≡ Γ' |- t ≡nf t' '#Π' Dom , Cod ≡ Dom' , Cod' ]".
+Reserved Notation "[ Γ ≡ Γ' |- t ≡nf t' '#Nat' ]".
 Reserved Notation "[ Γ ≡ Γ' |- A ≡ne B ]".
 Reserved Notation "[ Γ ≡ Γ' |- t ≡ne t' # A ≡ B ]".
 Reserved Notation "[ Γ |- A ~> B ]".
 Reserved Notation "[ Γ |- A ~* B ]".
-Reserved Notation "[ Γ |- t ~> u # A ]".
-Reserved Notation "[ Γ |- t ~* u # A ]".
+Reserved Notation "[ Γ |- t ~>tm u ]".
+Reserved Notation "[ Γ |- t ~*tm u ]".
 
 Unset Elimination Schemes.
 
@@ -39,34 +42,40 @@ with ConvTy : forall (_ _ : context) (_ _ : term), Type :=
    -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]
    -> [ Γ ≡ Γ' |- A ≡ B ]
 with ConvNeTy : forall (_ _ : context) (_ _ : term), Type :=
-with ConvTm : forall (_ _ : context) (_ _ : term) (_ _ : term), Type :=
-  | tmZero {Γ Γ' A B t t'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ |- A ~* tNat ]
-   -> [ Γ' |- B ~* tNat ]
-   -> [ Γ |- t ~* tZero # tNat ]
-   -> [ Γ' |- t' ~* tZero # tNat ]
-   -> [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]
-  | tmSucc {Γ Γ' A B t t' u u'} :
-      [ Γ |- A ~* tNat ]
-   -> [ Γ' |- B ~* tNat ]
-   -> [ Γ |- t ~* tSucc u # tNat ]
-   -> [ Γ' |- t' ~* tSucc u' # tNat ]
-   -> [ Γ ≡ Γ' |- u ≡ u' # tNat ≡ tNat ]
-   -> [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]
-  | tmNeNat {Γ Γ' A A' B B' t t' n n'} :
-      [ Γ |- t ~* n # tNat ]
-   -> [ Γ' |- t' ~* n' # tNat ]
-   -> [ Γ ≡ Γ' |- n ≡ne n' # A ≡ B ]
-   -> [ Γ |- A' ~* tNat ]
-   -> [ Γ' |- B' ~* tNat ]
-   -> [ Γ ≡ Γ' |- t ≡ t' # A' ≡ B' ]
-  | tmFun {Γ Γ' A B Dom Dom' Cod Cod' t t'} :
-      [ Γ |- A ~* tProd Dom Cod ]
-   -> [ Γ' |- B ~* tProd Dom' Cod' ]
-   -> [ Γ ≡ Γ' |- Dom ≡ Dom' ]
+with ConvNfProd : forall (_ _ : context) (_ _ _ _ : term) (_ _ : term), Type :=
+  | nfFun {Γ Γ' Dom Dom' Cod Cod' t t'} :
+      [ Γ ≡ Γ' |- Dom ≡ Dom' ]
    -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]
    -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- tApp (t ⟨↑⟩) (tRel 0) ≡ tApp (t' ⟨↑⟩) (tRel 0) # Cod ≡ Cod' ]
+   -> [ Γ ≡ Γ' |- t ≡nf t' #Π Dom , Cod ≡ Dom' , Cod' ]
+with ConvNfNat : forall (_ _ : context) (_ _ : term), Type :=
+  | tmZero {Γ Γ' t t'} :
+      [ |- Γ ≡ Γ' ]
+   -> [ Γ |- t ~* tZero ]
+   -> [ Γ' |- t' ~* tZero ]
+   -> [ Γ ≡ Γ' |- t ≡nf t' #Nat ]
+  | tmSucc {Γ Γ' t t' u u'} :
+      [ Γ |- t ~* tSucc u ]
+   -> [ Γ' |- t' ~* tSucc u' ]
+   -> [ Γ ≡ Γ' |- u ≡nf u' #Nat ]
+   -> [ Γ ≡ Γ' |- t ≡nf t' #Nat ]
+  | tmNeNat {Γ Γ' A B t t' n n'} :
+      [ Γ |- A ~* tNat ]
+   -> [ Γ' |- B ~* tNat ]
+   -> [ Γ |- t ~* n ]
+   -> [ Γ' |- t' ~* n' ]
+   -> [ Γ ≡ Γ' |- n ≡ne n' # A ≡ B ]
+   -> [ Γ ≡ Γ' |- t ≡nf t' #Nat ]
+with ConvTm : forall (_ _ : context) (_ _ : term) (_ _ : term), Type :=
+  | tmNat {Γ Γ' A B t t'} :
+      [ Γ |- A ~* tNat ]
+   -> [ Γ' |- B ~* tNat ]
+   -> [ Γ ≡ Γ' |- t ≡nf t' #Nat ]
+   -> [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]
+  | tmPi {Γ Γ' A B Dom Dom' Cod Cod' t t'} :
+      [ Γ |- A ~* tProd Dom Cod ]
+   -> [ Γ' |- B ~* tProd Dom' Cod' ]
+   -> [ Γ ≡ Γ' |- t ≡nf t' #Π Dom , Cod ≡ Dom' , Cod' ]
    -> [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]
 with ConvNeTm : forall (_ _ : context) (_ _ : term) (_ _ : term), Type :=
   | tmNeVar {Γ Γ' A B n} :
@@ -91,135 +100,225 @@ with RedTy : forall (_ : context) (_ _ : term), Type :=
       [ Γ |- A ~> B ]
    -> [ Γ |- B ~* C ]
    -> [ Γ |- A ~* C ]
-with RedTmStep : forall (_ : context) (_ _ _ : term), Type :=
-  | redBeta {Γ A B t u out outTy} :
+with RedTmStep : forall (_ : context) (_ _ : term), Type :=
+  | redBeta {Γ A B t u} :
       [ Γ ≡ Γ |- A ≡ A ]
    -> [ Γ ,, A ≡ Γ ,, A |- B ≡ B ]
    -> [ Γ ,, A ≡ Γ ,, A |- t ≡ t # B ≡ B ]
    -> [ Γ ≡ Γ |- u ≡ u # A ≡ A ]
-   -> out = t[u..]
-   -> outTy = B[u..]
-   -> [ Γ |- tApp (tLambda A t) u ~> out # outTy ]
-  | redAppHead {Γ A B t t' u out outTy} :
+   -> [ Γ |- tApp (tLambda A t) u ~>tm t[u..] ]
+  | redAppHead {Γ A B t t' u} :
       [ Γ ≡ Γ |- A ≡ A ]
    -> [ Γ ,, A ≡ Γ ,, A |- B ≡ B ]
    -> [ Γ ≡ Γ |- t' ≡ t' # tProd A B ≡ tProd A B ]
-   -> [ Γ |- t ~> t' # tProd A B ]
-   -> [ Γ ≡ Γ |- u ≡ u # A ≡ A ]
-   -> out = tApp t' u
-   -> outTy = B[u..]
-   -> [ Γ |- tApp t u ~> out # outTy ]
-with RedTm : forall (_ : context) (_ _ _ : term), Type :=
-  | redTmDone {Γ A t} :
-      [ Γ |- t ~* t # A ]
-  | redTmStep {Γ A t t' t''} :
-      [ Γ |- t ~> t' # A ]
-   -> [ Γ |- t' ~* t'' # A ]
-   -> [ Γ |- t ~* t'' # A ]
+   -> [ Γ |- t ~>tm t' ]
+   -> [ Γ |- tApp t u ~>tm tApp t' u ]
+with RedTm : forall (_ : context) (_ _ : term), Type :=
+  | redTmDone {Γ t} :
+      [ Γ |- t ~*tm t ]
+  | redTmStep {Γ t t' t''} :
+      [ Γ |- t ~>tm t' ]
+   -> [ Γ |- t' ~*tm t'' ]
+   -> [ Γ |- t ~*tm t'' ]
   where "[ |- Γ ≡ Γ' ]" := (ConvCont Γ Γ')
     and "[ Γ ≡ Γ' |- A ≡ B ]" := (ConvTy Γ Γ' A B)
     and "[ Γ ≡ Γ' |- t ≡ t' # A ≡ B ]" := (ConvTm Γ Γ' A B t t')
+    and "[ Γ ≡ Γ' |- t ≡nf t' '#Π' Dom , Cod ≡ Dom' , Cod' ]" := (ConvNfProd Γ Γ' Dom Cod Dom' Cod' t t')
+    and "[ Γ ≡ Γ' |- t ≡nf t' '#Nat' ]" := (ConvNfNat Γ Γ' t t')
     and "[ Γ ≡ Γ' |- A ≡ne B ]" := (ConvNeTy Γ Γ' A B)
     and "[ Γ ≡ Γ' |- t ≡ne t' # A ≡ B ]" := (ConvNeTm Γ Γ' A B t t')
     and "[ Γ |- A ~> B ]" := (RedTyStep Γ A B)
     and "[ Γ |- A ~* B ]" := (RedTy Γ A B)
-    and "[ Γ |- t ~> u # A ]" := (RedTmStep Γ A t u)
-    and "[ Γ |- t ~* u # A ]" := (RedTm Γ A t u).
+    and "[ Γ |- t ~>tm u ]" := (RedTmStep Γ t u)
+    and "[ Γ |- t ~*tm u ]" := (RedTm Γ t u).
 
 (* Maybe try with a specific conversion relation at each whnf type *)
 (* Also separate reduction and conversion more cleanly *)
 
+Derive Signature for ConvCont.
+Derive Signature for ConvTy.
+Derive Signature for ConvTm.
+Derive Signature for ConvNfNat.
+Derive Signature for ConvNfProd.
+Derive Signature for ConvNeTm.
+Derive Signature for RedTy.
+Derive Signature for RedTyStep.
+Derive Signature for RedTmStep.
+Derive Signature for RedTm.
+
 Scheme ConvCont_rect_nodep := Minimality for ConvCont Sort Type
   with ConvTy_rect_nodep := Minimality for ConvTy Sort Type
   with ConvTm_rect_nodep := Minimality for ConvTm Sort Type
-  with ConvNeTy_rect_nodep := Minimality for ConvNeTy Sort Type
+  with ConvNfNat_rect_nodep := Minimality for ConvNfNat Sort Type
+  with ConvNfProd_rect_nodep := Minimality for ConvNfProd Sort Type
   with ConvNeTm_rect_nodep := Minimality for ConvNeTm Sort Type
-  with RedTyStep_rect_nodep := Minimality for RedTyStep Sort Type
   with RedTy_rect_nodep := Minimality for RedTy Sort Type
   with RedTmStep_rect_nodep := Minimality for RedTmStep Sort Type
   with RedTm_rect_nodep := Minimality for RedTm Sort Type.
 
+Combined Scheme _Syntax_rect_nodep from
+ConvCont_rect_nodep,
+ConvTy_rect_nodep,
+ConvTm_rect_nodep,
+ConvNfNat_rect_nodep,
+ConvNfProd_rect_nodep,
+ConvNeTm_rect_nodep,
+RedTy_rect_nodep,
+RedTmStep_rect_nodep,
+RedTm_rect_nodep.
 
-Lemma ConvTy_ConvCont : forall {Γ Γ' A B}, [ Γ ≡ Γ' |- A ≡ B ] -> [ |- Γ ≡ Γ' ]
- with ConvTm_ConvCont : forall {Γ Γ' A B t u}, [ Γ ≡ Γ' |- t ≡ u # A ≡ B ] -> [ |- Γ ≡ Γ' ]
- with ConvNeTm_ConvCont : forall {Γ Γ' A B t u}, [ Γ ≡ Γ' |- t ≡ne u # A ≡ B ] -> [ |- Γ ≡ Γ' ].
+Definition _SyntaxInductionType :=
+  ltac:(let ind := fresh "ind" in
+      pose (ind := _Syntax_rect_nodep);
+      refold ;
+      let ind_ty := type of ind in
+      exact ind_ty).
+
+Definition SyntaxInductionType :=
+  ltac: (let ind := eval cbv delta [_SyntaxInductionType] zeta
+    in _SyntaxInductionType in
+    let ind' := polymorphise ind in
+  exact ind').
+
+Definition SyntaxInduction : SyntaxInductionType.
 Proof.
-  - move=> ???? [].
-    * tauto.
-    * move=> *.
-      eapply ConvTy_ConvCont; eassumption.
-  - move=> ?????? [].
-    * tauto.
-    * move=> *.
-      eapply ConvTm_ConvCont; eassumption.
-    * move=> *.
-      eapply ConvNeTm_ConvCont; eassumption.
-    * move=> *.
-      eapply ConvTy_ConvCont; eassumption.
-  - move=> ?????? [].
-    * tauto.
-    * move=> *.
-      eapply ConvNeTm_ConvCont; eassumption.
+  intros P1 P2 P3 P4 P5 P6 P7 P8 P9 **.
+  assert (H : _) by (apply (_Syntax_rect_nodep P1 P2 P3 P4 P5 P6 P7 P8 P9); assumption).
+  repeat econstructor; apply H.
+Defined.
+
+Definition SyntaxInductionConcl := ltac:(let t := eval cbv delta [SyntaxInductionType] beta in SyntaxInductionType in let t' := remove_steps t in exact t').
+Print SyntaxInductionConcl.
+
+Lemma Conv_ConvCont : SyntaxInductionConcl
+  (fun _ _ => unit)
+  (fun Γ Γ' _ _ => [ |- Γ ≡ Γ' ])
+  (fun Γ Γ' _ _ _ _ => [ |- Γ ≡ Γ' ])
+  (fun Γ Γ' _ _ => [ |- Γ ≡ Γ' ])
+  (fun Γ Γ' _ _ _ _ _ _ => [ |- Γ ≡ Γ' ])
+  (fun Γ Γ' _ _ _ _ => [ |- Γ ≡ Γ' ])
+  (fun Γ _ _ => unit)
+  (fun Γ _ _ => unit)
+  (fun Γ _ _ => unit).
+Proof.
+  eapply SyntaxInduction; easy.
+Defined.
+
+Lemma Conv_Symm : SyntaxInductionConcl
+  (fun Γ Γ' => [ |- Γ' ≡ Γ ])
+  (fun Γ Γ' A B => [ Γ' ≡ Γ |- B ≡ A ])
+  (fun Γ Γ' A B t u => [ Γ' ≡ Γ |- u ≡ t # B ≡ A ])
+  (fun Γ Γ' t u => [ Γ' ≡ Γ |- u ≡nf t #Nat ])
+  (fun Γ Γ' Dom Cod Dom' Cod' t u => [ Γ' ≡ Γ |- u ≡nf t #Π Dom' , Cod' ≡ Dom , Cod ])
+  (fun Γ Γ' A B t u => [ Γ' ≡ Γ |- u ≡ne t # B ≡ A ] )
+  (fun _ _ _ => unit)
+  (fun _ _ _ => unit)
+  (fun _ _ _ => unit).
+Proof.
+  eapply SyntaxInduction; now econstructor.
+Defined.
+
+Fixpoint redStepDet {Γ A B C}
+  (H1 : [ Γ |- A ~> B ])
+  (H2 : [ Γ |- A ~> C ])  :
+   B = C.
+Proof.
+  depelim H1.
+Defined.
+
+Derive NoConfusion for term.
+
+Fixpoint redTmStepDet {Γ t u u'}
+  (H1 : [ Γ |- t ~>tm u ])
+  (H2 : [ Γ |- t ~>tm u' ])  :
+   u = u'.
+Proof.
+  depelim H1; depelim H2.
+  - reflexivity.
+  - depelim H2.
+  - depelim H1.
+  - now f_equal.
+Defined.
+
+Definition whnfTyb (t : term) := match t with | tProd _ _ => true | tNat => true | _ => false end.
+
+Fixpoint redDet {Γ A B C}
+  (H1 : [ Γ |- A ~* B ])
+  (H2 : [ Γ |- A ~* C ])
+  (Bwhnf : whnfTyb B = true)
+  (Cwhnf : whnfTyb C = true) :
+   B = C.
+Proof.
+  depelim H1; depelim H2.
+  - reflexivity.
+  - depelim A; noconf Bwhnf; depelim r.
+  - depelim A; noconf Cwhnf; depelim r.
+  - assert (H : B = B0) by now eapply redStepDet. subst. now eapply redDet.
+Defined.
+
+
+Lemma Conv_Trans : SyntaxInductionConcl
+  (fun Γ Γ' => forall Γ'', [ |- Γ' ≡ Γ'' ] -> [ |- Γ ≡ Γ'' ])
+  (fun Γ Γ' A B => forall Γ'' C, [ Γ' ≡ Γ'' |- B ≡ C ] -> [ Γ ≡ Γ'' |- A ≡ C ])
+  (fun Γ Γ' A B t u => forall Γ'' C v, [ Γ' ≡ Γ'' |- u ≡ v # B ≡ C ] -> [ Γ ≡ Γ'' |- t ≡ v # A ≡ C ])
+  (fun Γ Γ' t u => forall Γ'' v, [ Γ' ≡ Γ'' |- u ≡nf v #Nat ] -> [ Γ ≡ Γ'' |- t ≡nf v #Nat ])
+  (fun Γ Γ' Dom Cod Dom' Cod' t u => forall Γ'' Dom'' Cod'' v,
+    [ Γ' ≡ Γ'' |- u ≡nf v #Π Dom' , Cod' ≡ Dom'' , Cod'' ]
+    -> [ Γ ≡ Γ'' |- t ≡nf v #Π Dom , Cod ≡ Dom'' , Cod'' ])
+  (fun Γ Γ' A B t u => forall Γ'' C v, [ Γ' ≡ Γ'' |- u ≡ne v # B ≡ C ] -> [ Γ ≡ Γ'' |- t ≡ne v # A ≡ C ] )
+  (fun _ _ _ => unit)
+  (fun _ _ _ => unit)
+  (fun _ _ _ => unit).
+Proof.
+  eapply SyntaxInduction; intros *; repeat first [ intros ? ? * | try rename H into H'; intros H ].
+  all: try lazymatch goal with [|- unit] => constructor end.
+  all: depelim H.
+  - now econstructor.
+  - now econstructor.
+  - now econstructor.
+  - assert (conf : tNat = tProd Dom Cod) by (eapply redDet; easy). noconf conf.
+  - eassert (conf : tNat = tProd _ _) by (eapply (redDet (A := A0)); easy).
+    noconf conf.
+  - assert (noconf : tProd Dom' Cod' = tProd Dom0 Cod0) by (eapply redDet; easy).
+    noconf noconf.
+    eapply tyProd; easy.
+  -
 Defined.
 
 Fixpoint ConvTm_ConvTy {Γ Γ' t t' A B}
   (H : [ Γ ≡ Γ' |- t ≡ t' # A ≡ B ])
-  : [ Γ ≡ Γ' |- A ≡ B ].
+  : [ Γ ≡ Γ' |- A ≡ B ]
+  with ConvNfProd_ConvTy {Γ Γ' t t' Dom Dom' Cod Cod'}
+  (H : [ Γ ≡ Γ' |- t ≡nf t' ]).
 Proof.
-  inversion H.
-  - eapply tyNat; eassumption.
-  - eapply tyNat; [eapply ConvTm_ConvCont|..]; eassumption.
-  - eapply tyNat; [eapply ConvNeTm_ConvCont|..]; eassumption.
-  - eapply tyProd; eassumption.
+  depelim H.
+  - eapply tyNat; [eapply ConvNfNat_ConvCont|..]; eassumption.
+  - depelim c. eapply tyProd; [eapply ConvNfProd_ConvCont|..]; eassumption.
 Defined.
-
-Fixpoint ConvCtx_wk {Γ Γ' Δ Δ'}
-  (H : [ |- Γ ≡ Γ' ])
-  (o ).
 
 Fixpoint ConvNeTm_ConvTy {Γ Γ' t t' A B}
   (H : [ Γ ≡ Γ' |- t ≡ne t' # A ≡ B ])
   : [ Γ ≡ Γ' |- A ≡ B ].
 Proof.
-  inversion H.
-  - eapply tyNat; eassumption.
-  - eapply tyNat; [eapply ConvTm_ConvCont|..]; eassumption.
-  - eapply tyNat; [eapply ConvNeTm_ConvCont|..]; eassumption.
-  - eapply tyProd; eassumption.
 Defined.
 
-Lemma reflNat {Γ Γ'} :
-  [ |- Γ ≡ Γ' ]
-  -> [ Γ ≡ Γ' |- tNat ≡ tNat ].
+Lemma reflNat {Γ Γ'}
+  (H : [ |- Γ ≡ Γ' ])
+  : [ Γ ≡ Γ' |- tNat ≡ tNat ].
 Proof.
-  move=> ?.
   apply tyNat.
   - assumption.
   - apply redTyDone.
   - apply redTyDone.
 Defined.
 
-Fixpoint redDet {Γ t u u' A A'}
-  (H1 : [ Γ |- t ~> u # A ])
-  (H2 : [ Γ |- t ~> u' # A' ])  :
-   u = u'.
-Proof.
-  inversion H1; inversion H2; subst.
-    - inversion H11; subst. reflexivity.
-    - inversion H11; subst. inversion X6.
-    - inversion H11; subst. inversion X2.
-    - inversion H11; subst. f_equal. eapply redDet; eassumption.
-Defined.
-
 Fixpoint norm {Γ Γ' t t' A A'}
-  (H : [ Γ ≡ Γ' |- t ≡ t' # A ≡ A' ]) :
+  (H : [ Γ ≡ Γ' |- t ≡ t' # A ≡ A' ]) {struct H}:
   term
   with normNe {Γ Γ' t t' A A'}
-  (H : [ Γ ≡ Γ' |- t ≡ne t' # A ≡ A' ]) : term
+  (H : [ Γ ≡ Γ' |- t ≡ne t' # A ≡ A' ]) {struct H} : term
   with normTy {Γ Γ' A A'}
-  (H : [ Γ ≡ Γ' |- A ≡ A' ]) : term
-  with normCtx {Γ Γ'}
-  (H : [ |- Γ ≡ Γ' ]) : context.
+  (H : [ Γ ≡ Γ' |- A ≡ A' ]) {struct H} : term.
 Proof.
   - inversion H.
     + exact tZero.
@@ -238,11 +337,17 @@ Proof.
     + refine (tProd _ _).
       * eapply normTy; exact X1.
       * eapply normTy; exact X2.
-  - inversion H.
-    + exact ε.
-    + refine (_ ,, _).
-      * eapply normTy; exact X.
-      * eapply normCtx; eapply ConvTy_ConvCont; exact X.
+Defined.
+
+Fixpoint normCtx {Γ Γ'}
+  (H : [ |- Γ ≡ Γ' ]) {struct Γ}
+  : context.
+Proof.
+  revert H. destruct Γ; inversion 1.
+  - exact ε.
+  - refine (_,,_).
+    + eapply normTy; exact X.
+    + eapply normCtx; eapply ConvTy_ConvCont; eassumption.
 Defined.
 
 Fixpoint normCorrect {Γ Γ' t t' A A'}
@@ -268,7 +373,8 @@ Proof.
   - apply reflNat; assumption.
   - assert [ε,, tNat |- tApp t⟨↑⟩ (tRel 0) ~* tRel 0 # tNat].
     { eapply redTmStep; [|apply redTmDone].
-      eapply redBeta.
+      cbn.
+      eapply (redBeta (t := tRel 0) (B := tNat)).
       * apply reflNat; assumption.
       * apply reflNat; apply concons; apply reflNat; assumption.
       * eapply tmNeNat.
@@ -284,9 +390,7 @@ Proof.
         -- apply tmNeVar;[ | apply in_here | apply in_here].
            assumption.
         -- apply redTyDone.
-        -- apply redTyDone.
-      * reflexivity.
-      * reflexivity. }
+        -- apply redTyDone. }
     eapply tmNeNat.
     + eassumption.
     + eassumption.
