@@ -30,6 +30,8 @@ with whne : term -> Type :=
 
 #[global] Hint Constructors whne whnf : gen_typing.
 
+Equations Derive Signature for whne.
+
 Ltac inv_whne :=
   repeat lazymatch goal with
     | H : whne _ |- _ =>

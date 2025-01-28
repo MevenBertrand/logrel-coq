@@ -141,6 +141,8 @@ Section Properties.
       [Γ |- t ~ t' : A] *)
   }.
 
+  (** Completeness of neutral conversion, at positive types or at all types *)
+
   Class ConvNeutralConvPos :=
   {
     conv_neu_conv_p Γ T n n' :
@@ -155,6 +157,45 @@ Section Properties.
       whne n -> whne n' ->
       [Γ |- n ≅ n' : T] ->
       [Γ |- n ~ n' : T]
+  }.
+
+  (** Injectivity of neutral destructors *)
+
+  Definition ne_view (Γ : context) (T : term) {n n' : term} (ne : whne n) (ne' : whne n') : Type :=
+  match ne, ne' with
+    | @whne_tRel v, @whne_tRel v' => ∑ T', [× v' = v, in_ctx Γ v T' & [Γ |- T' ≅ T] ]
+    | @whne_tApp t u _, @whne_tApp t' u' _ => ∑ A B, [× [Γ |- t ≅ t' : tProd A B], [Γ |- u ≅ u' : A] & [Γ |- B[u..] ≅ T]]
+    | @whne_tNatElim P hz hs n _, @whne_tNatElim P' hz' hs' n' _ =>
+      [× [Γ |- n ≅ n' : tNat],
+        [Γ ,, tNat |- P ≅ P'],
+        [Γ |- hz ≅ hz' : P[tZero..]],
+        [Γ |- hs ≅ hs' : elimSuccHypTy P] &
+        [Γ |- P[n..] ≅ T]]
+
+    | @whne_tEmptyElim P e _, @whne_tEmptyElim P' e' _ =>
+      [× [Γ ,, tEmpty |- P ≅ P'],
+        [Γ |- e ≅ e' : tEmpty] &
+        [Γ |- P[e..] ≅ T]]
+        
+    | @whne_tFst p _, @whne_tFst p' _ => ∑ A B, [Γ |- p ≅ p' : tSig A B] × [Γ |- A ≅ T]
+    | @whne_tSnd p _, @whne_tSnd p' _ => ∑ A B, [Γ |- p ≅ p' : tSig A B] × [Γ |- B[(tFst p)..] ≅ T]
+    | @whne_tIdElim A x P hr y e _, @whne_tIdElim A' x' P' hr' y' e' _ =>
+      [× [Γ |- A ≅ A'],
+        [Γ |- x ≅ x' : A],
+        [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'],
+        [Γ |- hr ≅ hr' : P[tRefl A x .: x..]],
+        [Γ |- y ≅ y' : A],
+        [Γ |- e ≅ e' : tId A x y] &
+        [Γ |- P[e .: y..] ≅ T]]
+    | _, _ => False
+  end.
+
+  Class NeutralInj :=
+  {
+    neu_inj (Γ : context) (T t t' : term)
+    (net : whne t) (net' : whne t') :
+    [Γ |- t ≅ t' : T] ->
+    ne_view Γ T net net'
   }.
 
   (** ** Normalisation *)

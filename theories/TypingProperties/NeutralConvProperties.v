@@ -1,5 +1,6 @@
 (** * LogRel.NeutralConvProperties: properties of declarative neutral conversion, using type constructor injectivity. *)
 From Coq Require Import CRelationClasses.
+From Equations Require Import Equations.
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping.
 From LogRel.TypingProperties Require Import PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj.
 
@@ -182,6 +183,34 @@ Section NeuConvProperties.
       all: repeat esplit ; eauto.
       all: now eapply TypeTrans.
   Qed.
+
+  (** Equivalence between the "local" view on neutral injectivity, and the global one. *)
+
+  Lemma neu_inj_conv_neu `{H : !NeutralInj (ta := de)} : ConvNeutralConv (ta := de).
+  Proof.
+    destruct H as [neu_inj].
+    constructor.
+    intros * nen nen' Hconv.
+    induction nen in T, n', nen', Hconv |- *.
+    all: unshelve eapply neu_inj  in Hconv ; tea ; [econstructor|..] ; destruct nen' ; cbn in * ; try easy.
+    all: prod_hyp_splitter ; subst.
+    all: eapply neuConvConv ; refold ; tea.
+    all: econstructor ; eauto.
+    now boundary.
+  Qed.
+
+  Lemma conv_neu_neu_inj `{H : ! ConvNeutralConv (ta := de)} : NeutralInj (ta := de).
+  Proof.
+    destruct H as [conv_neu_conv].
+    constructor.
+    intros * Hconv.
+    eapply conv_neu_conv in Hconv ; tea.
+    eapply neuConvGen in Hconv.
+    destruct net ; cbn in Hconv ; prod_hyp_splitter ; subst.
+    all: depelim net' ; cbn ; refold.
+    all: repeat eexists ; eauto using conv_neu_sound.
+  Qed.
+
 
   Lemma conv_neu_refl Γ A n :
     whne n ->

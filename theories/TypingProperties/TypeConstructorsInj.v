@@ -321,7 +321,7 @@ End TypeConstructors.
 
 Section SubjectReduction.
 
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Theorem subject_reduction_one Γ A t t' :
       [Γ |- t : A] ->
@@ -472,7 +472,7 @@ End SubjectReduction.
 (** Characterizes the possible weak-head normal forms at a given type. *)
 
 Section WhClassification.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
 
   Lemma Uterm_isType Γ A :
