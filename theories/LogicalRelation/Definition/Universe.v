@@ -30,7 +30,12 @@ Definition elim {l : TypeLevel} (h : l << zero) : False :=
     | Oi => I
   end.
 
-
+Definition ltInd (P : TypeLevel -> Type) (ih : (forall l, (forall l', l' << l -> P l') -> P l))
+  : forall l, P l.
+Proof.
+  assert (P zero) by (apply ih; intros ? []%elim).
+  intros []; tea; apply ih; intros ? h; now inversion h.
+Qed.
 
 (** ** Reducibility of the universe *)
 

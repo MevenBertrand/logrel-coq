@@ -97,6 +97,14 @@ Module NeNf.
     constructor; eapply convneu_whne; now symmetry.
   Defined.
 
+  Definition conv_ `{GenericTypingProperties} {Γ : context} {t u A B : term} :
+    [Γ |- A ≅ B] -> RedTmEq Γ t u A -> RedTmEq Γ t u B.
+  Proof.
+    intros ? []; econstructor.
+    1,2: now eapply ty_conv.
+    now eapply convneu_conv.
+  Qed.
+
 End NeNf.
 
 Notation "[ Γ ||-NeNf k ≅ l : A ]" := (NeNf.RedTmEq Γ k l A) (at level 0, Γ, k, l, A at level 50).

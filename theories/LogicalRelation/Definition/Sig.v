@@ -22,7 +22,7 @@ Module SigRedTyPack := ParamRedTyPack.
 Inductive isLRPair `{ta : tag} `{WfContext ta}
   `{WfType ta} `{ConvType ta} `{RedType ta} `{Typing ta} `{ConvTerm ta} `{ConvNeuConv ta}
   {Γ : context} {A B : term} (ΣA : SigRedTyPack Γ A B) : term -> Type :=
-| PairLRpair : forall (A' B' a b : term)
+| PairLRPair : forall (A' B' a b : term)
       (wtydom : [Γ |- A'])
       (convtydom : [Γ |- SigRedTyPack.domL ΣA ≅ A'])
       (wtycod : [Γ |- B'[a..]])

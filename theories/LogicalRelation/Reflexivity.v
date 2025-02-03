@@ -8,6 +8,19 @@ Set Printing Universes.
 Section Reflexivities.
   Context `{GenericTypingProperties}.
 
+
+  Definition reflLRTy {l Γ A B} (lr : [ Γ ||-< l > A  ≅ B] ) :
+    [ Γ ||-< l > A] × [Γ ||-<l> B].
+  Proof.
+    indLR lr.
+    - intros []; split; eapply LRU_; now econstructor.
+    - intros []; split; eapply LRne_; econstructor; tea; first [now eapply lrefl| now eapply urefl].
+    - intros [] ihdom ihcod; cbn in *; split; eapply LRPi' ; econstructor; tea; try first [now eapply lrefl| now eapply urefl].
+      all: unshelve econstructor.
+      1,2: intros; now eapply ihdom.
+      + cbn; intros. eapply ihcod; tea.
+    -
+
   Definition reflLRTyEq {l Γ A} (lr : [ Γ ||-< l > A ] ) : [ Γ ||-< l > A ≅ A | lr ].
   Proof.
     pattern l, Γ, A, lr; eapply LR_rect_TyUr; intros ??? [] **.

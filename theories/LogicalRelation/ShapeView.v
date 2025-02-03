@@ -1,6 +1,6 @@
 (** * LogRel.LogicalRelation.ShapeView: relating reducibility witnesses of reducibly convertible types.*)
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Reflexivity.
+From LogRel.LogicalRelation Require Import Induction.
 
 Set Universe Polymorphism.
 
@@ -13,9 +13,8 @@ Section ShapeViews.
   in the same way. *)
 
   Definition ShapeView@{i j k l i' j' k' l'} Γ
-    A {lA eqTyA redTyA} B {lB eqTyB redTyB}
-    (lrA : LogRel@{i j k l} lA Γ A eqTyA redTyA) (lrB : LogRel@{i' j' k' l'} lB Γ B eqTyB redTyB) : Set :=
-    match lrA, lrB with
+    A {lA A'} B {lB B'} (RA : [LogRel@{i j k l} lA | Γ ||- A ≅ A']) (RB : [LogRel@{i' j' k' l'} lB | Γ ||- B ≅ B']) : Set :=
+    match RA.(LRAd.adequate), RB.(LRAd.adequate) with
       | LRU _ _, LRU _ _ => True
       | LRne _ _, LRne _ _ => True
       | LRPi _ _ _, LRPi _ _ _ => True
@@ -26,8 +25,24 @@ Section ShapeViews.
       | _, _ => False
     end.
 
-  Arguments ShapeView Γ A {lA eqTyA redTyA} B {lB eqTyB redTyB}
-  !lrA !lrB.
+  Arguments ShapeView Γ A {lA A'} B {lB B'} !RA !RB.
+
+  (* Definition ShapeView@{i j k l i' j' k' l'} Γ
+    A {lA A' eqtmA} B {lB B' eqtmB}
+    (lrA : LogRel@{i j k l} lA Γ A A' eqtmA) (lrB : LogRel@{i' j' k' l'} lB Γ B B' eqtmB) : Set :=
+    match lrA, lrB with
+      | LRU _ _, LRU _ _ => True
+      | LRne _ _, LRne _ _ => True
+      | LRPi _ _ _, LRPi _ _ _ => True
+      | LRNat _ _, LRNat _ _ => True
+      | LREmpty _ _, LREmpty _ _ => True
+      | LRSig _ _ _, LRSig _ _ _ => True
+      | LRId _ _ _, LRId _ _ _ => True
+      | _, _ => False
+    end. *)
+
+  (* Arguments ShapeView Γ A {lA eqTyA redTyA} B {lB eqTyB redTyB}
+  !lrA !lrB. *)
 
 (** ** The main property *)
 
@@ -36,10 +51,33 @@ if two reducible types are reducibly convertible, then they must be reducible in
 This lets us relate different reducibility proofs when we have multiple such proofs, typically
 when showing symmetry or transitivity of the logical relation. *)
 
-  Arguments ShapeView Γ A {lA eqTyA redTyA} B {lB eqTyB redTyB}
-  !lrA !lrB.
+  Definition abstract_let {A B} (a : A) : (forall x: A, x = a -> B)  -> let x := a in B := fun h => h a eq_refl.
 
+  Ltac revert_let t := let x := fresh "x" in pose (x := t); revert x; simple refine (abstract_let _ _). (*; apply (abstract_let t). *)
 
+  From Equations Require Import Equations.
+  Record nfTy := mkNfTy { ty : term ; isty : isType ty }.
+  Derive NoConfusion for nfTy.
+  Definition toNfTy {Γ A} (rA : [Γ |- A ↘ ]) := mkNfTy rA.(tyred_whnf) rA.(tyred_whnf_isType).
+
+  Lemma whredty_det' {Γ A} (rA rA' : [Γ |- A ↘ ]) : toNfTy rA = toNfTy rA'.
+  Proof.
+    unfold toNfTy; pose proof (e := whredty_det _ _ rA rA'); destruct rA, rA'; cbn in *; subst.
+    f_equal; eapply isType_uniq.
+  Qed.
+
+  Lemma ShapeViewConv@{i j k l i' j' k' l' i'' j'' k'' l''} {Γ A lA A' B lB B' l}
+    (RA : [LogRel@{i j k l} lA | Γ ||- A ≅ A']) (RB : [LogRel@{i' j' k' l'} lB | Γ ||- B ≅ B']) :
+    [LogRel@{ i'' j'' k'' l''} l | Γ ||- A ≅ B] -> ShapeView@{i j k l i' j' k' l'} Γ A B RA RB.
+  Proof.
+    intros RAB.
+    set (rA := whredL RAB); set (rA' := whredL RA); set (rB := whredR RAB); set (rB' := whredL RB).
+    generalize (whredty_det' rA rA') (whredty_det' rB rB'); subst rA rA' rB rB'.
+    unfold ShapeView; destruct RA as [? adA], RB as [? adB], RAB as [? adAB]; cbn; destruct adA, adB, adAB; cbn;
+    intros eqA eqB ; try first [exact I| discriminate eqA| discriminate eqB].
+  Qed.
+
+(*
   Lemma red_whnf@{i j k l} {Γ A lA eqTyA eqTmA}
     (lrA : LogRel@{i j k l} lA Γ A eqTyA eqTmA) :
     ∑ nf, [Γ |- A :⤳*: nf] × whnf nf.
@@ -73,7 +111,7 @@ when showing symmetry or transitivity of the logical relation. *)
     destruct lrA; destruct lrB; intros []; cbn; try easy; try discriminate.
     all: try now (intros e; destruct neA as [? ? ne]; subst; apply convneu_whne in ne; inversion ne).
     all: try now (intros e; subst; symmetry in eq; apply convneu_whne in eq; inversion eq).
-  Qed.
+  Qed. *)
 
 (** ** More properties *)
 (* KM: looks like it is not used anywhere anymore *)
