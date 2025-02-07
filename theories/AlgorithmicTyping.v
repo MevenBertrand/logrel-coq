@@ -252,6 +252,7 @@ Section Definitions.
     | infRed {Γ t A A'} :
       [Γ |- t ▹ A ] ->
       [ A ⤳* A'] ->
+      whnf A' ->
       [Γ |- t ▹h A']
   (** **** Type-checking *)
   with CheckAlg : context -> term -> term -> Type :=
@@ -647,6 +648,7 @@ Section TypingWk.
       econstructor.
       + eauto.
       + eauto using credalg_wk.
+      + now eapply whnf_ren. 
     - intros.
       econstructor.
       + eauto.
@@ -770,7 +772,7 @@ Theorem algo_typing_det :
   AlgoTypingInductionConcl
     (fun _ _ => True)
     (fun Γ A t => forall A', [Γ |-[al] t ▹ A'] -> A' = A)
-    (fun Γ A t => whnf A -> forall A', whnf A' -> [Γ |-[al] t ▹h A'] -> A' = A)
+    (fun Γ A t => forall A', [Γ |-[al] t ▹h A'] -> A' = A)
     (fun _ _ _ => True).
 Proof.
   apply AlgoTypingInduction.
@@ -787,8 +789,7 @@ Proof.
   - intros * ? IHf ?? ? Hconv.
     inversion Hconv ; subst ; clear Hconv ; refold.
     eapply IHf in H6.
-    2-3:gen_typing.
-    now inversion H6.
+    congruence.
   - intros * Hconv.
     now inversion Hconv.
   - intros * Hconv.
@@ -816,10 +817,10 @@ Proof.
   - intros * ?????? * Hconv; inversion Hconv; now subst.
   - intros * ???? * Hconv; now inversion Hconv.
   - intros * ???????????? * Hconv; now inversion Hconv.
-  - intros * ? IH ?? ?? Hconv.
+  - intros * ? IH ?? ? Hconv.
     inversion Hconv ; subst ; clear Hconv ; refold.
-    eapply IH in H3 ; subst.
-    now eapply whred_det.
+    eapply IH in H2 ; subst.
+    eapply whred_det ; tea.
 Qed.
 
 End AlgoTypingDet.

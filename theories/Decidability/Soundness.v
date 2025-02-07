@@ -334,10 +334,10 @@ Section TypingSound.
       | H : (_;_;_) = (_;_;_) |- _ => injection H; clear H; intros; subst 
       end).
     all: try now econstructor.
-    econstructor; tea; now rewrite 2!Weakening.wk1_ren_on.
-    econstructor ; tea.
-    apply conv_sound.
-    now match goal with | H : unit |- _ => destruct H end.
+    - econstructor; tea; now rewrite 2!Weakening.wk1_ren_on.
+    - econstructor ; tea.
+      apply conv_sound.
+      now match goal with | H : unit |- _ => destruct H end.
   Qed.
 
   Lemma implem_typing_sound x r:

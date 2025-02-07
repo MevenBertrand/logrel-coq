@@ -1,6 +1,6 @@
 (** * LogRel.LogRelConsequences: the properties from PropertiesDefinition are consequences of the logical relation. *)
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping.
-From LogRel.TypingProperties Require Import PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj NeutralConvProperties NormalisationConsequences.
+From LogRel.TypingProperties Require Import Normalisation PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj NeutralConvProperties NormalisationConsequences.
 
 From LogRel Require Import LogicalRelation Fundamental.
 From LogRel.LogicalRelation Require Import Escape Irrelevance Transitivity Neutral Induction NormalRed.
@@ -849,7 +849,7 @@ End Normalisation.
 
 (** Every closed natural number is a numeral, i.e. an iteration of [tSucc] on [tZero]. *)
 
-Section NatCanonicityInduction.
+(* Section NatCanonicityInduction.
 
   Import WeakDeclarativeTypingProperties WeakDeclarativeTypingData.
 
@@ -899,4 +899,4 @@ End NatCanonicityInduction.
 #[local, refine] Instance NatCanonicityLogRel : NatCanonicity (ta := de) := {}.
 Proof.
   auto using _nat_canonicity.
-Qed.
+Qed. *)

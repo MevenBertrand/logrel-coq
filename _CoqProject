@@ -22,6 +22,7 @@ theories/Syntax/All.v
 theories/GenericTyping.v
 theories/DeclarativeTyping.v
 
+theories/TypingProperties/Normalisation.v
 theories/TypingProperties/PropertiesDefinition.v
 theories/TypingProperties/DeclarativeProperties.v
 theories/TypingProperties/SubstConsequences.v

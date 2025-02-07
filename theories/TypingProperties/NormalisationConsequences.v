@@ -1,8 +1,8 @@
 (** * LogRel.NormalisationConsequences: direct consequences of normalisation. *)
 From Coq Require Import CRelationClasses.
-From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping PropertiesDefinition SubstConsequences TypeConstructorsInj.
+From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping PropertiesDefinition SubstConsequences NeutralConvProperties TypeConstructorsInj DeclarativeProperties Normalisation.
 
-Import DeclarativeTypingData.
+Import DeclarativeTypingProperties.
 
 (** ** Well-foundedness of reduction *)
 
@@ -72,3 +72,55 @@ Section Consistency.
   Qed.
 
 End Consistency.
+
+
+(** ** Canonicity *)
+(** Every closed natural number is convertible to a numeral. Note that we really need
+  deep normalisation here, with only wh normalisation we would only get that a closed natural
+  number is convertible to 0 or a successor, but would have no control over the argument of the latter. *)
+Section Canonicity.
+  Context `{!TypingSubst (ta := de)}
+    `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+    `{!DeepNormalisation (ta := de)}.
+
+  Let Pnorm Γ A t := (Γ = ε) -> A = tNat -> [ε |- t : tNat] ->
+    ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat].
+  Let Pnf Γ A t := (Γ = ε) -> A = tNat -> [ε |- t : tNat] ->
+    ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat].
+  Let Pneu (Γ : context) (A t : term) := True.
+  Let Pty (Γ : context) (A : term) := True.
+
+  Lemma nat_canonicity {t} : [ε |- t : tNat] ->
+    ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat].
+  Proof.
+    intros [Hty Hnorm%tm_dnorm]%dup.
+      epose proof (DeepNormInduction Pnorm Pnf Pneu Pneu Pty Pty) as
+      [Hconcl _] ; cycle -1.
+    1:{
+      unfold Pnorm in Hconcl.
+      eapply Hconcl.
+      all: eauto.
+    }
+    all: clear Hty Hnorm ; unfold Pnorm, Pnf, Pneu, Pty ; cbn ; try solve [constructor].
+    all: try solve [congruence].
+    - intros * Hred Hred' _ IH -> -> Hty.
+      eapply red_whnf in Hred ; subst ; [..|gen_typing].
+      eapply subject_reduction in Hred' ; tea.
+      edestruct IH ; eauto.
+      1: boundary.
+      eexists ; etransitivity ; tea.
+      now eapply RedConvTeC.
+    - intros.
+      exists 0 ; cbn.
+      now constructor.
+    - intros * _ IH -> _ (?&[->]&?)%termGen'.
+      destruct IH ; eauto.
+      eexists (S _) ; cbn.
+      now constructor.
+    - intros * ? Hne ** ; subst.
+      exfalso.
+      eapply no_neutral_empty_ctx ; tea.
+      now eapply dnf_whnf in Hne.
+  Qed.
+
+End Canonicity.

@@ -1,6 +1,6 @@
 (** * LogRel.PropertiesDefinition: the high-level, abstract properties of conversion and typing, that we obtain as consequences of the logical relation. *)
 From Coq Require Import CRelationClasses ssrbool.
-From LogRel Require Import Utils Syntax.All GenericTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping Normalisation.
 
 Section Properties.
 
@@ -200,25 +200,27 @@ Section Properties.
 
   (** ** Normalisation *)
 
-  Record normalising (t : term) := {
-    norm_val : term;
-    norm_red : [ t ⤳* norm_val ];
-    norm_whnf : whnf norm_val;
-  }.
-
   Class Normalisation :=
   {
     tm_norm {Γ A t} : [Γ |- t : A] -> normalising t ;
     ty_norm {Γ A} : [Γ |- A] -> normalising A ;
   }.
 
+  Class DeepNormalisation :=
+  {
+    tm_dnorm {Γ A t} : [Γ |- t : A] -> dnorm_tm Γ A t ;
+    ty_dnorm {Γ A} : [Γ |- A] -> dnorm_ty Γ A ;
+  }.
+
   (** ** Canonicity for natural numbers *)
 
-  Class NatCanonicity :=
+  (* Class NatCanonicity :=
   {
     nat_canonicity {t} : [ε |- t : tNat] ->
       ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat]
   }.
+
+  *)
 
   Context `{ta' : tag}
     `{!WfContext ta'} `{!WfType ta'} `{!Typing ta'} `{!ConvType ta'} `{!ConvTerm ta'} `{!ConvNeuConv ta'}

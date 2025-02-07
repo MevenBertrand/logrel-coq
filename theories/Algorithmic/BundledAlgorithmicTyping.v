@@ -235,16 +235,6 @@ Module BundledTypingData.
     change OneStepRedTermBun with (osred_tm (ta := bn)) in * ;
     change RedTermBun with (red_tm (ta := bn)) in *.
 
-  (** If bundled judgements are complete, then so are the unbundled judgments *)
-
-  #[refine]Instance CompleteBundledAlgoConv
-    `{ta : tag} `{!ConvType ta} `{ConvTerm ta} `{! ConvComplete (ta := ta) (ta' := bn)} :
-    ConvComplete (ta := ta) (ta' := al) := {}.
-  Proof.
-    - now intros * []%(ty_conv_compl (ta' := bn)).
-    - now intros * []%(tm_conv_compl (ta' := bn)).
-  Qed.
-
 End BundledTypingData.
 
 Import BundledTypingData.
@@ -269,20 +259,9 @@ Module BundledIntermediateData.
     change (conv_term (ta := bni)) with (conv_term (ta := bn)) in * ;
     change (conv_neu_ty (ta := bni)) with (conv_neu_ty (ta := bn)) in *.
 
-  (** If bundled judgements are complete, then so are the unbundled judgments *)
-
-  #[refine]Instance CompleteBundledAlgoConv
-    `{ta : tag} `{!ConvType ta} `{ConvTerm ta} `{! ConvComplete (ta := ta) (ta' := bni)} :
-    ConvComplete (ta := ta) (ta' := al) := {}.
-  Proof.
-    - now intros * []%(ty_conv_compl (ta' := bni)).
-    - now intros * []%(tm_conv_compl (ta' := bni)).
-  Qed.
-
 End BundledIntermediateData.
 
 Set Universe Polymorphism.
-
 
 (** ** Invariants of algorithmic typing (aka McBride discipline):
   for each rule,
@@ -1398,9 +1377,11 @@ Section BundledTyping.
     | context C [PTy ?Γ ?A] =>
         context C [PTy Γ A × [Γ |-[de] A]]
     | context C [PInf ?Γ ?A ?t] =>
-        context C [PInf Γ A t × [Γ |-[de] t : A]]
+        context C [PInf Γ A t ×
+          ([Γ |-[de] t : A] × forall T, [Γ |-[de] t : T] -> [Γ |-[de] A ≅ T])]
     | context C [PInfRed ?Γ ?A ?t] =>
-        context C [PInfRed Γ A t × [Γ |-[de] t : A]]
+        context C [PInfRed Γ A t × 
+          ([Γ |-[de] t : A] × forall T, [Γ |-[de] t : T] -> [Γ |-[de] A ≅ T])]
     | context C [PCheck ?Γ ?A ?t] =>
         context C [PCheck Γ A t × [Γ |-[de] t : A]]
     | ?Hyp' => Hyp'
@@ -1453,15 +1434,11 @@ Section BundledTyping.
     | ?Cend => let Cend' := weak_concl Cend in constr:(Cend')
   end.
 
-  Let PTy' (c : context) (t : term) :=
-        [ |-[ de ] c] -> PTy c t × [c |-[ de ] t].
-  Let PInf' (c : context) (t t1 : term) :=
-     [ |-[ de ] c] -> PInf c t t1 × [c |-[ de ] t1 : t].
-  Let PInfRed' (c : context) (t t1 : term) :=
-       [ |-[ de ] c] -> PInfRed c t t1 × [c |-[ de ] t1 : t].
-  Let PCheck' (c : context) (t t1 : term) :=
-         [ |-[ de ] c] ->
-         [c |-[ de ] t] -> PCheck c t t1 × [c |-[ de ] t1 : t].
+  #[local] Ltac crush := repeat unshelve (
+    match reverse goal with
+      | IH : context [prod] |- _ => destruct IH as (?&IH) ; [..|shelve] ; prod_hyp_splitter ; gen_typing
+    end) ;
+  split ; prod_splitter ; [idtac|econstructor|..] ; eauto.
 
   (** The main theorem *)
   Theorem algo_typing_discipline : ltac:(
@@ -1470,29 +1447,54 @@ Section BundledTyping.
     exact ind).
   Proof.
     intros.
-    subst PTy' PInf' PInfRed' PCheck'.
     apply AlgoTypingInduction.
-    1-10: solve [intros ;
-      repeat unshelve (
-        match reverse goal with
-          | IH : context [prod] |- _ => destruct IH ; [..|shelve] ; gen_typing
-        end) ;
-      now split ; [|econstructor] ; eauto].
+    1-7: intros ; crush.
+
+    - intros * Hin ? ; crush.
+
+      intros ? (?&(?&[-> ])&?)%termGen'.
+      eapply in_ctx_inj in Hin ; tea ; subst.
+      assumption.
+
+    - intros * ? IHA ? IHB ? ; crush.
+      1: eauto 10.
+
+      intros ? (?&[-> ]&?)%termGen'.
+      assumption.
+
+    - intros * ? IHA ? IHt ? ; crush.
+      
+      intros ? (?&(?&[-> ])&?)%termGen'.
+      etransitivity ; tea.
+      constructor ; eauto.
+      now eapply TypeRefl.
+
     - intros * ? IHI ? IHC ?.
-      destruct IHI as [? IHt].
-      1: gen_typing.
+    
+      destruct IHI as [? [IHt]] ; tea.
       destruct IHC ; tea.
       1: now eapply boundary, prod_ty_inv in IHt as [].
-      split ; [|econstructor] ; eauto.
+      split ; [|split ; [econstructor|]] ; eauto.
+
+      intros ? (?&(?&?&[->])&?)%termGen'.
+      etransitivity ; tea.
+      eapply typing_subst1 ; tea.
+      1: now eapply TermRefl.
+      now eapply prod_ty_inj.
+
     - intros.
       split ; [eauto|..].
-      now econstructor.
+      split ; [now econstructor|].
+      now intros ? (?&[]&?)%termGen'.
     - intros.
       split ; [eauto|..].
-      now econstructor.
+      split ; [now econstructor|].
+      now intros ? (?&[]&?)%termGen'.
     - intros.
       split ; [eauto|..].
-      now econstructor.
+      split ; [now econstructor|].
+      now intros ? (?&[->]&?)%termGen'.
+    
     - intros * ? IHn ? IHP ? IHz ? IHs ?.
       assert [|-[de] Γ,, tNat]
         by (econstructor ; tea ; now econstructor).
@@ -1505,26 +1507,31 @@ Section BundledTyping.
       assert [Γ |-[de] elimSuccHypTy P]
         by now eapply elimSuccHypTy_ty.
       split ; [eauto 10 |..].
-      econstructor.
+      split ; [econstructor|].
       + now eapply IHP.
       + now eapply IHz.
       + now eapply IHs.
       + now eapply IHn.
+      + now intros ? (?&[->]&?)%termGen'.
     - intros.
       split ; [eauto|..].
-      now econstructor.
+      split ; [now econstructor|].
+      now intros ? (?&->&?)%termGen'.
     - intros * ? IHe ? IHP ?.
       assert [|-[de] Γ,, tEmpty]
         by (econstructor ; tea ; now econstructor).
       split ; [eauto|..].
-      econstructor.
+      split ; [econstructor|].
       + now eapply IHP.
       + now eapply IHe.
+      + now intros ? (?&[->]&?)%termGen'.
     - intros * ? ihA ? ihB ?.
-      edestruct ihA as []; tea.
-      edestruct ihB as [].
+      edestruct ihA as (?&?&?); tea.
+      edestruct ihB as (?&?&?).
       1: gen_typing.
-      split; [eauto|now econstructor].
+      split; [eauto|..].
+      split ; [econstructor|..] ; eauto.
+      now intros ? (?&[->]&?)%termGen'.
     - intros * ? ihA ? ihB ? iha ? ihb ?.
       edestruct ihA as []; tea.
       edestruct ihB as [].
@@ -1532,24 +1539,37 @@ Section BundledTyping.
       edestruct iha as []; tea.
       edestruct ihb as []; tea.
       1: now eapply typing_subst1.
-      split;[eauto|now econstructor].
-      (* why is that not found by eauto ? *)
-      eapply X17; tea; now split.
+      split;[eauto 10|..].
+      split ; [econstructor|..] ; eauto.
+      now intros ? (?&[->]&?)%termGen'.
     - intros * ? ih ?.
-      edestruct ih as []; tea.
-      split;[eauto|now econstructor].
+      edestruct ih as (?&?&?); tea.
+      split;[eauto|..].
+      split ; [econstructor|..] ; eauto.
+      intros ? (?&(?&?&[->])&?)%termGen'.
+      etransitivity ; tea.
+      now eapply sig_ty_inj.
     - intros * ? ih ?.
-      edestruct ih as []; tea.
-      split;[eauto|now econstructor].
+      edestruct ih as (?&?&?); tea.
+      split;[eauto|..].
+      split ; [econstructor|..] ; eauto.
+      intros ? (?&(?&?&[->])&?)%termGen'.
+      etransitivity ; tea.
+      eapply typing_subst1.
+      1: now eapply TermRefl ; econstructor.
+      now eapply sig_ty_inj.
     - intros * ? ihA ? ihx ? ihy ?.
       edestruct ihA as []; tea.
       assert [Γ |-[de] A] by now econstructor.
       split; [eauto|].
-      econstructor; tea; [now eapply ihx | now eapply ihy].
+      split.
+      1: econstructor; [now eapply ihA | now eapply ihx | now eapply ihy].
+      now intros ? (?&[->]&?)%termGen'.
     - intros * ? ihA ? ihx ?.
       assert [Γ |-[de] A] by now eapply ihA.
-      split; [eauto|]. 
-      econstructor; tea; now eapply ihx.
+      split; [eauto|].
+      split ; [econstructor; tea; now eapply ihx|..].
+      now intros ? (?&[->]&?)%termGen'.
     - intros * ? ihA ? ihx ? ihP ? ihhr ? ihy ? ihe ?.
       assert [Γ |-[de] A] by now eapply ihA.
       assert [Γ |-[de] x : A] by now eapply ihx.
@@ -1560,17 +1580,22 @@ Section BundledTyping.
           cbn;rewrite 2!wk1_ren_on, 2!shift_one_eq; now econstructor.
       }
       assert [Γ |-[de] tId A x y] by now econstructor.
-      split. 1:eapply X22; eauto. (* ??? *)
-      econstructor; tea; [eapply ihP| eapply ihhr| eapply ihy | eapply ihe]; eauto.
-    - intros * ? IH HA ?.
-      destruct IH as [? IH] ; tea.
+      split. 1:eauto 10.
+      split ; [econstructor; tea; [eapply ihP| eapply ihhr| eapply ihy | eapply ihe]; eauto|..].
+      now intros ? (?&[->]&?)%termGen'.
+    - eintros * ? IH [HA ?]%dup ? ?.
+      destruct IH as (?&?&?) ; tea.
+      eapply subject_reduction_type, reddecl_conv in HA ; refold.
+      2: boundary.
       split ; [eauto|..].
-      econstructor ; tea.
-      eapply subject_reduction_type, reddecl_conv in HA.
-      1: eassumption.
-      now boundary.
+      split ; [econstructor ; tea|..].
+      
+      intros.
+      etransitivity ; eauto.
+      now symmetry.
+
     - intros * ? IHt HA ?.
-      destruct IHt as [? IHt] ; eauto.
+      destruct IHt as (?&?&?) ; eauto.
       split ; [eauto|].
       econstructor ; tea.
       eapply algo_conv_sound in HA ; tea.
@@ -1620,6 +1645,29 @@ Section TypingSoundness.
       | ..] ; clear H' ; try destruct H as [H' H]).
     1: now intros ; apply H ; gen_typing.
     all: now constructor.
+  Qed.
+
+  Theorem algo_infer_unique Γ A T t :
+    [|-[de] Γ] ->
+    [Γ |-[de] t : T] ->
+    ([Γ |-[al] t ▹ A] -> [Γ |-[de] A ≅ T]) × ([Γ |-[al] t ▹h A] -> [Γ |-[de] A ≅ T]).
+  Proof.
+    pose proof (algo_typing_discipline 
+      (fun _ _ => True) (fun _ _ _ => True) (fun _ _ _ => True) (fun _ _ _ => True)) as [H' H] 
+      ;
+    cycle -1.
+    1: shelve.
+    all: easy.
+    Unshelve.
+    intros ; split ; intros Hal.
+    all: eapply H in Hal ; eauto.
+    all: now prod_hyp_splitter.
+  Qed.
+
+  Corollary algo_context_sound Γ : [|-[al] Γ] -> [|-[de] Γ ].
+  Proof.
+    induction 1 as [| ???? HA] ; constructor ; tea.
+    now eapply algo_typing_sound in HA.
   Qed.
 
 End TypingSoundness.

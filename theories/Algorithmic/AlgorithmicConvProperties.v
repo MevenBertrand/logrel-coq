@@ -1,9 +1,9 @@
 (** * LogRel.AlgorithmicConvProperties: properties of algorithmic conversion. *)
 From LogRel Require Import Utils Sections Syntax.All GenericTyping DeclarativeTyping AlgorithmicTyping.
-From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
+From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties Normalisation.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData.
+Import DeclarativeTypingProperties AlgorithmicTypingData BundledTypingData.
 
 (** ** Stability of algorithmic conversion by type/term expansion *)
 
@@ -32,22 +32,22 @@ Section ConvStr.
   
   Let PTyEq (Γ : context) (A B : term) := forall Δ (ρ : Γ ≤ Δ) A' B',
     A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
-    [Δ |- A' ≅ B'].
+    [Δ |-[al] A' ≅ B'].
   Let PTyRedEq (Γ : context) (A B : term) := forall Δ (ρ : Γ ≤ Δ) A' B',
     A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
-    [Δ |- A' ≅h B'].
+    [Δ |-[al] A' ≅h B'].
   Let PNeEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u',
     t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
-    ∑ A', A = A'⟨ρ⟩ × [Δ |- t' ~ u' ▹ A'].
+    ∑ A', A = A'⟨ρ⟩ × [Δ |-[al] t' ~ u' ▹ A'].
   Let PNeRedEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u',
     t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
-    ∑ A', A = A'⟨ρ⟩ × [Δ |- t' ~h u' ▹ A'].
+    ∑ A', A = A'⟨ρ⟩ × [Δ |-[al] t' ~h u' ▹ A'].
   Let PTmEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u' A',
     A = A'⟨ρ⟩ -> t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
-    [Δ |- t' ≅ u' : A'].
+    [Δ |-[al] t' ≅ u' : A'].
   Let PTmRedEq (Γ : context) (A t u : term) := forall Δ (ρ : Γ ≤ Δ) t' u' A',
     A = A'⟨ρ⟩ -> t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
-    [Δ |- t' ≅h u' : A'].
+    [Δ |-[al] t' ≅h u' : A'].
 
   #[local] Ltac push_renaming :=
     repeat match goal with
@@ -242,6 +242,49 @@ Section ConvStr.
 
 End ConvStr.
 
+(** Algorithmic conversion implies normalisation *)
+Section AlgoConvNorm.
+  
+  Let PTyEq (Γ : context) (A B : term) := dnorm_ty Γ A.
+  Let PTyRedEq (Γ : context) (A B : term) := dnf_ty Γ A.
+  Let PNeEq (Γ : context) (A t u : term) := dneu Γ A t.
+  Let PNeRedEq (Γ : context) (A t u : term) := dneu_red Γ A t.
+  Let PTmEq (Γ : context) (A t u : term) := dnorm_tm Γ A t.
+  Let PTmRedEq (Γ : context) (A t u : term) := dnf_tm Γ A t.
+
+  Lemma algo_conv_dnorm :
+    AlgoConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+  Proof.
+    subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+    apply AlgoConvInduction ; cbn.
+    all: intros ; now econstructor.
+  Qed.
+
+End AlgoConvNorm.
+
+(** From this, we deduce that completeness of algorithmic typing wrt. declarative typing
+  implies normalisation, through reflexivity of declarative typing. We can combine this later
+  with the consequence of the logical relation to obtain deep normalisation. *)
+
+Section CompleteNormalisation.
+  Import BundledIntermediateData.
+
+  #[refine]Instance CompleteAlgoNormalisation
+    `{! ConvComplete (ta := de) (ta' := bni)} :
+    DeepNormalisation (ta := de) := {}.
+  Proof.
+    - intros * Hty.
+      eapply algo_conv_dnorm.
+      eapply TermRefl, tm_conv_compl in Hty as [].
+      eassumption.
+    - intros * Hty.
+      eapply algo_conv_dnorm.
+      eapply TypeRefl, ty_conv_compl in Hty as [].
+      eassumption.
+  Qed.
+
+End CompleteNormalisation.
+
 (** ** Stability of algorithmic conversion by context and type change *)
 
 (** If the input context and input type (when there is one) are changed to convertible
@@ -312,7 +355,7 @@ Section AlgoConvConv.
   Theorem bundled_conv_conv :
     BundledConvInductionConcl PTyEq' PTyRedEq' PNeEq' PNeRedEq' PTmEq' PTmRedEq'.
   Proof.
-    all: subst PTyEq' PTyRedEq' PNeEq' PNeRedEq' PTmEq' PTmRedEq'.
+    subst PTyEq' PTyRedEq' PNeEq' PNeRedEq' PTmEq' PTmRedEq'.
     apply BundledConvInduction ; cbn in *.
     - intros * ??? IH **.
       econstructor ; tea.
@@ -1281,8 +1324,6 @@ End Transitivity.
 
 (** ** Instances *)
 
-Import BundledTypingData.
-
 Module AlgorithmicConvProperties.
   Export AlgorithmicTypingData.
 
@@ -2017,3 +2058,4 @@ Module IntermediateTypingProperties.
     GenericTypingProperties bni _ _ _ _ _ _ _ _ _ _ := {}.
 
 End IntermediateTypingProperties.
+

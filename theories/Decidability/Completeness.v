@@ -2,7 +2,7 @@
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
-From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
+From LogRel.TypingProperties Require Import Normalisation DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import Utils.
 
@@ -16,7 +16,6 @@ Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section RedImplemComplete.
   Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
-
 
   #[local]Definition R_aux := lexprod term term cored term_subterm.
 
@@ -375,7 +374,7 @@ Let PTmRedEq (Γ : context) (A t u : term) :=
 
 Arguments PFun_instance_1 : simpl never.
 
-Lemma _implem_conv_complete :
+Lemma implem_conv_complete :
   BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
 Proof.
   subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
@@ -586,7 +585,7 @@ Proof.
     all: now econstructor ; [exact (IHm tt)|constructor].
 Qed.
 
-Corollary implem_conv_complete `{!ConvComplete (ta := de) (ta' := al)} Γ A B :
+(* Corollary implem_conv_complete `{!ConvComplete (ta := de) (ta' := al)} Γ A B :
   [Γ |-[de] A ≅ B] ->
   graph tconv (Γ,A,B) ok.
 Proof.
@@ -599,7 +598,7 @@ Proof.
     1-3: boundary.
     now apply ty_conv_compl.
   - econstructor.
-Qed.
+Qed. *)
 
 End ConversionComplete.
 
