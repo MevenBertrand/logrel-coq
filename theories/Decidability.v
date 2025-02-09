@@ -25,7 +25,7 @@ Notation "x 'eqn:' p" := ((x;p)) (only parsing, at level 20).
 #[global]
 Obligation Tactic := idtac.
 
-Equations check (Γ : context) (t T : term) (hΓ : [|- Γ]) (hT : [Γ |- T]) :
+Equations check (Γ : context) (t T : term) (hΓ : [|-[de] Γ]) (hT : [Γ |-[de] T]) :
   [Γ |-[de] t : T] + ~[Γ |-[de] t : T] :=
 
 check Γ t T hΓ hT with (inspect (def (typing tconv) (check_state;Γ;T;t) _)) :=

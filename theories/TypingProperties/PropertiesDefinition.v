@@ -212,16 +212,6 @@ Section Properties.
     ty_dnorm {Γ A} : [Γ |- A] -> dnorm_ty Γ A ;
   }.
 
-  (** ** Canonicity for natural numbers *)
-
-  (* Class NatCanonicity :=
-  {
-    nat_canonicity {t} : [ε |- t : tNat] ->
-      ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat]
-  }.
-
-  *)
-
   Context `{ta' : tag}
     `{!WfContext ta'} `{!WfType ta'} `{!Typing ta'} `{!ConvType ta'} `{!ConvTerm ta'} `{!ConvNeuConv ta'}
     `{!RedType ta'} `{!RedTerm ta'}.

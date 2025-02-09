@@ -281,7 +281,7 @@ Set Universe Polymorphism.
 *)
 
 Section Invariants.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Lemma typeConvRed_prem2 (Γ : context) (A A' B B' : term) :
     [A ⤳* A'] ->
@@ -1057,7 +1057,7 @@ hypotheses holding. *)
 Section BundledConv.
   Universe u.
 
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
 
   Context (PTyEq PTyRedEq : context -> term -> term -> Type@{u})
@@ -1293,8 +1293,7 @@ only constant true predicates, we get only the post-conditions, ie a soundness t
 
 Section ConvSoundness.
 
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
-
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Let PTyEq (Γ : context) (A B : term) :=
     [Γ |-[de] A] ->
@@ -1329,7 +1328,6 @@ End ConvSoundness.
 
 Theorem bn_conv_sound
   `{!TypingSubst (ta := de)}
-  `{!TypeReductionComplete (ta := de)}
   `{!TypeConstructorsInj (ta := de)} :
 
   BundledConvInductionConcl
@@ -1355,7 +1353,7 @@ Qed.
 
 Section BundledTyping.
 
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Context (PTy : context -> term -> Type)
     (PInf PInfRed PCheck : context -> term -> term -> Type).
@@ -1621,7 +1619,7 @@ Section BundledTyping.
 End BundledTyping.
 
 Section TypingSoundness.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Let PTy (Γ : context) (A : term) :=
     [|-[de] Γ] -> [Γ |-[de] A].
@@ -1674,7 +1672,6 @@ End TypingSoundness.
 
 Theorem bn_alg_typing_sound
   `{!TypingSubst (ta := de)}
-  `{!TypeReductionComplete (ta := de)}
   `{!TypeConstructorsInj (ta := de)} :
 
   BundledTypingInductionConcl
@@ -1693,7 +1690,6 @@ Qed.
 
 Lemma bn_typing_sound 
   `{!TypingSubst (ta := de)}
-  `{!TypeReductionComplete (ta := de)}
   `{!TypeConstructorsInj (ta := de)}
   Γ t A :
   [Γ |-[bn] t : A] -> [Γ |-[de] t : A].
@@ -1705,7 +1701,6 @@ Qed.
 
 Corollary inf_conv_decl
   `{!TypingSubst (ta := de)}
-  `{!TypeReductionComplete (ta := de)}
   `{!TypeConstructorsInj (ta := de)}
   Γ t A A' :
   [Γ |-[al] t ▹ A] ->

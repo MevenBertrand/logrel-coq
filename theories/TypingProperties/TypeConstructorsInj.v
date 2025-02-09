@@ -634,7 +634,7 @@ Section WhClassification.
 End WhClassification.
 
 Lemma idElimConv {Γ A x P hr y e A' x' P' hr' e' y' T A'' x'' y''}
-  `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}:
+  `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}:
   well_typed (ta := de) Γ (tIdElim A x P hr y e) ->
   well_typed (ta := de) Γ (tIdElim A' x' P' hr' y' e') ->
   (forall T', [Γ |-[de] e : T'] -> [Γ |-[de] T ≅ T']) ->

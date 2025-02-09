@@ -14,7 +14,7 @@ Import DeclarativeTypingData.
 instance to prove! *)
 
 Section NeuConvProperties.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Lemma conv_neu_wk Γ Δ (ρ : Δ ≤ Γ) A m n :
     [|- Δ] ->
@@ -467,7 +467,7 @@ Module DeclarativeTypingProperties.
   #[export] Existing Instance RedTypeDeclProperties.
 
   #[export, refine] Instance ConvTermDeclProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+    `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}
     : ConvTermProperties (ta := de) := {}.
   Proof.
     4,7,11: shelve.
@@ -503,7 +503,7 @@ Module DeclarativeTypingProperties.
   Qed.
 
   #[export, refine] Instance ConvNeuDeclProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} :
     ConvNeuProperties (ta := de) := {}.
   Proof.
     all: try solve [now econstructor].
@@ -520,7 +520,7 @@ Module DeclarativeTypingProperties.
   Qed.
 
   #[export] Instance DeclarativeTypingProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} :
     GenericTypingProperties de _ _ _ _ _ _ _ _ _ _ := {}.
 
 End DeclarativeTypingProperties.
