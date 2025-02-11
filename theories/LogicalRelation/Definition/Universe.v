@@ -66,6 +66,12 @@ End URedTy.
 
 Export URedTy(URedTy,Build_URedTy).
 
+#[program]
+Instance URedTyWhRedTy `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (URedTy l Γ) :=
+ {| whredtyL := fun A B RAB => URedTy.whredL RAB ;
+    whredtyR := fun A B RAB => URedTy.whredR RAB ;
+ |}.
+Next Obligation. destruct h; gtyping. Qed.
 
 Notation "[ Γ ||-U< l > A ≅ B ]" := (URedTy l Γ A B) (at level 0, Γ, l, A, B at level 50).
 
@@ -122,7 +128,7 @@ Module URedTm.
   Record URedTmEq@{i j} `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
     {l} {rec : forall {l'}, l' << l -> RedRel@{i j}}
-    {Γ : context} {t u A B : term} {R : [Γ ||-U<l> A ≅ B]}
+    {Γ : context} {A B : term} {R : [Γ ||-U<l> A ≅ B]} {t u}
   : Type@{j} := {
       redL : URedTm R.(URedTy.level) Γ t ;
       redR : URedTm R.(URedTy.level) Γ u ;
@@ -130,24 +136,28 @@ Module URedTm.
       relEq : [ rec R.(URedTy.lt) | Γ ||- t ≅ u ] ;
   }.
 
-  Arguments URedTmEq {_ _ _ _ _ _ _ _} rec.
+  Arguments URedTmEq {_ _ _ _ _ _ _ _ } rec.
 
   Definition whredL `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
     {l} {rec : forall l', l' << l -> RedRel}
     {Γ : context} {t u A B : term} {R : [Γ ||-U<l> A ≅ B]} :
-    URedTmEq rec Γ t u A B R -> [Γ |- t ↘  U].
+    URedTmEq rec Γ A B R t u -> [Γ |- t ↘  U].
   Proof. intros []; now eapply whred. Defined.
 
   Definition whredR `{ta : tag} `{WfContext ta} `{WfType ta}
     `{Typing ta} `{ConvTerm ta} `{RedType ta} `{RedTerm ta}
     {l} {rec : forall l', l' << l -> RedRel}
     {Γ : context} {t u A B : term} {R : [Γ ||-U<l> A ≅ B]} :
-    URedTmEq rec Γ t u A B R -> [Γ |- u ↘  U].
+    URedTmEq rec Γ A B R t u -> [Γ |- u ↘  U].
   Proof. intros []; now eapply whred. Defined.
 
 End URedTm.
 
 Export URedTm(URedTm,Build_URedTm,URedTmEq,Build_URedTmEq).
-Notation "[ R | Γ ||-U t ≅ u : A | l ]" := (URedTmEq R Γ t u A _ l) (at level 0, R, Γ, t, u, A, l at level 50).
-Notation "[ R | Γ ||-U t ≅ u : A ≅ B | l ]" := (URedTmEq R Γ t u A B l) (at level 0, R, Γ, t, u, A, B, l at level 50).
+Notation "[ R | Γ ||-U t ≅ u : A | l ]" := (URedTmEq R Γ A _ l t u) (at level 0, R, Γ, t, u, A, l at level 50).
+Notation "[ R | Γ ||-U t ≅ u : A ≅ B | l ]" := (URedTmEq R Γ A B l t u) (at level 0, R, Γ, t, u, A, B, l at level 50).
+
+Instance URedTmWhRed `{GenericTypingProperties} {Γ l} : WhRedTm Γ U (URedTm l Γ) :=
+  fun t => URedTm.whred.
+

@@ -51,8 +51,9 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     | LRId _ IA IAad =>
       let embedIdAd :=
         {| IdRedTyPack.tyAd := LR_embedding l_ IAad.(IdRedTyPack.tyAd) ;
-          IdRedTyPack.tyKripkeAd (Δ : context) (ρ : Δ ≤ _) (wfΔ : [  |- Δ]) :=
-            LR_embedding l_ (IAad.(IdRedTyPack.tyKripkeAd) ρ wfΔ) |}
+          (* IdRedTyPack.tyKripkeAd (Δ : context) (ρ : Δ ≤ _) (wfΔ : [  |- Δ]) :=
+            LR_embedding l_ (IAad.(IdRedTyPack.tyKripkeAd) ρ wfΔ) *)
+             |}
       in LRId _ IA embedIdAd
     end.
 
@@ -87,7 +88,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall Γ A B (IA : IdRedTyPack@{j} Γ A B) (IAad : IdRedTyAdequate (LR rec) IA),
       P IAad.(IdRedTyPack.tyAd) ->
-      (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IAad.(IdRedTyPack.tyKripkeAd) ρ wfΔ)) ->
+      (* (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IAad.(IdRedTyPack.tyKripkeAd) ρ wfΔ)) -> *)
       P (LRId rec IA IAad)) ->
 
     forall (Γ : context) (A B : term) (tmeq  : term -> term -> Type@{j}) (lr : LR@{i j k} rec Γ A B tmeq),
@@ -138,7 +139,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (IA :  [Γ ||-Id<l> A ≅ B]),
       P (IA.(IdRedTy.tyRed).(LRAd.adequate)) ->
-      (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IA.(IdRedTy.tyKripke) ρ wfΔ).(LRAd.adequate)) ->
+      (* (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IA.(IdRedTy.tyKripke) ρ wfΔ).(LRAd.adequate)) -> *)
 
       P (LRId' IA).(LRAd.adequate)) ->
 
@@ -180,7 +181,7 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
 
     (forall l Γ A B (IA :  [Γ ||-Id<l> A ≅ B]),
       P (IA.(IdRedTy.tyRed)) ->
-      (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IA.(IdRedTy.tyKripke) ρ wfΔ)) ->
+      (* (forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), P (IA.(IdRedTy.tyKripke) ρ wfΔ)) -> *)
       P (LRId' IA)) ->
 
     forall (l : TypeLevel) (Γ : context) (A B : term) (lr : [LogRel@{i j k l} l | Γ ||- A ≅ B]),
@@ -190,6 +191,32 @@ same. Both need to be proven simultaneously, because of contravariance in the pr
     apply (LR_rect_LogRelRec@{i j k l o} (fun l Γ A B _ lr => P l Γ A B (LRbuild lr))).
     all: auto.
   Defined.
+
+  Theorem LR_case_TyUr@{i j k l o}
+    (P : forall {l Γ A B}, [LogRel@{i j k l} l | Γ ||- A ≅ B] -> Type@{o}) :
+
+    (forall l (Γ : context) A B (h : [Γ ||-U<l> A ≅ B]),
+      P (LRU_ h)) ->
+
+    (forall (l : TypeLevel) (Γ : context) (A B : term) (neA : [Γ ||-ne A ≅ B]),
+      P (LRne_ l neA)) ->
+
+    (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : PiRedTy@{i j k l} Γ l A B),
+      P (LRPi' ΠA)) ->
+
+    (forall l Γ A B (NA : [Γ ||-Nat A ≅ B]), P (LRNat_ l NA)) ->
+
+    (forall l Γ A B (NA : [Γ ||-Empty A ≅ B]), P (LREmpty_ l NA)) ->
+
+    (forall (l : TypeLevel) (Γ : context) (A B : term) (ΠA : SigRedTy@{i j k l} Γ l A B),
+      P (LRSig' ΠA)) ->
+
+    (forall l Γ A B (IA :  [Γ ||-Id<l> A ≅ B]),
+      P (LRId' IA)) ->
+
+    forall (l : TypeLevel) (Γ : context) (A B : term) (lr : [LogRel@{i j k l} l | Γ ||- A ≅ B]),
+      P lr.
+  Proof. intros; now apply LR_rect_TyUr. Defined.
 
   (* Specialized version for level 0, used in the general version
 
@@ -267,6 +294,12 @@ Ltac indLR lr :=
     pattern l, Γ, A, B, lr; apply LR_rect_TyUr; clear l Γ A B lr; intros l Γ A B
   end.
 
+Ltac caseLR lr :=
+  match type of lr with
+  | [ ?Γ ||-< ?l > ?A ≅ ?B ] =>
+    pattern l, Γ, A, B, lr; apply LR_case_TyUr; clear l Γ A B lr; intros l Γ A B
+  end.
+
 From Equations Require Import Equations.
 
 Derive NoConfusion for term.
@@ -291,28 +324,22 @@ Section Inversions.
   Context `{GenericTypingProperties}.
 
   Definition whredL  {Γ l A B } (lr : [Γ ||-<l> A ≅ B]) : [Γ |- A ↘ ].
-  Proof.
-    indLR lr; intros.
-    - now eapply URedTy.whredL.
-    - now eapply neRedTy.whredL.
-    - now eapply PiRedTy.whredL.
-    - now eapply NatRedTy.whredL.
-    - now eapply EmptyRedTy.whredL.
-    - now eapply SigRedTy.whredL.
-    - now eapply IdRedTy.whredL.
-  Defined.
+  Proof. indLR lr; intros h **; try now refine (whredtyL h).  Defined.
 
   Definition whredR  {Γ l A B } (lr : [Γ ||-<l> A ≅ B]) : [Γ |- B ↘ ].
+  Proof. indLR lr; intros h **; try now refine (whredtyR h). Defined.
+
+  Definition whred_conv  {Γ l A B } (lr : [Γ ||-<l> A ≅ B]) : [Γ |- (whredL lr).(tyred_whnf) ≅ (whredR lr).(tyred_whnf)].
+  Proof. indLR lr; intros h **; try now refine (whredty_conv h). Defined.
+
+  Lemma whredL_conv {Γ l A B} (lr : [Γ ||-<l> A ≅ B]) : [Γ |- A ≅ (whredL lr).(tyred_whnf)].
   Proof.
-    indLR lr; intros.
-    - now eapply URedTy.whredR.
-    - now eapply neRedTy.whredR.
-    - now eapply PiRedTy.whredR.
-    - now eapply NatRedTy.whredR.
-    - now eapply EmptyRedTy.whredR.
-    - now eapply SigRedTy.whredR.
-    - now eapply IdRedTy.whredR.
-  Defined.
+    pose proof (whred_conv lr); destruct (whredL lr); cbn in *.
+    eapply convty_exp.
+    1: gtyping.
+    1: eapply redty_refl; gtyping.
+    now eapply lrefl.
+  Qed.
 
   Definition pidom (A : term) :=
     match A with | tProd dom _ => dom | _ => A end.
@@ -382,6 +409,9 @@ Section Inversions.
   Proof. split; apply invLREqR; gtyping. Qed.
 
   Lemma invLREqL_whred {Γ l l' A A' B} (RAA' : [Γ ||-<l'> A ≅ A']) (lr : [Γ ||-<l> A ≅ B]) : invLRTyEqL lr (whredL RAA').(tyred_whnf_isType).
+  Proof. apply invLREqL; gtyping. Qed.
+
+  Lemma invLREqL_whred' {Γ l l' A B C} (RAB : [Γ ||-<l> A ≅ B]) (lr : [Γ ||-<l'> B ≅ C]) : invLRTyEqL lr (whredR RAB).(tyred_whnf_isType).
   Proof. apply invLREqL; gtyping. Qed.
 
   Lemma invLREqR_whred {Γ l l' A B B'} (RBB' : [Γ ||-<l'> B ≅ B']) (lr : [Γ ||-<l> A ≅ B]) : invLRTyEqR lr (whredL RBB').(tyred_whnf_isType).

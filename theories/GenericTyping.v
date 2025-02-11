@@ -566,7 +566,6 @@ Class GenericTypingProperties `(ta : tag)
   `(WfContext ta) `(WfType ta) `(Typing ta)
   `(ConvType ta) `(ConvTerm ta) `(ConvNeuConv ta)
   `(RedType ta) `(RedTerm ta)
-  `(RedType ta) `(RedTerm ta)
 :=
 {
   wfc_prop :: WfContextProperties ;
@@ -1316,7 +1315,7 @@ Section GenericConsequences.
     all: now eapply redty_sound.
   Qed.
 
-  Lemma whredtm_det Γ t A A' (red1 : [Γ |- t ↘ A]) (red2 : [Γ |- t ↘ A']) :
+  Lemma whredtm_det {Γ t A A'} (red1 : [Γ |- t ↘ A]) (red2 : [Γ |- t ↘ A']) :
     red1.(tmred_whnf) = red2.(tmred_whnf).
   Proof.
     destruct red1 as [? []], red2 as [? []]; cbn.
@@ -1324,7 +1323,7 @@ Section GenericConsequences.
     all: now eapply redtm_sound.
   Qed.
 
-  Lemma whredty_det Γ A (red1 : [Γ |- A ↘]) (red2 : [Γ |- A ↘]) :
+  Lemma whredty_det {Γ A} (red1 : [Γ |- A ↘]) (red2 : [Γ |- A ↘]) :
    red1.(tyred_whnf) = red2.(tyred_whnf).
   Proof.
     destruct red1 as [? []], red2 as [? []]; cbn.

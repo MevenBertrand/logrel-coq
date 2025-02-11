@@ -18,7 +18,7 @@ Section Escapes.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
     - intros [???? [] []] _ _; prod_splitter; [| |eapply convty_exp]; gtyping.
-    - intros [] _ _; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros [] _ ; prod_splitter; [| |eapply convty_exp]; gtyping.
   Qed.
 
   Lemma escape {l Γ A B} :
@@ -80,7 +80,7 @@ Section Escapes.
       1-3: gtyping.
       2: now eapply urefl.
       tea.
-    - intros IA _ _ []; cbn in *; pose proof (invLRConvId IA).
+    - intros IA _ []; cbn in *; pose proof (invLRConvId IA).
       prod_splitter.
       1,2: (eapply ty_conv; [gtyping|now symmetry]).
       destruct IA as []; cbn in *; eapply convtm_wfexp.

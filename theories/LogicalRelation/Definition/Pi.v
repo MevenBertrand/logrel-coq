@@ -90,15 +90,13 @@ Module PiRedTmEq.
   Definition whredL `{GenericTypingProperties}
     {Γ : context} {A B} {ΠA : PiRedTyPack Γ A B} {t u : term} :
     PiRedTmEq ΠA t u -> [Γ |- t ↘  outTy ΠA].
-  Proof. intros []; now eapply whred. Qed.
+  Proof. intros []; now eapply whred. Defined.
 
   Definition whredR `{GenericTypingProperties}
     {Γ : context} {A B} {ΠA : PiRedTyPack Γ A B} {t u : term} :
-    PiRedTmEq ΠA t u -> [Γ |- t ↘  outTy ΠA].
-  Proof. intros []; now eapply whred. Qed.
+    PiRedTmEq ΠA t u -> [Γ |- u ↘  outTy ΠA].
+  Proof. intros []; now eapply whred. Defined.
 
 End PiRedTmEq.
 
 Export PiRedTmEq(PiRedTm,Build_PiRedTm,PiRedTmEq,Build_PiRedTmEq).
-
-

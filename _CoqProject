@@ -28,7 +28,7 @@ theories/TypingProperties/SubstConsequences.v
 theories/TypingProperties/TypeConstructorsInj.v
 theories/TypingProperties/NeutralConvProperties.v
 theories/TypingProperties/NormalisationConsequences.v
-theories/TypingProperties/LogRelConsequences.v
+# theories/TypingProperties/LogRelConsequences.v
 
 
 theories/LogicalRelation/Definition/Prelude.v
@@ -48,16 +48,19 @@ theories/LogicalRelation/Definition/Helper.v
 theories/LogicalRelation.v
 theories/LogicalRelation/Induction.v
 theories/LogicalRelation/Escape.v
-theories/LogicalRelation/ShapeView.v
+# theories/LogicalRelation/ShapeView.v
 # theories/LogicalRelation/Reflexivity.v
 theories/LogicalRelation/Irrelevance.v
+theories/LogicalRelation/Symmetry.v
+theories/LogicalRelation/Transitivity.v
 theories/LogicalRelation/Weakening.v
 theories/LogicalRelation/Neutral.v
-theories/LogicalRelation/Transitivity.v
 theories/LogicalRelation/InstKripke.v
-theories/LogicalRelation/EqRedRight.v
+# theories/LogicalRelation/EqRedRight.v
 theories/LogicalRelation/Reduction.v
 theories/LogicalRelation/NormalRed.v
+theories/LogicalRelation/Properties.v
+
 theories/LogicalRelation/Introductions/Universe.v
 theories/LogicalRelation/Introductions/Poly.v
 theories/LogicalRelation/Introductions/Pi.v
@@ -84,22 +87,23 @@ theories/Validity/Introductions/Nat.v
 theories/Validity/Introductions/Empty.v
 theories/Validity/Introductions/Sigma.v
 theories/Validity/Introductions/Id.v
-theories/Fundamental.v
 
-theories/AlgorithmicTyping.v
-theories/Algorithmic/UntypedAlgorithmicConversion.v
-theories/Algorithmic/BundledAlgorithmicTyping.v
-theories/Algorithmic/AlgorithmicConvProperties.v
-theories/Algorithmic/AlgorithmicTypingProperties.v
+#theories/Fundamental.v
 
-theories/Decidability/Functions.v
-theories/Decidability/UntypedFunctions.v
-theories/Decidability/Soundness.v
-theories/Decidability/NegativeSoundness.v
-theories/Decidability/Completeness.v
-theories/Decidability/Termination.v
-theories/Decidability/UntypedSoundness.v
-theories/Decidability/UntypedCompleteness.v
-theories/Decidability.v
-
-theories/Decidability/Execution.v
+# theories/AlgorithmicTyping.v
+# theories/Algorithmic/UntypedAlgorithmicConversion.v
+# theories/Algorithmic/BundledAlgorithmicTyping.v
+# theories/Algorithmic/AlgorithmicConvProperties.v
+# theories/Algorithmic/AlgorithmicTypingProperties.v
+#
+# theories/Decidability/Functions.v
+# theories/Decidability/UntypedFunctions.v
+# theories/Decidability/Soundness.v
+# theories/Decidability/NegativeSoundness.v
+# theories/Decidability/Completeness.v
+# theories/Decidability/Termination.v
+# theories/Decidability/UntypedSoundness.v
+# theories/Decidability/UntypedCompleteness.v
+# theories/Decidability.v
+#
+# theories/Decidability/Execution.v

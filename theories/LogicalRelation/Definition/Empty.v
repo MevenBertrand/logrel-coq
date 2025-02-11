@@ -34,6 +34,14 @@ End EmptyRedTy.
 Export EmptyRedTy(EmptyRedTy, Build_EmptyRedTy).
 Notation "[ Γ ||-Empty A ≅ B ]" := (EmptyRedTy Γ A B) (at level 0, Γ, A at level 50).
 
+#[program]
+Instance WhRedTyEmptyRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (EmptyRedTy Γ) :=
+  {|
+    whredtyL := fun A B RAB => EmptyRedTy.whredL RAB ;
+    whredtyR := fun A B RAB => EmptyRedTy.whredR RAB ;
+  |}.
+Next Obligation. destruct h; gtyping. Qed.
+
 
 Module EmptyRedTmEq.
 Section EmptyRedTmEq.
@@ -51,7 +59,7 @@ Section EmptyRedTmEq.
   }.
   Arguments  EmptyRedTmEq : clear implicits.
   Section Def.
-    Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _ _ _ }.
+    Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
 
     Definition whredL {Γ t u} : EmptyRedTmEq Γ t u -> [Γ |- t ↘ tEmpty].
     Proof.
@@ -71,3 +79,12 @@ End EmptyRedTmEq.
 Export EmptyRedTmEq(EmptyRedTmEq,Build_EmptyRedTmEq).
 
 Notation "[ Γ ||-Empty t ≅ u :Empty]" := (@EmptyRedTmEq _ _ _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u at level 50). *)
+
+#[program]
+Instance EmptyRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tEmpty (EmptyRedTmEq Γ) :=
+  {| whredtmL := fun t u Rtu => EmptyRedTmEq.whredL Rtu ;
+    whredtmR := fun t u Rtu => EmptyRedTmEq.whredR Rtu |}.
+Next Obligation.
+  destruct h as [???? []].
+  eapply convtm_convneu; tea; constructor.
+Qed.

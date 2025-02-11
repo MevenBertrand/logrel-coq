@@ -13,7 +13,6 @@ Proof.
   specialize (h Γ wk_id wfΓ); now rewrite 2!wk_id_ren_on in h.
 Qed.
 
-
 (** ** Rebundling reducibility of Polynomial *)
 
 (** The definition of reducibility of product types in the logical relation, which separates
@@ -150,6 +149,10 @@ Section ParamRedTy.
     (PAad : PolyRedPackAdequate@{k l} (LogRel@{i j k l} l) PA)
     : toAd (from PAad) = PAad.
   Proof. destruct PA, PAad; reflexivity. Qed.
+
+  Definition outTyL (PA : ParamRedTy)  := ParamRedTyPack.outTy (toPack PA).
+  Definition outTyR (PA : ParamRedTy)  := T PA.(domR) PA.(codR).
+
 End ParamRedTy.
 
 Arguments ParamRedTy : clear implicits.
@@ -159,9 +162,11 @@ End ParamRedTy.
 
 (** ** Rebundling reducibility of product and sigma types *)
 
-Export ParamRedTy(ParamRedTy, Build_ParamRedTy).
+Export ParamRedTy(ParamRedTy, Build_ParamRedTy, outTyL, outTyR).
 Coercion ParamRedTy.polyRed : ParamRedTy >-> PolyRed.
 Coercion ParamRedTy.toPack : ParamRedTy >-> ParamRedTyPack.
+Arguments outTyL _ /.
+Arguments outTyR _ /.
 
 Section EvenMoreDefs.
   Context `{ta : tag}
@@ -199,6 +204,22 @@ Module PiRedTy.
   End PiRedTy.
 End PiRedTy.
 
+#[program]
+Instance PiRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (PiRedTy Γ l) :=
+  {| whredtyL := fun A B RAB => PiRedTy.whredL RAB ;
+     whredtyR := fun A B RAB => PiRedTy.whredR RAB ; |}.
+Next Obligation. now destruct h. Qed.
+
+Instance PiRedTmWhRed `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Π<l> A ≅ B])
+  : WhRedTm Γ (outTyL ΠA) (PiRedTm ΠA) := fun t Rt => PiRedTmEq.whred Rt.
+
+#[program]
+Instance PiRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Π<l> A ≅ B])
+  : WhRedTmRel Γ (outTyL ΠA) (PiRedTmEq ΠA) :=
+  {| whredtmL := fun t u Rtu => PiRedTmEq.whredL Rtu ;
+     whredtmR := fun t u Rtu => PiRedTmEq.whredR Rtu ; |}.
+Next Obligation. now destruct h. Qed.
+
 Module SigRedTy.
   Include ParamRedTyPack.
 
@@ -211,40 +232,22 @@ Module SigRedTy.
   End SigRedTy.
 End SigRedTy.
 
+#[program]
+Instance SigRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (SigRedTy Γ l) :=
+  {| whredtyL := fun A B RAB => SigRedTy.whredL RAB ;
+     whredtyR := fun A B RAB => SigRedTy.whredR RAB ; |}.
+Next Obligation. now destruct h. Qed.
 
+Instance SigRedTmWhRed `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Σ<l> A ≅ B])
+  : WhRedTm Γ (outTyL ΠA) (SigRedTm ΠA) := fun t Rt => SigRedTmEq.whred Rt.
 
+#[program]
+Instance SigRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (ΠA : [Γ ||-Σ<l> A ≅ B])
+  : WhRedTmRel Γ (outTyL ΠA) (SigRedTmEq ΠA) :=
+  {| whredtmL := fun t u Rtu => SigRedTmEq.whredL Rtu ;
+     whredtmR := fun t u Rtu => SigRedTmEq.whredR Rtu ; |}.
+Next Obligation. now destruct h. Qed.
 
-(* * ** Properties of reducibility at Nat and Empty
-
-Lemma NatPropEq_whnf `{GenericTypingProperties} {Γ A t u} {NA : [Γ ||-Nat A]} : NatPropEq NA t u -> whnf t × whnf u.
-Proof.  intros [ | | ? ? []]; split; econstructor; eapply convneu_whne; first [eassumption|symmetry; eassumption]. Qed.
-
-Lemma EmptyPropEq_whnf `{GenericTypingProperties} {Γ A t u} {NA : [Γ ||-Empty A]} : EmptyPropEq Γ t u -> whnf t × whnf u.
-Proof.  intros [ ? ? []]; split; econstructor; eapply convneu_whne; first [eassumption|symmetry; eassumption]. Qed.
-
-(* A&Y: We prove the hand-crafted induction principles here: *)
-
-Lemma EmptyRedEqInduction :
-  forall {ta : tag} {H0 : WfType ta} {H2 : RedType ta} {H3 : Typing ta}
-    {H4 : ConvNeuConv ta} {H5 : ConvTerm ta} {H6 : RedTerm ta}
-    (Γ : context) (A : term) (NA : [Γ ||-Empty A])
-    (P : forall t t0 : term, [Γ ||-Empty t ≅ t0 : A | NA] -> Type)
-    (P0 : forall t t0 : term, EmptyPropEq Γ t t0 -> Type),
-    (forall (t u nfL nfR : term) (redL : [Γ |-[ ta ] t :⤳*: nfL : tEmpty])
-       (redR : [Γ |-[ ta ] u :⤳*: nfR : tEmpty]) (eq : [Γ |-[ ta ] nfL ≅ nfR : tEmpty])
-       (prop : EmptyPropEq Γ nfL nfR),
-        P0 nfL nfR prop -> P t u (Build_EmptyRedTmEq nfL nfR redL redR eq prop)) ->
-    (forall (ne ne' : term) (r : [Γ ||-NeNf ne ≅ ne' : tEmpty]),
-        P0 ne ne' (EmptyRedTmEq.neReq r)) ->
-    (forall (t t0 : term) (n : [Γ ||-Empty t ≅ t0 : A | NA]), P t t0 n)
-      × (forall (t t0 : term) (n : EmptyPropEq Γ t t0), P0 t t0 n).
-Proof.
-  intros.
-  split.
-  - intros t t0 n. induction n.
-    eapply X; eauto. destruct prop; eauto.
-  - intros. induction n. eapply X0.
-Qed. *)
 
 Module IdRedTy.
 Section IdRedTy.
@@ -271,9 +274,9 @@ Section IdRedTy.
     rhsRed : [ tyRed | Γ ||- rhsL ≅ rhsR : _ ] ;
     (* Bake in PER property for reducible conversion at ty  to cut dependency cycles *)
     tyPER : PER tyRed.(LRPack.eqTm) ;
-    tyKripke : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [LogRel@{i j k l} l| Δ ||- tyL⟨ρ⟩ ≅ tyR⟨ρ⟩ ] ;
+    (* tyKripke : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [LogRel@{i j k l} l| Δ ||- tyL⟨ρ⟩ ≅ tyR⟨ρ⟩ ] ;
     tyKripkeTmEq : forall {Δ Ξ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Γ) (ρ'' : Ξ ≤ Δ) (wfΔ : [|-Δ]) (wfΞ : [|-Ξ]) t u,
-      ρ' =1 ρ'' ∘w ρ -> [tyKripke ρ wfΔ | _ ||- t ≅ u : _] -> [tyKripke ρ' wfΞ | _ ||- t⟨ρ''⟩ ≅ u⟨ρ''⟩ : _];
+      ρ' =1 ρ'' ∘w ρ -> [tyKripke ρ wfΔ | _ ||- t ≅ u : _] -> [tyKripke ρ' wfΞ | _ ||- t⟨ρ''⟩ ≅ u⟨ρ''⟩ : _]; *)
   }.
 
 
@@ -283,29 +286,31 @@ Section IdRedTy.
   Proof.
     unshelve econstructor; try (exact IA.(IdRedTyPack.redL) + exact IA.(IdRedTyPack.redR)).
     - econstructor; apply IAad.
-    - intros; econstructor; (unshelve now eapply IAad); tea.
+    (* - intros; econstructor; (unshelve now eapply IAad); tea. *)
     - exact IA.(IdRedTyPack.eq).
     - exact IA.(IdRedTyPack.lhsRed).
     - exact IA.(IdRedTyPack.rhsRed).
     - exact IA.(IdRedTyPack.tyPER).
-    - intros; now eapply IA.(IdRedTyPack.tyKripkeTmEq).
+    (* - intros; now eapply IA.(IdRedTyPack.tyKripkeTmEq). *)
   Defined.
 
   Definition toPack@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : IdRedTyPack@{k} Γ A B.
   Proof.
     unshelve econstructor; try (exact IA.(IdRedTy.redL) + exact IA.(IdRedTy.redR)).
     - apply IA.(tyRed).
-    - intros; now apply IA.(tyKripke).
+    (* - intros; now apply IA.(tyKripke). *)
     - exact IA.(eq).
     - exact IA.(lhsRed).
     - exact IA.(rhsRed).
     - exact IA.(IdRedTy.tyPER).
-    - intros; now eapply IA.(IdRedTy.tyKripkeTmEq).
+    (* - intros; now eapply IA.(IdRedTy.tyKripkeTmEq). *)
   Defined.
 
   Definition to@{i j k l} {Γ l A B} (IA : @IdRedTy@{i j k l} Γ l A B) : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) (toPack IA).
   Proof.
-    econstructor; [apply IA.(tyRed)| intros; apply IA.(tyKripke)].
+    econstructor;
+     apply IA.(tyRed).
+     (* [apply IA.(tyRed)| intros; apply IA.(tyKripke)]. *)
   Defined.
 
   Lemma beta_pack@{i j k l} {Γ l A B} {IA : IdRedTyPack@{k} Γ A B} (IAad : IdRedTyAdequate@{k l} (LogRel@{i j k l} l) IA) :
@@ -344,6 +349,26 @@ Export IdRedTy(IdRedTy, Build_IdRedTy,IdRedTmEq,IdPropEq,LRId').
 Notation "[ Γ ||-Id< l > A ≅ B ]" := (IdRedTy Γ l A B) (at level 0, Γ, l,  A, B at level 50).
 Notation "[ Γ ||-Id< l > t : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t t) (at level 0, Γ, l, t, A, RA at level 50).
 Notation "[ Γ ||-Id< l > t ≅ u : A | RA ]" := (IdRedTmEq (Γ:=Γ) (l:=l) (A:=A) RA t u) (at level 0, Γ, l, t, u, A, RA at level 50).
+
+#[program]
+Instance IdRedTyWhRed `{GenericTypingProperties} {Γ l} : WhRedTyRel Γ (IdRedTy Γ l) :=
+  {| whredtyL := fun A B RAB => IdRedTy.whredL RAB ;
+     whredtyR := fun A B RAB => IdRedTy.whredR RAB ; |}.
+Next Obligation. now destruct h. Qed.
+
+#[program]
+Instance IdRedTmWhRedRel `{GenericTypingProperties} {Γ l A B} (IA : [Γ ||-Id<l> A ≅ B])
+  : WhRedTmRel Γ (IdRedTy.outTy IA) (IdRedTmEq IA) :=
+  {| whredtmL := fun t u Rtu => IdRedTmEq.whredL Rtu ;
+     whredtmR := fun t u Rtu => IdRedTmEq.whredR Rtu ; |}.
+Next Obligation. now destruct h. Qed.
+
+#[program]
+Instance URedTmEqWhRedRel  `{GenericTypingProperties} {Γ l A B} (UA : [Γ ||-U<l> A ≅ B])
+  : WhRedTmRel Γ U (URedTmEq (LogRelRec l) Γ _ _ UA) :=
+  {| whredtmL := fun t u Rtu => URedTm.whredL Rtu ;
+     whredtmR := fun t u Rtu => URedTm.whredR Rtu ; |}.
+Next Obligation. now destruct h. Qed.
 
 
 

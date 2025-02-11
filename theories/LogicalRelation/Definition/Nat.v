@@ -37,6 +37,14 @@ End NatRedTy.
 Export NatRedTy(NatRedTy, Build_NatRedTy).
 Notation "[ Γ ||-Nat A ≅ B ]" := (NatRedTy Γ A B) (at level 0, Γ, A at level 50).
 
+#[program]
+Instance WhRedTyNatRedTy `{GenericTypingProperties} {Γ} : WhRedTyRel Γ (NatRedTy Γ) :=
+  {|
+    whredtyL := fun A B RAB => NatRedTy.whredL RAB ;
+    whredtyR := fun A B RAB => NatRedTy.whredR RAB ;
+  |}.
+Next Obligation. destruct h; gtyping. Qed.
+
 
 Module NatRedTmEq.
 Section NatRedTmEq.
@@ -61,7 +69,7 @@ Section NatRedTmEq.
   | neReq {ne ne'} : [Γ ||-NeNf ne ≅ ne' : tNat] -> NatPropEq ne ne'.
 
   Section Def.
-    Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _ _ _ }.
+    Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
 
     Definition whnfL {t u} : NatPropEq t u -> whnf t.
     Proof.
@@ -89,27 +97,6 @@ Section NatRedTmEq.
 
   End Def.
 
-(* Probably not useful anymore *)
-(*
-Definition nfL {Γ A B n m} {NA : [Γ ||-Nat A ≅ B]} : NatRedTmEq (NA:=NA) n m -> term.
-Proof.
-  intros [?? nf]. exact nf.
-Defined.
-
-Definition nfR {Γ A B n m} {NA : [Γ ||-Nat A ≅ B]} : NatRedTmEq (NA:=NA) n m -> term.
-Proof.
-  intros [?? ? nf]. exact nf.
-Defined.
-
- Definition redL {Γ A n m} {NA : [Γ ||-Nat A]} (Rnm : NatRedTmEq (NA:=NA) n m) : [Γ |- n :⤳*: nfL Rnm : tNat].
-Proof.
-  dependent inversion Rnm; subst; cbn; tea.
-Defined.
-
-Definition redR {Γ A n m} {NA : [Γ ||-Nat A]} (Rnm : NatRedTmEq (NA:=NA) n m) : [Γ |- m :⤳*: nfR Rnm : tNat].
-Proof.
-  dependent inversion Rnm; subst; cbn; tea.
-Defined. *)
 
 Scheme NatRedTmEq_mut_rect := Induction for NatRedTmEq Sort Type with
     NatPropEq_mut_rect := Induction for NatPropEq Sort Type.
@@ -148,3 +135,11 @@ End NatRedTmEq.
 Export NatRedTmEq(NatRedTmEq,Build_NatRedTmEq, NatPropEq, NatRedEqInduction).
 
 Notation "[ Γ ||-Nat t ≅ u :Nat]" := (@NatRedTmEq _ _ _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
+
+#[program]
+Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (NatRedTmEq Γ) :=
+  {| whredtmL := fun t u Rtu => NatRedTmEq.whredL Rtu ;
+    whredtmR := fun t u Rtu => NatRedTmEq.whredR Rtu |}.
+Next Obligation.
+  now destruct h.
+Qed.

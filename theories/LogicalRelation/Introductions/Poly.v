@@ -1,19 +1,36 @@
 From Coq Require Import ssrbool.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Escape Reflexivity Neutral Weakening Irrelevance Transitivity EqRedRight InstKripke.
+From LogRel.LogicalRelation Require Import Properties.
 
 Set Universe Polymorphism.
-
-Lemma subst_wk_id_tail Γ P t : P[t .: @wk_id Γ >> tRel] = P[t..].
-Proof. setoid_rewrite id_ren; now bsimpl. Qed.
-
 Set Printing Primitive Projection Parameters.
+
+(* Lemma subst_wk_id_tail Γ P t : P[t .: @wk_id Γ >> tRel] = P[t..].
+Proof. setoid_rewrite id_ren; now bsimpl. Qed. *)
+(* eq_subst_scons *)
+
 
 Section PolyValidity.
 
   Context `{GenericTypingProperties}.
 
-  Lemma mkPolyRed {Γ l A B} (wfΓ : [|-Γ])
+  Lemma mkParamRedTy {T}
+    (wtyT : forall Γ A B, [Γ |- A] -> [Γ,, A |- B] -> [Γ |- T A B])
+    (convT : forall Γ A A' B B', [Γ |- A] -> [Γ |- A ≅ A'] -> [Γ,, A |- B ≅ B'] -> [Γ |- T A B ≅ T A' B'])
+    {Γ l A A' B B'} (wfΓ : [|-Γ]) (PA : PolyRed Γ l A A' B B') :
+    ParamRedTy T Γ l (T A B) (T A' B').
+  Proof.
+    pose proof (instKripke wfΓ PA.(PolyRed.shpRed)).
+    pose proof (instKripkeFam wfΓ PA.(PolyRed.posRed)).
+    pose proof (instKripkeFamConv wfΓ PA.(PolyRed.posRed)).
+    escape.
+    exists A A' B B'; tea.
+    1,2: econstructor; tea; eapply redtywf_refl; eauto.
+    eauto.
+  Defined.
+
+
+  (* Lemma mkPolyRed {Γ l A B} (wfΓ : [|-Γ])
     (RA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]), [Δ ||-<l> A⟨ρ⟩])
     (RB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]), [Δ ||-<l> a ≅ b : _ | RA Δ ρ wfΔ] -> [Δ ||-<l> B[a .: ρ >> tRel]])
     (RBext : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|- Δ]) (Rab : [Δ ||-<l> a ≅ b : _ | RA Δ ρ wfΔ]),
@@ -36,11 +53,11 @@ Section PolyValidity.
   Proof.
     unshelve eapply mkPolyRed; tea.
     escape; gen_typing.
-  Qed.
+  Qed. *)
 
 
-  Lemma polyCodSubstRed {Γ l F G} (RF : [Γ ||-<l> F]) :
-    PolyRed Γ l F G -> forall t u, [Γ ||-<l> t ≅ u : _ | RF] -> [Γ ||-<l> G[t..]].
+  (* Lemma polyCodSubstRed {Γ l F F' G G'} (RF : [Γ ||-<l> F ≅ F']) :
+    PolyRed Γ l F F' G G' -> forall t u, [Γ ||-<l> t ≅ u : _ | RF] -> [Γ ||-<l> G[t..] ≅ G'[u..]].
   Proof.
     intros PFG ???.
     assert (wfΓ : [|- Γ]) by (escape ; gen_typing).
@@ -129,6 +146,6 @@ Section PolyValidity.
     - intros; irrelevance0; rewrite liftSubst_scons_eq; [reflexivity|].
       unshelve eapply PolyRed.posExt; cycle 1; tea.
       eapply Rtu; irrelevanceRefl; now eapply lrefl.
-  Qed.
+  Qed. *)
 
 End PolyValidity.

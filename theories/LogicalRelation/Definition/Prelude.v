@@ -52,15 +52,15 @@ Notation "[ P | Γ ||- t ≅ u : A ]" := (@LRPack.eqTm Γ A _ P t u).
 Notation "[ P | Γ ||- t ≅ u : A ≅ B ]" := (@LRPack.eqTm Γ A B P t u).
 
 (** An LRPack is adequate wrt. a RedRel when its three unpacked components are. *)
-Definition LRPackAdequate@{i j} {Γ : context} {A B : term}
-  (R : RedRel@{i j}) (P : LRPack@{i} Γ A B) : Type@{j} :=
+Definition LRPackAdequate@{i j} {Γ : context}
+  (R : RedRel@{i j}) {A B : term} (P : LRPack@{i} Γ A B) : Type@{j} :=
   R Γ A B P.(LRPack.eqTm).
 
 Arguments LRPackAdequate _ _ _ /.
 
 Module LRAd.
 
-  Record > LRAdequate@{i j} {Γ : context} {A B : term} {R : RedRel@{i j}} : Type :=
+  Record > LRAdequate@{i j} {Γ : context} {R : RedRel@{i j}} {A B : term} : Type :=
   {
     pack :> LRPack@{i} Γ A B ;
     adequate :> LRPackAdequate@{i j} R pack
@@ -79,7 +79,19 @@ Coercion LRAd.adequate : LRAdequate >-> LRPackAdequate.
 
 (* TODO : update these for LRAdequate *)
 
-Notation "[ R | Γ ||- A ≅ B ]"              := (@LRAdequate Γ A B R).
-(* Notation "[ R | Γ ||- A ≅ B | RA ]"     := (RA.(@LRAd.pack Γ A R).(LRPack.eqTy) B). *)
-Notation "[ R | Γ ||- t ≅ u : A | RA ]" := (RA.(@LRAd.pack Γ A _ R).(LRPack.eqTm) t u).
-Notation "[ R | Γ ||- t ≅ u : A ≅ B | RA ]" := (RA.(@LRAd.pack Γ A B R).(LRPack.eqTm) t u).
+Notation "[ R | Γ ||- A ≅ B ]"              := (@LRAdequate Γ R A B).
+Notation "[ R | Γ ||- t ≅ u : A | RA ]" := (RA.(@LRAd.pack Γ R A _).(LRPack.eqTm) t u).
+Notation "[ R | Γ ||- t ≅ u : A ≅ B | RA ]" := (RA.(@LRAd.pack Γ R A B).(LRPack.eqTm) t u).
+
+Class WhRedTyRel `{ta : tag} `{WfType ta} `{RedType ta} `{ConvType ta} Γ (P : term -> term -> Type) := {
+  whredtyL : forall {A B}, P A B -> [Γ |- A ↘ ] ;
+  whredtyR : forall {A B}, P A B -> [Γ |- B ↘ ] ;
+  whredty_conv : forall {A B} (h : P A B), [Γ |-[ta] (whredtyL h).(tyred_whnf) ≅ (whredtyR h).(tyred_whnf)] ;
+}.
+
+Class WhRedTm `{ta : tag} `{Typing ta} `{RedTerm ta} Γ A (P : term -> Type) := whredtm : forall {t}, P t -> [Γ |- t ↘ A ].
+Class WhRedTmRel `{ta : tag} `{Typing ta} `{RedTerm ta} `{ConvTerm ta} Γ A (P : term -> term -> Type) := {
+  whredtmL : forall {t u}, P t u -> [Γ |- t ↘ A ] ;
+  whredtmR : forall {t u}, P t u -> [Γ |- u ↘ A ] ;
+  whredtm_conv : forall {t u} (h : P t u), [Γ |- (whredtmL h).(tmred_whnf) ≅ (whredtmR h).(tmred_whnf) : A] ;
+}.

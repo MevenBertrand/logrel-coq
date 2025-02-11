@@ -30,16 +30,16 @@ Module IdRedTyPack.
     rhsRed : [ tyRed | Γ ||- rhsL ≅ rhsR : _ ] ;
     (* Bake in PER property for reducible conversion at ty  to cut dependency cycles *)
     tyPER : PER tyRed.(LRPack.eqTm) ;
-    tyKripke : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), LRPack@{i} Δ tyL⟨ρ⟩ tyR⟨ρ⟩ ;
+    (* tyKripke : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), LRPack@{i} Δ tyL⟨ρ⟩ tyR⟨ρ⟩ ;
     tyKripkeTmEq : forall {Δ Ξ} (ρ : Δ ≤ Γ) (ρ' : Ξ ≤ Γ) (ρ'' : Ξ ≤ Δ) (wfΔ : [|-Δ]) (wfΞ : [|-Ξ]) t u,
-      ρ' =1 ρ'' ∘w ρ -> [tyKripke ρ wfΔ | _ ||- t ≅ u : _] -> [tyKripke ρ' wfΞ | _ ||- t⟨ρ''⟩ ≅ u⟨ρ''⟩ : _];
+      ρ' =1 ρ'' ∘w ρ -> [tyKripke ρ wfΔ | _ ||- t ≅ u : _] -> [tyKripke ρ' wfΞ | _ ||- t⟨ρ''⟩ ≅ u⟨ρ''⟩ : _]; *)
   }.
 
   Record IdRedTyAdequate@{i j} `{ta : tag} `{WfContext ta} `{WfType ta} `{RedType ta} `{ConvType ta}
     {Γ : context} {A B : term} {R : RedRel@{i j}} {IA : IdRedTyPack@{i} (Γ:=Γ) (A:=A) (B:=B)} :=
     {
       tyAd : LRPackAdequate@{i j} R IA.(tyRed) ;
-      tyKripkeAd : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), LRPackAdequate@{i j} R (IA.(tyKripke) ρ wfΔ) ;
+      (* tyKripkeAd : forall {Δ} (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), LRPackAdequate@{i j} R (IA.(tyKripke) ρ wfΔ) ; *)
     }.
 
   Arguments IdRedTyPack {_ _ _ _ _}.
@@ -92,7 +92,7 @@ Section IdRedTmEq.
   }.
 
   Section Def.
-    Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _ _ _ }.
+    Context `{!GenericTypingProperties _ _ _ _ _ _ _ _ _}.
 
     Definition whnfL {t u} : IdPropEq t u -> whnf t.
     Proof. intros [] ; [constructor|]; unshelve eapply NeNf.whredL ; cycle 3; tea. Qed.
