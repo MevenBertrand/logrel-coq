@@ -1,6 +1,7 @@
 From Coq Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import  Induction  Escape Irrelevance Reflexivity Irrelevance Weakening Neutral Transitivity Reduction Application Universe EqRedRight SimpleArr.
+From LogRel.LogicalRelation Require Import  Induction  Escape Irrelevance Reflexivity Irrelevance Weakening Neutral Transitivity Reduction EqRedRight.
+From LogRel.LogicalRelation.Introductions Require Import Application Universe.
 From LogRel.Validity Require Import Validity Irrelevance Properties Conversion SingleSubst Reflexivity Reduction Universe Pi SimpleArr Var Application.
 
 Set Universe Polymorphism.
