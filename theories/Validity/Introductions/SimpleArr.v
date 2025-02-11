@@ -1,6 +1,6 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Escape Reflexivity Neutral Weakening Irrelevance.
-From LogRel.Validity Require Import Validity Irrelevance Properties Pi Application Lambda Var.
+From LogRel.Validity Require Import Validity Irrelevance Properties Pi Application Var.
 
 Set Universe Polymorphism.
 

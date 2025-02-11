@@ -1,5 +1,5 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Irrelevance Escape Reflexivity Weakening Neutral Transitivity Reduction Application.
+From LogRel.LogicalRelation Require Import Induction Irrelevance Escape Reflexivity Weakening Neutral Transitivity Reduction Introductions.Application.
 From LogRel.Validity Require Import Validity Irrelevance Properties Conversion SingleSubst Reflexivity.
 
 Set Universe Polymorphism.

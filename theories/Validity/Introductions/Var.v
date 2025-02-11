@@ -1,6 +1,6 @@
 (** * LogRel.Introductions.Var : Validity of variables. *)
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Escape Irrelevance Reflexivity Transitivity Universe Weakening Neutral Induction NormalRed.
+From LogRel.LogicalRelation Require Import Escape Irrelevance Reflexivity Transitivity Introductions.Universe Weakening Neutral Induction NormalRed.
 From LogRel.Validity Require Import Validity Irrelevance Properties Conversion Reflexivity SingleSubst Escape.
 
 Set Universe Polymorphism.

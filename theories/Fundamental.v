@@ -1,6 +1,6 @@
 (** * LogRel.Fundamental: declarative typing implies the logical relation for any generic instance. *)
 From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Escape Irrelevance Reflexivity Transitivity Universe Weakening Neutral Induction NormalRed.
+From LogRel.LogicalRelation Require Import Escape Irrelevance Reflexivity Transitivity Weakening Neutral Induction NormalRed.
 From LogRel.Validity Require Import Validity Irrelevance Properties Conversion Reflexivity SingleSubst Escape.
 From LogRel.Validity.Introductions Require Import Application Universe Pi Lambda Var Nat Empty SimpleArr Sigma Id.
 
