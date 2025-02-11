@@ -15,7 +15,7 @@ Set Universe Polymorphism.
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section RedImplemComplete.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   #[local]Definition R_aux := lexprod term term cored term_subterm.
 
@@ -357,7 +357,7 @@ Qed.
 
 Section ConversionComplete.
 
-Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
 Let PTyEq (Γ : context) (A B : term) :=
   forall v, graph _conv (ty_state;Γ;v;A;B) ok.

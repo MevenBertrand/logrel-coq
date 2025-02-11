@@ -111,8 +111,7 @@ Qed.
 Import AlgorithmicTypingProperties.
 
 Section ConvSoundNeg.
-  Context `{!TypingSubst (ta := de)}
-    `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}
     `{!TermConstructorsInj (ta := de)} `{!ConvNeutralConvPos (ta := de)}.
 
   #[universes(polymorphic)]Definition conv_sound_type
@@ -374,12 +373,11 @@ Section ConvSoundNeg.
     - destruct pre as [[wn wn'] [pre [[] ]%neuAppCongAlg_prem0%dup]%dup] ; eauto.
       inversion wn ; inversion wn' ; subst.
       split ; [easy|..].
-      intros [|] ; cbn in *.
+      intros [T|] ; cbn in *.
       + intros [Hpost]%implem_conv_graph ; tea ; refold.
         eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
         eapply dup in pre as [pre [[? (?&[? [? [-> Hf]]]&?)%termGen'] _]].
-        eapply Hfu, red_compl_prod_r in Hf as (?&?&[red%redty_sound]).
-        eapply red_whnf in red ; eauto ; subst.
+        destruct T ; cbn ; try easy.
         edestruct neuAppCongAlg_prem1 ; eauto.
 
         cbn.
@@ -400,13 +398,13 @@ Section ConvSoundNeg.
     - destruct pre as [[wn wn'] [pre [[] ]%neuNatElimCong_prem0%dup]%dup] ; eauto.
       inversion wn ; inversion wn' ; subst.
       split ; [easy|..].
-      intros [|] ; cbn in *.
+      intros [T|] ; cbn in *.
       2: shelve.
 
       intros [Hpost]%implem_conv_graph ; tea.
       eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
       eapply dup in pre as [pre [[? (?&[-> ??? Hn]&?)%termGen'] _]].
-      eapply Hfu, red_compl_nat_r, redty_sound, red_whnf in Hn ; eauto ; subst.
+      destruct T ; try easy.
       eapply dup in pre as [pre [ []]%neuNatElimCong_prem1%dup] ; eauto.
       cbn.
       split ; [easy|..].
@@ -432,13 +430,13 @@ Section ConvSoundNeg.
     - destruct pre as [[wn wn'] [pre [[] ]%neuEmptyElimCong_prem0%dup]%dup] ; eauto.
       inversion wn ; inversion wn' ; subst.
       split ; [easy|..].
-      intros [|] ; cbn.
+      intros [T|] ; cbn.
       2: shelve.
 
       intros [Hpost]%implem_conv_graph ; tea.
       eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
       eapply dup in pre as [pre [[? (?&[-> ? Hn]&?)%termGen'] _]].
-      eapply Hfu, red_compl_empty_r, redty_sound, red_whnf in Hn ; eauto ; subst.
+      destruct T ; try easy.
       eapply dup in pre as [pre [ []]%neuEmptyElimCong_prem1%dup] ; eauto.
       cbn.
       split ; [easy|..].
@@ -452,14 +450,12 @@ Section ConvSoundNeg.
     - destruct pre as [[wn wn'] [pre [[] ]%neuFstCongAlg_prem0%dup]%dup] ; eauto.
       inversion wn ; inversion wn' ; subst.
       split ; [easy|..].
-      intros [|] ; cbn.
+      intros [T|] ; cbn.
       
       + intros [Hpost]%implem_conv_graph ; tea.
         eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
         eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
-        eapply Hfu, red_compl_sig_r in Hp as (?&?&[red%redty_sound]).
-        eapply red_whnf in red ; eauto ; subst.
-        now cbn.
+        now destruct T.
 
       + intros ? Hneg [? (?&?&?&[[= <-]])%neuConvGen].
         eapply Hneg.
@@ -468,14 +464,12 @@ Section ConvSoundNeg.
     - destruct pre as [[wn wn'] [pre [[] ]%neuSndCongAlg_prem0%dup]%dup] ; eauto.
       inversion wn ; inversion wn' ; subst.
       split ; [easy|..].
-      intros [|] ; cbn.
+      intros [T|] ; cbn.
       
       + intros [Hpost]%implem_conv_graph ; tea.
         eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
         eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
-        eapply Hfu, red_compl_sig_r in Hp as (?&?&[red%redty_sound]).
-        eapply red_whnf in red ; eauto ; subst.
-        now cbn.
+        now destruct T.
 
       + intros ? Hneg [? (?&?&?&[[= <-]])%neuConvGen].
         eapply Hneg.
@@ -484,14 +478,13 @@ Section ConvSoundNeg.
     - destruct pre as [[wn wn'] [pre [[] ]%neuIdElimCong_prem0%dup]%dup] ; eauto.
       inversion wn ; inversion wn' ; subst.
       split ; [easy|..].
-      intros [|] ; cbn.
+      intros [T|] ; cbn.
       2: shelve.
 
       intros [Hpost]%implem_conv_graph ; tea.
       eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
       eapply dup in pre as [pre [[? (?&[-> ????? He]&?)%termGen'] _]].
-      eapply Hfu, red_compl_id_r in He as (?&?&?&[red%redty_sound]).
-      eapply red_whnf in red ; eauto ; subst.
+      destruct T ; try easy.
       eapply dup in pre as [pre [ []]%neuIdElimCong_prem1%dup] ; eauto.
       cbn.
       split ; [erewrite <- !wk1_ren_on ; easy|..].
@@ -546,9 +539,7 @@ Section ConvSoundNeg.
 End ConvSoundNeg.
 
 Section TypingSoundNeg.
-  Context `{!TypingSubst (ta := de)}
-    `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
-
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
   Variable conv : (context × term × term) ⇀ exn errors unit.
 
