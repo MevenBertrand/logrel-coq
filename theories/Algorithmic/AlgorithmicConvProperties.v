@@ -1449,9 +1449,10 @@ Qed.
       + econstructor.
         1-3: reflexivity.
         econstructor.
-        1-2: eapply isFun_whnf;
+        1-2: eapply isFun_whnf ;
           match goal with H : isWfFun _ _ _ ?f |- isFun ?f => destruct H end; constructor;
-          match goal with H : [_ |-[bn] ?f ~ ?f : _] |- whne ?f => apply H end.
+          match goal with H : [_ |-[bn] ?f ~ ?f : _] |- whne ?f =>
+            now destruct H as [?????%algo_conv_wh] end.
         eassumption.
     - intros_bn.
       1-3: gen_typing.
@@ -1471,7 +1472,8 @@ Qed.
         econstructor; tea.
         1-2: eapply isPair_whnf;
           match goal with H : isWfPair _ _ _ ?f |- isPair ?f => destruct H end; constructor;
-          match goal with H : [_ |-[bn] ?f ~ ?f : _] |- whne ?f => apply H end.
+          match goal with H : [_ |-[bn] ?f ~ ?f : _] |- whne ?f =>
+            now destruct H as [?????%algo_conv_wh] end.
     - intros_bn.
       1-3: gen_typing.
       now do 2 econstructor.
@@ -1523,26 +1525,22 @@ Qed.
       + destruct bun_conv_ne_conv_l.
         eexists.
         gen_typing.
-      + now apply whne_ren.
       + destruct bun_conv_ne_conv_r.
         eexists.
         gen_typing.
-      + now apply whne_ren.
       + now apply algo_conv_wk.
       + now apply typing_wk.
-    - now intros * [].
+    - now intros * [?????%algo_conv_wh].
     - intros * [? ? Hty].
       inversion Hty ; subst ; clear Hty.
       econstructor.
       + assumption.
       + eexists. now econstructor.
-      + gen_typing.
       + eexists. now econstructor.
-      + gen_typing.
       + now econstructor.
       + eassumption.
   - intros *
-    [? ? ? ? ? ? Hf (?&?&[])%red_compl_prod_r]
+    [? ? ? ? Hf (?&?&[])%red_compl_prod_r]
     [? ? ? ? Ht].
     econstructor ; tea.
     + eapply algo_conv_sound in Hf as [Hf] ; tea.
@@ -1551,14 +1549,12 @@ Qed.
       * econstructor ; tea.
         now eapply RedConvTyC.
       * now econstructor.
-    + gen_typing.
     + eapply algo_conv_sound in Hf as [Hg] ; tea.
       eapply boundary in Hg as [_ _ Hg].
       eexists ; econstructor.
       * econstructor ; tea.
         now eapply RedConvTyC.
       * now econstructor.
-    + gen_typing.
     + econstructor.
       * econstructor ; tea.
         2: econstructor.
@@ -1574,7 +1570,6 @@ Qed.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + now econstructor.
     + eexists.
       econstructor ; tea.
       * econstructor ; tea.
@@ -1587,7 +1582,6 @@ Qed.
       * eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
         eapply boundary in Hconv as [].
         now econstructor.
-    + now econstructor.
     + econstructor ; tea.
       econstructor ; tea.
       2: now econstructor.
@@ -1603,13 +1597,11 @@ Qed.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + now econstructor.
     + eexists.
       econstructor ; tea.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + now econstructor.
     + econstructor ; tea.
       econstructor ; tea.
       2: now econstructor.
@@ -1627,13 +1619,11 @@ Qed.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + gen_typing.
     + eexists.
       econstructor; tea.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + gen_typing.
     + do 2 econstructor; tea.
       2: constructor.
       now eapply redty_red.
@@ -1645,13 +1635,11 @@ Qed.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + gen_typing.
     + eexists.
       econstructor; tea.
       eapply algo_conv_sound in bun_conv_ne_conv as [Hconv _]; tea.
       eapply boundary in Hconv as [].
       now econstructor.
-    + gen_typing.
     + do 2 econstructor; tea.
       2: constructor.
       now eapply redty_red.
@@ -1662,14 +1650,13 @@ Qed.
       etransitivity; tea.
       symmetry; econstructor; tea.
       boundary.
-  - intros * tyA tyx convA convx convP convhr convy [?????? conve conv].
+  - intros * tyA tyx convA convx convP convhr convy [???? conve conv].
     pose proof convA as ?%bn_conv_sound.
     pose proof convx as ?%bn_conv_sound.
     pose proof convP as ?%bn_conv_sound.
     pose proof convhr as ?%bn_conv_sound.
     pose proof convy as ?%bn_conv_sound.
     econstructor; tea.
-    2,4: now constructor.
     + eexists; econstructor; try boundary.
       apply algo_conv_sound in conve as [? h]; tea.
       econstructor; [boundary|]; tea.
@@ -1834,7 +1821,8 @@ Module IntermediateTypingProperties.
       + do 2 econstructor ; [| |gen_typing].
         all: eapply isFun_whnf;
           match goal with H : isWfFun _ _ _ ?f |- isFun ?f => destruct H end; constructor;
-          match goal with H : [_ |-[bni] ?f ~ ?f : _] |- whne ?f => apply H end.
+          match goal with H : [_ |-[bni] ?f ~ ?f : _] |- whne ?f =>
+            now destruct H as [?????%algo_conv_wh] end.
     - intros.
       eapply (convtm_nat (ta := bn)).
       now econstructor.
@@ -1851,7 +1839,8 @@ Module IntermediateTypingProperties.
         econstructor; [| |gen_typing|gen_typing].
         all: eapply isPair_whnf;
           match goal with H : isWfPair _ _ _ ?f |- isPair ?f => destruct H end; constructor;
-          match goal with H : [_ |-[bni] ?f ~ ?f : _] |- whne ?f => apply H end.
+          match goal with H : [_ |-[bni] ?f ~ ?f : _] |- whne ?f =>
+            now destruct H as [?????%algo_conv_wh] end.
     - intros ? HΓ.
       eapply (convtm_empty (ta := bn)).
       now econstructor.
@@ -1869,14 +1858,12 @@ Module IntermediateTypingProperties.
     - intros.
       apply convneu_wk ; tea.
       now split.
-    - now intros * [].
+    - now intros * [?????%algo_conv_wh].
     - intros * [? [[? [-> ]]]]%termGen'.
       econstructor.
       + gen_typing.
       + now eexists ; gen_typing.
-      + gen_typing.
       + now eexists ; gen_typing.
-      + gen_typing.
       + now econstructor.
       + eassumption.
     - gen_typing.
@@ -1885,14 +1872,13 @@ Module IntermediateTypingProperties.
     - gen_typing.
     - gen_typing.
     - (* Copy-paste of the proof above in ConvNeuAlgProperties but gen_typing fails (why ?) *)
-      intros * tyA tyx convA convx convP convhr convy [?????? conve conv].
+      intros * tyA tyx convA convx convP convhr convy [???? conve conv].
       pose proof convA as ?%bn_conv_sound.
       pose proof convx as ?%bn_conv_sound.
       pose proof convP as ?%bn_conv_sound.
       pose proof convhr as ?%bn_conv_sound.
       pose proof convy as ?%bn_conv_sound.
       econstructor; tea.
-      2,4: now constructor.
       + eexists; econstructor; try boundary.
         apply algo_conv_sound in conve as [? h]; tea.
         econstructor; [boundary|]; tea.

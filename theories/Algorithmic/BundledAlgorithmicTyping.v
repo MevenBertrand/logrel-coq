@@ -115,9 +115,7 @@ Record ConvNeuBun Γ A m n :=
 {
   bun_conv_ne_ctx : [|-[de] Γ] ;
   bun_conv_ne_l : well_typed (ta := de) Γ m ;
-  bun_conv_ne_wh_l : whne m ;
   bun_conv_ne_r : well_typed (ta := de) Γ n ;
-  bun_conv_ne_wh_r : whne n ;
   bun_conv_ne : [Γ |-[al] m ~ n ▹ A]
 }.
 
@@ -125,9 +123,7 @@ Record ConvNeuRedBun Γ A m n :=
 {
   bun_conv_ne_red_ctx : [|-[de] Γ] ;
   bun_conv_ne_red_l : well_typed (ta := de) Γ m ;
-  bun_conv_ne_red_wh_l : whne m ;
   bun_conv_ne_red_r : well_typed (ta := de) Γ n ;
-  bun_conv_ne_red_wh_r : whne n ;
   bun_conv_ne_red : [Γ |-[al] m ~h n ▹ A]
 }.
 
@@ -135,9 +131,7 @@ Record ConvNeuConvBun Γ A m n :=
 {
   bun_conv_ne_conv_ctx : [|-[de] Γ] ;
   bun_conv_ne_conv_l : well_typed (ta := de) Γ m ;
-  bun_conv_ne_conv_wh_l : whne m ;
   bun_conv_ne_conv_r : well_typed (ta := de) Γ n ;
-  bun_conv_ne_conv_wh_r : whne n ;
   bun_conv_ne_conv_ty : term ;
   bun_conv_ne_conv : [Γ |-[al] m ~ n ▹ bun_conv_ne_conv_ty] ;
   bun_conv_ne_conv_conv : [Γ |-[de] bun_conv_ne_conv_ty ≅ A]
