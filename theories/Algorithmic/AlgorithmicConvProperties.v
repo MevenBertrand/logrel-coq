@@ -2044,4 +2044,3 @@ Module IntermediateTypingProperties.
     GenericTypingProperties bni _ _ _ _ _ _ _ _ _ _ := {}.
 
 End IntermediateTypingProperties.
-

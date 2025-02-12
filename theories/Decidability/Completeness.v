@@ -596,7 +596,7 @@ End ConversionComplete.
 
 Section TypingComplete.
 
-Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
 
 Variable conv : (context × term × term) ⇀ exn errors unit.
 
