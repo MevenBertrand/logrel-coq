@@ -2,7 +2,7 @@
 From Equations Require Import Equations.
 From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping
   AlgorithmicTyping BundledAlgorithmicTyping AlgorithmicConvProperties
-  AlgorithmicTypingProperties PropertiesDefinition NeutralConvProperties LogRelConsequences.
+  AlgorithmicTypingProperties PropertiesDefinition NeutralConvProperties NormalisationConsequences LogRelConsequences.
 
 From LogRel.Decidability Require Import Functions Soundness NegativeSoundness Termination.
 From PartialFun Require Import Monad PartialFun MonadExn.
@@ -15,7 +15,7 @@ Import IntermediateTypingProperties BundledTypingData.
 #[local]Existing Instances
   TypingSubstLogRel RedCompleteLogRel TypeConstructorsInjLogRel
   TermConstructorsInjLogRel ConvNeutralConvPosLogRel
-  NormalisationLogRel ConvCompleteLogRel CompleteAlgoNormalisation.
+  ConvCompleteLogRel CompleteAlgoNormalisation.
 
 Definition inspect {A} (a : A) : ∑ b, a = b :=
   (a;eq_refl).

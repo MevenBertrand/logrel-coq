@@ -208,6 +208,48 @@ Proof.
   now intros [].
 Qed.
 
+(** ** Stacks *)
+(** A representation of evaluation contexts as lists of destructors with a hole.
+  A neutral is exactly a variable in an evaluation context. *)
+
+Variant dest_entry : Type :=
+| eEmptyElim (P : term)
+| eNatElim (P : term) (hs hz : term)
+| eApp (u : term)
+| eFst
+| eSnd
+| eIdElim (A x P hr y : term).
+
+Definition zip1 (t : term) (e : dest_entry) : term :=
+match e with
+  | eEmptyElim P => (tEmptyElim P t)
+  | eNatElim P hs hz => (tNatElim P hs hz t)
+  | eApp u => (tApp t u)
+  | eFst => tFst t
+  | eSnd => tSnd t
+  | eIdElim A x P hr y => tIdElim A x P hr y t
+end.
+
+Definition stack := list dest_entry.
+
+Fixpoint zip t (π : stack) :=
+match π with
+| nil => t
+| cons s π => zip (zip1 t s) π
+end.
+
+Variant ty_entry : term -> Type :=
+| eSort s : ty_entry (tSort s)
+| eProd A B : ty_entry (tProd A B)
+| eNat : ty_entry tNat
+| eEmpty : ty_entry tEmpty
+| eSig A B : ty_entry (tSig A B)
+| eId A x y : ty_entry (tId A x y).
+
+Variant nat_entry : term -> Type :=
+| eZero : nat_entry tZero
+| eSucc t : nat_entry (tSucc t).
+
 (** ** Normal and neutral forms are stable by renaming *)
 
 Section RenWhnf.

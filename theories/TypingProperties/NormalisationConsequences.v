@@ -4,6 +4,15 @@ From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping Prop
 
 Import DeclarativeTypingProperties.
 
+
+#[refine]Instance NormDeepNorm `{DeepNormalisation} : Normalisation := {}.
+Proof.
+  - intros * [* ?? ?%dnf_whnf]%tm_dnorm.
+    now econstructor.
+  - intros * [* ? ?%dnf_whnf]%ty_dnorm.
+    econstructor ; gen_typing.
+Qed.
+
 (** ** Well-foundedness of reduction *)
 
 Theorem typing_acc_cored Γ t `{!Normalisation (ta := de)} :
@@ -79,8 +88,7 @@ End Consistency.
   deep normalisation here, with only wh normalisation we would only get that a closed natural
   number is convertible to 0 or a successor, but would have no control over the argument of the latter. *)
 Section Canonicity.
-  Context `{!TypingSubst (ta := de)}
-    `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}
     `{!DeepNormalisation (ta := de)}.
 
   Let Pnorm Γ A t := (Γ = ε) -> A = tNat -> [ε |- t : tNat] ->

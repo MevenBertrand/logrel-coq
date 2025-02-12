@@ -2,7 +2,7 @@
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel Require Import Syntax.All DeclarativeTyping GenericTyping AlgorithmicTyping.
-From LogRel.TypingProperties Require Import Normalisation DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties.
+From LogRel.TypingProperties Require Import Normalisation DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties NormalisationConsequences.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import Utils.
 
@@ -16,40 +16,8 @@ Import DeclarativeTypingProperties AlgorithmicTypingData.
 Section ConversionTerminates.
   Context
     `{!TypingSubst (ta := de)}
-    `{!TypeReductionComplete (ta := de)}
     `{!TypeConstructorsInj (ta := de)}
-    (* `{!ConvComplete (ta := de) (ta' := al)} *)
-    `{!Normalisation (ta := de)}
     `{!DeepNormalisation (ta := de)}.
-
-(* Let PTyEq (Γ : context) (A B : term) :=
-  forall v B',
-  [Γ |-[de] A] × [Γ |-[de] B'] ->
-  domain _conv (ty_state;Γ;v;A;B').
-Let PTyRedEq (Γ : context) (A B : term) :=
-  forall v B',
-  isType B' ->
-  [Γ |-[de] A] × [Γ |-[de] B'] ->
-  domain _conv (ty_red_state;Γ;v;A;B').
-Let PNeEq (Γ : context) (A t u : term) :=
-  forall v u',
-  whne u' ->
-  well_typed (ta := de) Γ t × well_typed (ta := de) Γ u' ->
-  domain _conv (ne_state;Γ;v;t;u').
-Let PNeRedEq (Γ : context) (A t u : term) :=
-  forall v u',
-  whne u' ->
-  well_typed (ta := de) Γ t × well_typed (ta := de) Γ u' ->
-  domain _conv (ne_red_state;Γ;v;t;u').
-Let PTmEq (Γ : context) (A t u : term) :=
-  forall u',
-  [Γ |-[de] t : A] × [Γ |-[de] u' : A] ->
-  domain _conv (tm_state;Γ;A;t;u').
-Let PTmRedEq (Γ : context) (A t u : term) :=
-  forall u',
-  whnf u' ->
-  [Γ |-[de] t : A] × [Γ |-[de] u' : A] ->
-  domain _conv (tm_red_state;Γ;A;t;u'). *)
 
   Let PNormTy (Γ : context) (A : term) :=
     forall v B',
@@ -505,8 +473,10 @@ End ConversionTerminates.
 
 Section TypingTerminates.
 
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
-  `{!Normalisation (ta := de)} `{!DeepNormalisation (ta := de)}.
+  Context
+    `{!TypingSubst (ta := de)}
+    `{!TypeConstructorsInj (ta := de)}
+    `{!Normalisation (ta := de)}.
 
   Import AlgorithmicTypingData.
 

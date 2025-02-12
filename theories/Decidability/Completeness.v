@@ -38,14 +38,6 @@ Section RedImplemComplete.
   - eapply well_founded_term_subterm.
   Qed.
 
-  (* Lemma well_typed_acc Γ t π :
-    well_formed Γ (zip t π) ->
-    Acc R (t,π).
-  Proof.
-    intros.
-    now eapply R_acc, typing_acc_cored.
-  Qed. *)
-
   Lemma normalising_acc t π t' :
     [(zip t π) ⤳* t'] ->
     whnf t' ->

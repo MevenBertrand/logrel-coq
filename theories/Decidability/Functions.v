@@ -2,12 +2,78 @@
 From Coq Require Import Nat Lia.
 From Equations Require Import Equations.
 From PartialFun Require Import Monad PartialFun MonadExn.
-From LogRel Require Import Utils BasicAst AutoSubst.Extra Context.
+From LogRel Require Import Utils BasicAst AutoSubst.Extra Context NormalForms.
 
 Import MonadNotations.
 Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.
 Set Printing Universes.
+
+(** Boilerplate which should go to PartialFun eventually *)
+
+Definition callTypesFactory I (F : I -> Type) (f : forall i, F i) (pfuns : forall (i :I), PFun (f i)) : CallTypes I := {|
+  ct_src i := psrc (f i) ;
+  ct_tgt i := ptgt (f i) ;
+|}.
+
+#[program]
+Definition callablePropsFactory I (F : I -> Type) (f : forall i, F i) (pfuns : forall (i :I), PFun (f i))
+  : CallableProps (callTypesFactory I F f pfuns) := {|
+  cp_graph i := pgraph (f i) ;
+  cp_fueled i := pfueled (f i) ;
+  cp_def i := pdef (f i)
+|}.
+Next Obligation. intros. eapply pgraph_fun. all: eassumption. Qed.
+Next Obligation. intros; now eapply pfueled_graph. Qed.
+Next Obligation. intros; now eapply pdef_graph. Qed.
+
+#[export]Instance CallEmpty : CallTypes False | 5 :=
+  callTypesFactory False
+        (False_rect _)
+        (fun bot => match bot return False_rect _ bot with end)
+        (fun bot => match bot return PFun@{Set Set Set} _ with end).
+
+#[export]Instance CallablePropsEmpty : CallableProps CallEmpty | 5 :=
+  callablePropsFactory False
+    (False_rect _)
+    (fun bot => match bot return False_rect _ bot with end)
+    (fun bot => match bot return PFun@{Set Set Set} _ with end).
+
+Inductive Sing {F} (f : F) : Set := mkSing.
+Inductive Duo {F1 F2} (f1 : F1) (f2 : F2) := mkLeft | mkRight.
+
+Arguments mkLeft {_ _} _ {_}.
+Arguments mkRight {_ _} {_} _.
+
+#[global]
+Instance callTypesSing {F} (f : F) `{PFun F f} : CallTypes (Sing f) :=
+  callTypesFactory _ (fun _ => F) (fun _ => f) (fun _ => _).
+
+#[global]
+Instance callablePropsSing {F} (f : F) `{PFun F f} : CallableProps (callTypesSing f) :=
+  callablePropsFactory _ (fun _ => F) (fun _ => f) (fun _ => _).
+
+#[global]
+Instance callTypesDuo {F1 F2} (f1 : F1) (f2 : F2) `{PFun F1 f1, PFun F2 f2} : CallTypes (Duo f1 f2) :=
+  let F := fun x : Duo f1 f2 => match x with mkLeft _ => F1 | mkRight _ => F2 end in
+  let f := fun x : Duo f1 f2 => match x as x return F x with
+                                | mkLeft _ => f1 | mkRight _ => f2 end in
+  let pfun := fun x : Duo f1 f2 => match x as x return PFun (f x) with
+                                | mkLeft _ => _ | mkRight _ => _ end in
+  callTypesFactory _ F f pfun.
+
+#[global]
+Instance callablePropsDuo {F1 F2} (f1 : F1) (f2 : F2) `{PFun F1 f1, PFun F2 f2} : CallableProps (callTypesDuo f1 f2) :=
+  let F := fun x : Duo f1 f2 => match x with mkLeft _ => F1 | mkRight _ => F2 end in
+  let f := fun x : Duo f1 f2 => match x as x return F x with
+                                | mkLeft _ => f1 | mkRight _ => f2 end in
+  let pfun := fun x : Duo f1 f2 => match x as x return PFun (f x) with
+                                | mkLeft _ => _ | mkRight _ => _ end in
+  callablePropsFactory _ F f pfun.
+
+Definition call_single {F}
+  (f : F) `{PFun F f} {A B} := ext_call (mkSing f) (A:=A) (B:=B).
+
 
 #[global]
 Obligation Tactic := idtac.
@@ -22,37 +88,11 @@ Inductive errors : Type :=
   | conv_error : errors
   | type_error : errors.
 
+(** ** Views: various ways to view terms/pairs of terms *)
+(** This factors the work of branching on various features of terms, whether they are
+types, whnf, pairs of such, etc. *)
+
 Section Views.
-
-  Variant ty_entry : term -> Type :=
-    | eSort s : ty_entry (tSort s)
-    | eProd A B : ty_entry (tProd A B)
-    | eNat : ty_entry tNat
-    | eEmpty : ty_entry tEmpty
-    | eSig A B : ty_entry (tSig A B)
-    | eId A x y : ty_entry (tId A x y).
-
-  Variant nat_entry : term -> Type :=
-    | eZero : nat_entry tZero
-    | eSucc t : nat_entry (tSucc t).
-
-  Variant dest_entry : Type :=
-    | eEmptyElim (P : term)
-    | eNatElim (P : term) (hs hz : term)
-    | eApp (u : term)
-    | eFst
-    | eSnd
-    | eIdElim (A x P hr y : term).
-
-  Definition zip1 (t : term) (e : dest_entry) : term :=
-    match e with
-      | eEmptyElim P => (tEmptyElim P t)
-      | eNatElim P hs hz => (tNatElim P hs hz t)
-      | eApp u => (tApp t u)
-      | eFst => tFst t
-      | eSnd => tSnd t
-      | eIdElim A x P hr y => tIdElim A x P hr y t
-    end.
 
   Variant tm_view1 : term -> Type :=
     | tm_view1_type {t} : ty_entry t -> tm_view1 t
@@ -271,54 +311,24 @@ Section Views.
 
 End Views.
 
-Definition stack := list dest_entry.
-
-Fixpoint zip t (π : stack) :=
-  match π with
-  | nil => t
-  | cons s π => zip (zip1 t s) π
-  end.
-
 #[export]Existing Instance OrecEffectExn.
 #[export]Existing Instance MonadExn | 1.
 #[export]Existing Instance MonadRaiseExn.
+
+(** ** Context access *)
 
 Equations ctx_access (Γ : context) (n : nat) : exn errors term :=
   ctx_access ε _ := raise variable_not_in_context ; (** The context does not contain the variable! *)
   ctx_access (_,,d) 0 := ret (d⟨↑⟩) ;
   ctx_access (Γ,,_) (S n') := d ← (ctx_access Γ n') ;; ret d⟨↑⟩.
 
+(** ** Equality of sorts *)
+
 Definition eq_sort (s s' : sort) : exn errors unit := ok.
 
-(* Introduce the following in PartialFun *)
-
-Definition callTypesFactory I (F : I -> Type) (f : forall i, F i) (pfuns : forall (i :I), PFun (f i)) : CallTypes I := {|
-  ct_src i := psrc (f i) ;
-  ct_tgt i := ptgt (f i) ;
-|}.
-
-#[program]
-Definition callablePropsFactory I (F : I -> Type) (f : forall i, F i) (pfuns : forall (i :I), PFun (f i))
-  : CallableProps (callTypesFactory I F f pfuns) := {|
-  cp_graph i := pgraph (f i) ;
-  cp_fueled i := pfueled (f i) ;
-  cp_def i := pdef (f i)
-|}.
-Next Obligation. intros. eapply pgraph_fun. all: eassumption. Qed.
-Next Obligation. intros; now eapply pfueled_graph. Qed.
-Next Obligation. intros; now eapply pdef_graph. Qed.
-
-#[export]Instance CallEmpty : CallTypes False | 5 :=
-  callTypesFactory False
-        (False_rect _)
-        (fun bot => match bot return False_rect _ bot with end)
-        (fun bot => match bot return PFun@{Set Set Set} _ with end).
-
-#[export]Instance CallablePropsEmpty : CallableProps CallEmpty | 5 :=
-      callablePropsFactory False
-        (False_rect _)
-        (fun bot => match bot return False_rect _ bot with end)
-        (fun bot => match bot return PFun@{Set Set Set} _ with end).
+(** ** Weak-head reduction machine *)
+(** This is the workhorse of the definition of reduction, an abstract machine acting on
+ pairs of a stack π and a term t, representing the term zip t π "focused" on t. *)
 
 Equations wh_red_stack : ∇(_ : term × stack), [False]⇒ term :=
   wh_red_stack (t,π) with (build_tm_view1 t) :=
@@ -342,51 +352,19 @@ Equations wh_red_stack : ∇(_ : term × stack), [False]⇒ term :=
   wh_red_stack (t               ,cons s _)                    (tm_view1_type _) := undefined.
 
 
-Inductive Sing {F} (f : F) : Set := mkSing.
-Inductive Duo {F1 F2} (f1 : F1) (f2 : F2) := mkLeft | mkRight.
-
-Arguments mkLeft {_ _} _ {_}.
-Arguments mkRight {_ _} {_} _.
-
-#[global]
-Instance callTypesSing {F} (f : F) `{PFun F f} : CallTypes (Sing f) :=
-  callTypesFactory _ (fun _ => F) (fun _ => f) (fun _ => _).
-
-#[global]
-Instance callablePropsSing {F} (f : F) `{PFun F f} : CallableProps (callTypesSing f) :=
-  callablePropsFactory _ (fun _ => F) (fun _ => f) (fun _ => _).
-
-#[global]
-Instance callTypesDuo {F1 F2} (f1 : F1) (f2 : F2) `{PFun F1 f1, PFun F2 f2} : CallTypes (Duo f1 f2) :=
-  let F := fun x : Duo f1 f2 => match x with mkLeft _ => F1 | mkRight _ => F2 end in
-  let f := fun x : Duo f1 f2 => match x as x return F x with
-                               | mkLeft _ => f1 | mkRight _ => f2 end in
-  let pfun := fun x : Duo f1 f2 => match x as x return PFun (f x) with
-                               | mkLeft _ => _ | mkRight _ => _ end in
-  callTypesFactory _ F f pfun.
-
-#[global]
-Instance callablePropsDuo {F1 F2} (f1 : F1) (f2 : F2) `{PFun F1 f1, PFun F2 f2} : CallableProps (callTypesDuo f1 f2) :=
-  let F := fun x : Duo f1 f2 => match x with mkLeft _ => F1 | mkRight _ => F2 end in
-  let f := fun x : Duo f1 f2 => match x as x return F x with
-                               | mkLeft _ => f1 | mkRight _ => f2 end in
-  let pfun := fun x : Duo f1 f2 => match x as x return PFun (f x) with
-                               | mkLeft _ => _ | mkRight _ => _ end in
-  callablePropsFactory _ F f pfun.
-
-Definition call_single {F}
-  (f : F) `{PFun F f} {A B} := ext_call (mkSing f) (A:=A) (B:=B).
-
-
 #[export] Instance: PFun wh_red_stack := pfun_gen _ _ wh_red_stack.
+
+(** Weak-head reduction is then obtained by initializing with the empty stack. *)
 
 Definition wh_red : ∇(t : term), [Sing wh_red_stack]⇒ term :=
   fun t => call_single wh_red_stack (t,nil).
 
 #[export] Instance: PFun wh_red := pfun_gen _ _ wh_red.
 
-Definition wh_red_fuel n t := fueled wh_red n t.
 
+(** ** Typed conversion *)
+
+(** We use these states to implement the mutually recursive functions *)
 Variant conv_state : Type :=
   | ty_state (** Conversion of arbitrary types *)
   | ty_red_state (** Comparison of types in weak-head normal forms *)
@@ -395,12 +373,15 @@ Variant conv_state : Type :=
   | ne_state (** Comparison of neutrals *)
   | ne_red_state. (** Comparison of neutrals with a reduced type *)
 
+(** To each state corresponds some extra input data on top of the context, a type
+  for the "checking" procedures, nothing otherwise *)
 Definition cstate_input (c : conv_state) : Set :=
   match c with
   | tm_state | tm_red_state => term
   | ty_state | ty_red_state | ne_state | ne_red_state => unit
   end.
 
+(** … and an output, a type for the "inferring" procedures, nothing otherwise. *)
 Definition cstate_output (c : conv_state) : Set :=
   match c with
   | ty_state | ty_red_state | tm_state | tm_red_state => unit
@@ -413,12 +394,10 @@ Definition cstate_output (c : conv_state) : Set :=
 
 Section Conversion.
 
-
 Definition conv_dom (c : conv_state) :=
   ∑ (_ : context) (_ : cstate_input c) (_ : term), term.
 Definition conv_full_dom := ∑ (c : conv_state), conv_dom c.
 Definition conv_cod (c : conv_state) := exn errors (cstate_output c).
-(* Definition conv_full_cod (x : conv_full_dom) := conv_cod (x.π1). *)
 Definition conv_full_cod (x : conv_full_dom) := conv_cod (x.π1).
 
 #[local]
@@ -429,6 +408,9 @@ Notation M := (combined_orec (exn errors) (Sing wh_red) conv_full_dom conv_full_
 Definition conv_stmt (c : conv_state) :=
   forall x0 : conv_dom c, M (cstate_output c).
 
+
+(** Because we are doing open recursion, we are free to independently define
+  the different mutual pieces, and only put them together at the end. *)
 
 Equations conv_ty : conv_stmt ty_state :=
   | (Γ;inp;T;V) :=
@@ -443,12 +425,12 @@ Equations conv_ty_red : conv_stmt ty_red_state :=
     | ty_sorts s s' := ret (M:=M0) (eq_sort s s') ;
     | ty_prods A A' B B' :=
         rec (ty_state;Γ;tt;A;A') ;;
-        rec (ty_state;(Γ,,A);tt;B;B') (* ::: (ty_red_state;Γ;inp;tProd A B;tProd A' B') ;*) ;
+        rec (ty_state;(Γ,,A);tt;B;B') ;
     | ty_nats := ok ;
     | ty_emptys := ok ;
     | ty_sigs A A' B B' :=
         rec (ty_state;Γ;tt;A;A') ;;
-        rec (ty_state;(Γ,,A);tt;B;B') (* ::: (ty_red_state;Γ;inp;tSig A B;tSig A' B') ;*) ;
+        rec (ty_state;(Γ,,A);tt;B;B') ;
       | ty_neutrals _ _ :=
           rec (ne_state;Γ;tt;T;T') ;; ok ;
     | ty_ids A A' x x' y y' :=
@@ -459,14 +441,12 @@ Equations conv_ty_red : conv_stmt ty_red_state :=
     | ty_anomaly _ _ := undefined ;
   }.
 
-(* Set Typeclasses Debug. *)
 Equations conv_tm : conv_stmt tm_state :=
   | (Γ;A;t;u) :=
     A' ← call_single wh_red A ;;[M0]
     t' ← call_single wh_red t ;;[M0]
     u' ← call_single wh_red u ;;[M0]
     map (M:=M) (@id (cstate_output tm_state)) (rec (tm_red_state;Γ;A';t';u')).
-    (* id <*> rec (tm_red_state;Γ;A';t';u'). *)
 
 Equations conv_tm_red : conv_stmt tm_red_state :=
   | (Γ;A;t;u) with (build_nf_view3 A t u) :=
@@ -474,12 +454,12 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
     | types s (ty_sorts s1 s2) := undefined ;
     | types s (ty_prods A A' B B') :=
       rec (tm_state;Γ;tSort s;A;A') ;;
-      rec (tm_state;Γ,,A;tSort s;B;B') (* ::: (tm_red_state;Γ;tSort s;tProd A B;tProd A' B') ;*) ;
+      rec (tm_state;Γ,,A;tSort s;B;B') ;
     | types _ ty_nats := ok ;
     | types _ ty_emptys := ok ;
     | types s (ty_sigs A A' B B') :=
         rec (tm_state;Γ;tSort s;A;A') ;;
-        rec (tm_state;Γ,,A;tSort s;B;B') (* ::: (tm_red_state;Γ;tSort s;tSig A B;tSig A' B') ;*) ;
+        rec (tm_state;Γ,,A;tSort s;B;B') ;
     | types s (ty_ids A A' x x' y y') :=
         rec (tm_state;Γ;tSort s;A;A') ;;
         rec (tm_state;Γ;A;x;x') ;;
@@ -489,13 +469,13 @@ Equations conv_tm_red : conv_stmt tm_red_state :=
     | types s (ty_mismatch _ _) := raise head_mismatch ;
     | types _ (ty_anomaly _ _) := undefined ;
     | functions A B t u :=
-        rec (tm_state;Γ,,A;B;eta_expand t;eta_expand u) (* ::: (tm_red_state;Γ;tProd A B;t;u) ;*) ;
+        rec (tm_state;Γ,,A;B;eta_expand t;eta_expand u) ;
     | zeros := ok ;
     | succs t' u' :=
         rec (tm_state;Γ;tNat;t';u') ;
     | pairs A B t u :=
         rec (tm_state;Γ;A;tFst t; tFst u) ;;
-        rec (tm_state;Γ; B[(tFst t)..]; tSnd t; tSnd u) (* ::: (tm_red_state;Γ;tSig A B;t;u) ;*) ;
+        rec (tm_state;Γ; B[(tFst t)..]; tSnd t; tSnd u) ;
     | refls A x y A' x' A'' x'' := ok ;
     | neutrals _ _ _ :=
       rec (ne_state;Γ;tt;t;u) ;; ok ;
@@ -511,7 +491,7 @@ Equations conv_ne : conv_stmt ne_state :=
       | true with (ctx_access Γ n) := 
         {
         | exception e => undefined ;
-        | success d => ret d (* ::: (ne_state;Γ;inp;tRel n; tRel n')*)
+        | success d => ret d
         }
     } ;
     | ne_apps n t n' t' =>
@@ -564,12 +544,15 @@ Equations conv_ne : conv_stmt ne_state :=
     | ne_anomaly _ _ => undefined
   }.
 
+
 Equations conv_ne_red : conv_stmt ne_red_state :=
   | (Γ;inp;t;u) :=
     Ainf ← rec (ne_state;Γ;tt;t;u) ;;[M]
     r ← call_single wh_red Ainf ;;[M0]
     ret (M:=M) r.
 
+(** The toplevel function simply case-splits on the state, and uses the relevant
+  function in the mutual block. *)
 
 Equations _conv : ∇(x : conv_full_dom), [Sing wh_red]⇒[exn errors] cstate_output x.π1 :=
   | (ty_state; Γ ; inp ; T; V) := conv_ty (Γ; inp; T; V);
@@ -579,27 +562,35 @@ Equations _conv : ∇(x : conv_full_dom), [Sing wh_red]⇒[exn errors] cstate_ou
   | (ne_state; Γ ; inp ; T; V) := conv_ne (Γ; inp; T; V);
   | (ne_red_state; Γ ; inp ; T; V) := conv_ne_red (Γ; inp; T; V).
 
-  #[local] Instance: PFun _conv := pfun_gen _ _ _conv.
+#[local] Instance: PFun _conv := pfun_gen _ _ _conv.
 
-  Equations tconv : (context × term × term) ⇀ exn errors unit :=
-    tconv (Γ,T,V) := call _conv (ty_state;Γ;tt;T;V).
+(** The only function we need to expose to typing: conversion of types. *)
+Equations tconv : (context × term × term) ⇀ exn errors unit :=
+  tconv (Γ,T,V) := call _conv (ty_state;Γ;tt;T;V).
 
 End Conversion.
 
 #[export] Instance: PFun tconv := pfun_gen _ _ tconv.
 
+
+(** ** Typing *)
+
 Section Typing.
 
+(** Parameterised by an arbitrary notion of conversion. *)
 Variable conv : (context × term × term) ⇀ exn errors unit.
 
 #[local] Instance: PFun conv := pfun_gen _ _ conv.
 
+(** As for conversion, we have multiple states, a function for each state,
+  and combine all of them at the end. *)
 Variant typing_state : Type :=
   | inf_state (** inference *)
   | check_state (** checking *)
   | inf_red_state (** inference of a type reduced to whnf *)
   | wf_ty_state. (** checking well-formation of a type *)
 
+(** Again, as for conversion, depending on the state the inputs/outputs are different. *)
 Definition tstate_input (s : typing_state) : Type :=
   match s with
   | inf_state | inf_red_state | wf_ty_state => unit
@@ -717,7 +708,7 @@ Equations typing_wf_ty : typing_stmt wf_ty_state :=
       | tSort sA =>
           rB ← rec (inf_red_state;Γ,,A;tt;B) ;;
           match rB with
-          | tSort sB => ret (tSort (sort_of_product sA sB)) (* Should that be taken as a parameter for sigma as well ? *)
+          | tSort sB => ret (tSort (sort_of_product sA sB))
           | _ => raise type_error
           end
       | _ => raise type_error

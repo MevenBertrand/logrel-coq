@@ -2,7 +2,7 @@
 From Coq Require Import Nat Lia.
 From Equations Require Import Equations.
 From PartialFun Require Import Monad PartialFun MonadExn.
-From LogRel Require Import Utils BasicAst AutoSubst.Extra Context.
+From LogRel Require Import Utils BasicAst AutoSubst.Extra Context NormalForms.
 From LogRel.Decidability Require Import Functions.
 
 Import MonadNotations.
@@ -94,11 +94,11 @@ Equations build_nf_view2 (t t' : term) : nf_view2 t t' :=
     | nf_view1_id _ _ := mismatch _ _ ;
     | nf_view1_ne _ := neutrals _ _ ;
   }
-  }.
+}.
 
-  Variant uconv_state : Type :=
+Variant uconv_state : Type :=
   | tm_state (** Conversion of arbitrary terms *)
-  | tm_red_state (** Comparison of terms if weak-head normal forms *)
+  | tm_red_state (** Comparison of terms in weak-head normal forms *)
   | ne_state. (** Comparison of neutrals *)
 
 Section Conversion.
@@ -110,36 +110,6 @@ Definition uconv_cod (_ : uconv_dom) := exn errors unit.
 Notation M0 := (orec (Sing wh_red) (uconv_dom) (uconv_cod)).
 #[local]
 Notation M := (combined_orec (exn errors) (Sing wh_red) uconv_dom uconv_cod).
-
-(* Equations uconv_ty :
-  (term × term) -> M unit :=
-  | (T,V) :=
-    T' ← call_single wh_red T ;;[M0]
-    V' ← call_single wh_red V ;;[M0]
-    id <*> rec (ty_red_state,T',V').
-
-Equations uconv_ty_red : 
-  (term × term) -> M unit :=
-  | (T,T') with (build_nf_ty_view2 T T') :=
-  {
-    | ty_sorts s s' := ret (eq_sort s s') ;
-    | ty_prods A A' B B' :=
-        rec (ty_state,A,A') ;;
-        rec (ty_state,B,B') ;
-    | ty_nats := ok ;
-    | ty_emptys := ok ;
-    | ty_sigs A A' B B' :=
-        rec (ty_state,A,A') ;;
-        rec (ty_state,B,B') ;
-      | ty_neutrals _ _ :=
-          rec (ne_state,T,T') ;
-    | ty_ids A A' x x' y y' :=
-      rec (ty_state,A,A') ;;
-      rec (tm_state,x,x') ;;
-      rec (tm_state,y,y') ;
-    | ty_mismatch _ _ := raise (head_mismatch None T T') ;
-    | ty_anomaly _ _ := undefined ;
-  }. *)
 
 Equations uconv_tm : (term × term) -> M unit :=
   | (t,u) :=
@@ -228,8 +198,6 @@ Equations uconv_ne : (term × term) -> M unit :=
 }.
 
 Equations _uconv : ∇ _ : uconv_state × term × term, [Sing wh_red]⇒[exn errors] unit :=
-  (* | (ty_state,ts) := uconv_ty ts;
-  | (ty_red_state,ts) := uconv_ty_red ts ; *)
   | (tm_state,ts) := uconv_tm ts ;
   | (tm_red_state,ts) := uconv_tm_red ts;
   | (ne_state,ts) := uconv_ne ts.
