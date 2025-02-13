@@ -200,9 +200,7 @@ with ConvNeTm : forall (Γ Γ' : context) (A B : term) (t u : term), Type :=
    -> [ Γ ≡ Γ' |- tRel n ≡ne tRel n ▷ A ≡ B ]
   | neApp {Γ Γ' Dom Dom' Cod Cod' t t' u u'} :
       [ Γ ≡ Γ' |- t ≡ne t' ▷red tProd Dom Cod ≡ tProd Dom' Cod' ]
-   -> [ Γ ≡ Γ' |- Dom ≡ Dom' ]
    -> [ Γ ≡ Γ' |- u ≡ u' ◁ Dom ≡ Dom' ]
-   -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]
    -> [ Γ ≡ Γ' |- Cod[u..] ≡ Cod'[u'..] ]
    -> [ Γ ≡ Γ' |- tApp t u ≡ne tApp t' u' ▷ Cod[u..] ≡ Cod'[u'..] ]
   | neNatElim {Γ Γ' P P' hz hz' hs hs' t t'} :
@@ -223,9 +221,8 @@ with RedTy : forall (Γ : context) (A B : term), Type :=
    *  -> [ Γ |- A ~* C ] *)
 with RedTmStep : forall (Γ : context) (t u : term), Type :=
   | redBeta {Γ A B t u} :
-      [ Γ ≡ Γ |- A ≡ A ]
-   -> [ Γ ,, A ≡ Γ ,, A |- t ≡ t ▷ B ≡whnf B ]
-   -> [ Γ ≡ Γ |- u ≡ u ▷ A ≡whnf A ]
+      [ Γ ,, A ≡ Γ ,, A |- t ≡ t ▷ B ≡whnf B ]
+   -> [ Γ ≡ Γ |- u ≡ u ◁ A ≡ A ]
    -> [ Γ |- tApp (tLambda A t) u ~>tm t[u..] ]
   | redAppHead {Γ t t' u} :
       [ Γ |- t ~>tm t' ]
