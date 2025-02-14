@@ -36,7 +36,7 @@ Inductive renames (Γ : context) : forall (ρ : nat -> nat) (Δ : context), Type
    -> renames Γ ρ (Δ ,, A).
 
 Scheme renames_rect_nodep := Minimality for renames Sort Type.
-Derive Signature for renames.
+Derive Signature for in_ctx renames.
 
 Lemma VarRen {Γ A n}
   (H : in_ctx Γ n A)
@@ -121,6 +121,16 @@ Lemma RenWeakenOnce {Γ Ξ ρ}
 Proof.
   intros A.
   apply (RenWeakening H (ε ,, A)).
+Defined.
+
+Lemma RenId Γ :
+  renames Γ id Γ.
+Proof.
+  induction Γ.
+  - econstructor.
+  - econstructor.
+    + now eapply RenWeakenOnce.
+    + econstructor.
 Defined.
 
 (* Type system *)
@@ -450,10 +460,9 @@ Lemma Conv_ConvCont : ltac2:(
     end in
   refine (syntax_ind_concl f)).
 Proof.
-  Print SyntaxInductionType.
   apply SyntaxInduction.
-  > intros **.
-  > repeat (exact tt || assumption || constructor).
+  intros **.
+  repeat (assumption || constructor).
 Defined.
 
 Ltac2 fold_righti (f : int -> 'a -> 'b -> 'b) (ls : 'a list) (a : 'b) : 'b :=
@@ -633,6 +642,72 @@ Proof.
   rewrite <- ?substRen, -> ?substUp.
 
   try (once (repeat (> iter_hypo (fun h => let h := Control.hyp h in eapply $h) || (eapply Conv_Left; now (() + eapply Conv_Symm)) || econstructor || eapply RenWeakenOnce || (ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)); rewrite <- (renRen_term _ ↑)))); >fail).
+
+  - apply H0.
+    + econstructor.
+      assert (U : _) by (now eapply H2).
+      depelim U.
+      now eapply Conv_Left.
+    + econstructor.
+      ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)).
+      * now eapply RenWeakenOnce.
+      * rewrite <- (renRen_term _ ↑). econstructor.
+    + econstructor.
+      ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)).
+      * now eapply RenWeakenOnce.
+      * rewrite <- (renRen_term _ ↑). econstructor.
+Defined.
+
+Lemma GetVarTyped : ltac2:(
+  let f t :=
+    let (head, args) := decompose_app_list t in
+    match (synt_ind_arity head) with
+    | 2 => let Γ := List.nth args 0 in
+           let Γ' := List.nth args 1 in
+           '(forall n A B, in_ctx $Γ n A -> in_ctx $Γ' n B -> [ $Γ ≡ $Γ' |- A ≡ B ])
+    | 1 => let Γ := List.nth args 0 in
+           constr:(forall n A, in_ctx $Γ n A -> [ $Γ ≡ $Γ |- A ≡ A ])
+    | _ => constr:(unit)
+    end in
+  refine (syntax_ind_concl f)).
+Proof.
+  eapply SyntaxInduction; intros *; repeat (first [ intros ? ? * | try (rename H into H'); intros H ]).
+  try (lazy_match! goal with [|- unit] => constructor end).
+  1: depelim H.
+  1: depelim H1; depelim H2.
+  1: eapply RenStable > [eassumption | econstructor; eassumption | | ]; eapply RenWeakenOnce; eapply RenId.
+  1: eapply RenStable > [now eapply H0 | econstructor; eassumption | | ]; eapply RenWeakenOnce; eapply RenId.
+  eauto.
+Defined.
+
+Lemma WellTyped : ltac2:(
+  let f t :=
+    match! t with
+    | [ ?Γ ≡ ?Γ' |- _ ≡ _ ▷ ?a ≡whnf ?b ] => '[ $Γ ≡ $Γ' |- $a ≡whnf $b ]
+    | [ ?Γ ≡ ?Γ' |- _ ≡whnf _ ▷ ?a ≡whnf ?b ] => '[ $Γ ≡ $Γ' |- $a ≡whnf $b ]
+    | [ ?Γ ≡ ?Γ' |- _ ≡ne _ ▷red ?a ≡ ?b ] => '[ $Γ ≡ $Γ' |- $a ≡ $b ]
+    | [ ?Γ ≡ ?Γ' |- _ ≡ne _ ▷ ?a ≡ ?b ] => '[ $Γ ≡ $Γ' |- $a ≡ $b ]
+    | [ ?Γ |- ?a ~* ?b ] => '(forall Γ' B, [ $Γ ≡ Γ' |- $a ≡ B ] -> [ $Γ ≡ Γ' |- $b ≡ B ])
+    | _ => 'unit
+    end in
+  refine (syntax_ind_concl f)).
+Proof.
+  eapply SyntaxInduction; intros *; repeat (first [ intros ? ? * | try (rename H into H'); intros H ]).
+  try (lazy_match! goal with [|- unit] => constructor end).
+  - eassumption.
+  - repeat (eassumption || econstructor).
+  - repeat (eassumption || econstructor).
+  - repeat (eassumption || econstructor || (now (eapplyprod 'Conv_ConvCont; () + eapply Conv_Left; () + eapply Conv_Symm))).
+  - repeat ((now (eapplyprod 'Conv_ConvCont; eapply Conv_Left; () + eapply Conv_Symm)) || eassumption || econstructor).
+  - eapply H2.
+    eapply Conv_Symm.
+    eapply H4.
+    eapply Conv_Symm.
+    eassumption.
+  - now eapplyprod 'GetVarTyped.
+  - eassumption.
+  - eassumption.
+  - eassumption.
 Defined.
 
 Ltac2 bing () := iter_hypo (fun h => let h := Control.hyp h in eapply $h) || (now convsymmetries ()) || econstructor.
@@ -642,11 +717,11 @@ Lemma Output : SyntaxInductionConcl
   (fun Γ Γ' A B => unit)
   (fun Γ Γ' A B => unit)
   (fun Γ Γ' A B t u => unit)
-  (fun Γ Γ' A B t u => forall Γ'' t' A' C, [ Γ'' ≡ Γ' |- t' ≡ u ▷ A' ≡whnf C ] -> B = C)
-  (fun Γ Γ' A B t u => forall Γ'' t' A' C, [ Γ'' ≡ Γ' |- t' ≡whnf u ▷ A' ≡whnf C ] -> B = C)
-  (fun Γ Γ' A B t u => forall Γ'' t' A' C, [ Γ' ≡ Γ' |- B ≡whnf B ]
-    -> [ Γ' ≡ Γ' |- C ≡whnf C ] -> [ Γ'' ≡ Γ' |- t' ≡ne u ▷red A' ≡ C ] -> B = C)
-  (fun Γ Γ' A B t u => forall Γ'' t' A' C, [ Γ'' ≡ Γ' |- t' ≡ne u ▷ A' ≡ C ] -> B = C)
+  (fun Γ Γ' A B t u => forall C, [ Γ ≡ Γ |- t ≡ t ▷ C ≡whnf C ] -> A = C)
+  (fun Γ Γ' A B t u => forall C, [ Γ ≡ Γ |- t ≡whnf t ▷ C ≡whnf C ] -> A = C)
+  (fun Γ Γ' A B t u => forall C, [ Γ ≡ Γ |- A ≡whnf A ]
+    -> [ Γ ≡ Γ |- C ≡whnf C ] -> [ Γ ≡ Γ |- t ≡ne t ▷red C ≡ C ] -> A = C)
+  (fun Γ Γ' A B t u => forall C, [ Γ ≡ Γ |- t ≡ne t ▷ C ≡ C ] -> A = C)
   (fun Γ A B => forall C, [ Γ ≡ Γ |- B ≡whnf B ] -> [ Γ ≡ Γ |- C ≡whnf C ] -> [ Γ |- A ~* C ]  -> B = C)
   (fun Γ t u => forall v, [ Γ |- t ~>tm v ] -> u = v)
   (fun Γ t u => forall v, [ Γ |- t ↗ v ] -> u = v)
@@ -661,9 +736,45 @@ Proof.
   depelim H.
   (* > iter_hypo (fun h => try (let h' := Control.hyp h in erewrite $h' by bing (); printf "%I" h; clear0 [h])). *)
    try (once (repeat (> reflexivity || progress f_equal || bing () || iter_hypo (fun h => let h' := Control.hyp h in progress (erewrite ! $h' by bing ())) || eapply in_ctx_inj)); >fail).
-  1: depelim H'; depelim c.
-  1: depelim c; depelim c.
-  1: f_equal.
+  - depelim H'. depelim c.
+  - depelim c. depelim c.
+  - f_equal.
+    eassert (noconf : tProd Dom Cod = tProd Dom0 Cod0).
+    + eapply H0.
+      * eapply WellTyped in H'.
+        eapply Conv_Left in H'.
+        depelim H'.
+        depelim r.
+        depelim r0.
+        eassumption.
+      * eapply WellTyped in c.
+        eapply Conv_Left in c.
+        depelim c.
+        depelim r.
+        depelim r0.
+        eassumption.
+      * now eapply Conv_Left.
+    + now noconf noconf.
+  - depelim H.
+  - depelim H'.
+  - f_equal.
+    eassert (noconf : tProd Dom Cod = tProd Dom0 Cod0).
+    + eapply H0.
+      * eapply WellTyped in H'.
+        depelim H'.
+        depelim r.
+        now depelim r0.
+      * eapply WellTyped in c.
+        depelim c.
+        depelim r.
+        now depelim r0.
+      * eassumption.
+    + now noconf noconf.
+  - depelim e.
+    depelim H1.
+    + depelim c1; depelim c1.
+    + depelim c1; depelim c1.
+    + 
   1-2: Control.shelve ().
   - bing ().
     depelim H5.
