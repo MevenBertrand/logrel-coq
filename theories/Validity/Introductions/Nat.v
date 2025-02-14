@@ -1,9 +1,10 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Reflexivity Irrelevance Weakening Neutral Transitivity Reduction Application EqRedRight.
+From LogRel.LogicalRelation Require Import Properties.
 From LogRel.LogicalRelation.Introductions Require Import Universe SimpleArr.
-From LogRel.Validity Require Import Validity Irrelevance Properties Conversion SingleSubst Reflexivity Reduction Universe Pi SimpleArr Var Application.
+From LogRel.Validity Require Import Validity Irrelevance Properties Universe Pi SimpleArr Var Application.
 
 Set Universe Polymorphism.
+Set Printing Primitive Projection Parameters.
 
 Section Nat.
 Context `{GenericTypingProperties}.

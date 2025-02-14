@@ -448,3 +448,15 @@ Proof. setoid_rewrite id_ren; now bsimpl. Qed.
 
 Lemma eq_subst_scons {Γ} a B : B[a..] = B[a⟨@wk_id Γ⟩ .: @wk_id Γ >> tRel].
 Proof. now bsimpl. Qed.
+
+Lemma wk1_subst A Γ F σ : (A ⟨@wk1 Γ F⟩)[σ] = A[↑ >> σ].
+Proof. asimpl; now rewrite wk1_ren. Qed.
+
+Lemma ren_subst  {Γ Δ} A (ρ : Γ ≤ Δ) σ : A⟨ρ⟩[σ] = A[ ρ >> σ].
+Proof. now asimpl. Qed.
+
+Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
+Proof. now bsimpl. Qed.
+
+
+(* TODO: where should these go ? They don't have anything to do with Weakenings *)

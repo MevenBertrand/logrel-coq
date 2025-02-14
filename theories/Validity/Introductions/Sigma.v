@@ -1,8 +1,9 @@
 From Coq Require Import ssrbool CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
-From LogRel.LogicalRelation Require Import Induction Escape Reflexivity Irrelevance Weakening Neutral Transitivity Reduction Application EqRedRight SimpleArr NormalRed InstKripke.
+From LogRel.LogicalRelation Require Import Properties.
 From LogRel.LogicalRelation.Introductions Require Import Universe Poly.
-From LogRel.Validity Require Import Validity Irrelevance Properties Conversion SingleSubst Reflexivity Reduction Universe Poly.
+From LogRel.Validity Require Import Validity Irrelevance Properties.
+ (* Universe Poly. *)
 
 
 Set Universe Polymorphism.
@@ -11,6 +12,39 @@ Set Printing Primitive Projection Parameters.
 Section SigmaCongRed.
 
   Context `{GenericTypingProperties}.
+
+Lemma validΣdom {Γ Γ' F F' G G' l}
+  {VΓ : [||-v Γ ≅ Γ']}
+  (VΣ : [Γ ||-v<l> tSig F G ≅ tSig F' G' | VΓ]) :
+  [Γ ||-v<l> F ≅ F' | VΓ].
+Proof.
+  constructor; intros ? wfΔ ?? Vσ.
+  pose proof (RΠ := validTyExt VΣ wfΔ Vσ).
+  rewrite 2!subst_sig in RΠ.
+  now unshelve eapply (instKripke _ (normRedΣ RΠ).(PolyRed.shpRed)).
+Qed.
+
+Lemma validΣcod {Γ Γ' F F' G G' l}
+  {VΓ : [||-v Γ ≅ Γ']}
+  (VΣ : [Γ ||-v<l> tSig F G ≅ tSig F' G' | VΓ]) :
+  [Γ,, F ||-v<l> G ≅ G' | validSnoc VΓ (validΣdom VΣ)].
+Proof.
+  constructor; intros ? wfΔ ?? [Vσ hd].
+  pose proof (RΠ := validTyExt VΣ wfΔ Vσ).
+  rewrite 2!subst_sig in RΠ.
+  generalize (instKripkeSubst (normRedΣ RΠ).(PolyRed.posRed) _ hd).
+  cbn -[wk1]; now rewrite 2!eta_up_single_subst.
+Qed.
+
+Lemma substSΣ {Γ Γ' F F' G G' t u l}
+  {VΓ : [||-v Γ ≅ Γ']}
+  (VΣ : [Γ ||-v<l> tSig F G ≅ tSig F' G' | VΓ])
+  (Vt : [Γ ||-v<l> t ≅ u : F | VΓ | validΣdom VΣ]) :
+  [_ ||-v<l> G[t..] ≅ G'[u..] | VΓ].
+Proof. eapply substS ; tea; eapply validΣcod. Qed.
+
+
+
   Context {Γ F G F' G' l}
     (VΓ : [||-v Γ])
     (VF : [ Γ ||-v< l > F | VΓ ])

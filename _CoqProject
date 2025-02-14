@@ -71,18 +71,18 @@ theories/LogicalRelation/Introductions/Id.v
 theories/Validity/Validity.v
 theories/Validity/Irrelevance.v
 theories/Validity/Properties.v
-theories/Validity/Escape.v
-theories/Validity/Conversion.v
-theories/Validity/Reflexivity.v
-theories/Validity/Reduction.v
-theories/Validity/SingleSubst.v
-theories/Validity/Introductions/Application.v
+# theories/Validity/Escape.v
+# theories/Validity/Conversion.v
+# theories/Validity/Reflexivity.v
+# theories/Validity/Reduction.v
+# theories/Validity/SingleSubst.v
 theories/Validity/Introductions/Universe.v
+theories/Validity/Introductions/Var.v
 theories/Validity/Introductions/Poly.v
 theories/Validity/Introductions/Pi.v
+theories/Validity/Introductions/Application.v
 theories/Validity/Introductions/Lambda.v
 theories/Validity/Introductions/SimpleArr.v
-theories/Validity/Introductions/Var.v
 theories/Validity/Introductions/Nat.v
 theories/Validity/Introductions/Empty.v
 theories/Validity/Introductions/Sigma.v

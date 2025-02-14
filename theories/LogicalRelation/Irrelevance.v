@@ -12,8 +12,6 @@ Set Printing Primitive Projection Parameters.
 (** Interestingly, we also show irrelevance with respect to universe levels, which is crucial
 in later parts of the development, where this avoids creating spurious constraints on universe levels.*)
 
-Axiom todo@{u}: forall {A:Type@{u}}, A.
-
 Section Irrelevance.
   Context `{GenericTypingProperties}.
 
@@ -76,7 +74,7 @@ Section Irrelevance.
     1,2: unshelve (intros; eapply ihcod;  apply e); tea; now eapply ihdom.
   Qed.
 
-  Lemma irrPiRedTm {t} : PiRedTm ΠA' t <≈> PiRedTm ΠA t.
+  Lemma irrPiRedTm0 {t} : PiRedTm ΠA' t <≈> PiRedTm ΠA t.
   Proof.
     split; intros [? red]; econstructor.
     2,4: now eapply irrIsLRFun.
@@ -86,11 +84,11 @@ Section Irrelevance.
   Lemma irrΠ : irr (LRPi' ΠA) (LRPi' ΠA').
   Proof.
     intros ?? ; split ; intros [rL rR].
-    - exists (snd irrPiRedTm rL) (snd irrPiRedTm rR); cbn.
+    - exists (snd irrPiRedTm0 rL) (snd irrPiRedTm0 rR); cbn.
       1: now rewrite eqdom, eqcod.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       (unshelve eapply ihcod, eqApp); tea; now eapply ihdom.
-    - exists (fst irrPiRedTm rL) (fst irrPiRedTm rR); cbn.
+    - exists (fst irrPiRedTm0 rL) (fst irrPiRedTm0 rR); cbn.
       1: now rewrite <-eqdom, <-eqcod.
       intros; destruct ΠA, ΠA'; cbn in *; subst.
       (unshelve eapply ihcod, eqApp); tea; now eapply ihdom.
@@ -116,7 +114,7 @@ Section Irrelevance.
     all: now unshelve (intros; eapply ihcod; eauto).
   Qed.
 
-  Lemma irrRedSigTm : forall t, SigRedTm ΣA' t <≈> SigRedTm ΣA t.
+  Lemma irrRedSigTm0 : forall t, SigRedTm ΣA' t <≈> SigRedTm ΣA t.
   Proof.
     intros; split; intros [? red ?%irrIsLRPair]; econstructor; tea.
     all: revert red; cbn; now rewrite eqdom, eqcod.
@@ -125,7 +123,7 @@ Section Irrelevance.
   Lemma irrΣ : irr (LRSig' ΣA) (LRSig' ΣA').
   Proof.
     intros ??; split; intros []; unshelve econstructor.
-    1,2,4,5: now eapply irrRedSigTm.
+    1,2,4,5: now eapply irrRedSigTm0.
     all: cbn in *; destruct ΣA, ΣA'; cbn in *; subst; tea.
     1,2: now unshelve (intros; eapply ihdom; eauto).
     1,2: now unshelve (intros; eapply ihcod; eauto).
@@ -252,7 +250,6 @@ Theorem cumLR@{i j k l i' j' k' l'} `{GenericTypingProperties} {lA}
 Proof.
   eapply cumLR_rec; tea; intros ? []; exact cumLR0.
 Qed.
-
 
 
 (*

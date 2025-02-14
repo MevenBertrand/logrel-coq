@@ -85,7 +85,7 @@ Section SimpleArrow.
       [Γ ||-<l> tApp t u ≅ tApp t' u' : G | RG].
   Proof.
     unshelve (eapply irrLREq, appcongTerm; tea);
-    erewrite !shift_subst1; [now eapply lrefl|reflexivity].
+    erewrite !shift_subst1; tea; reflexivity.
   Qed.
 
   (* Lemma wkRedArr {Γ l A B f}

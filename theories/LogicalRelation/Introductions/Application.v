@@ -98,7 +98,7 @@ Lemma appcongTerm {Γ t t' u u' F F' G G' l l'}
   {RF : [Γ ||-<l'> F ≅ F']}
   (Rtt' : [Γ ||-<l> t ≅ t' : tProd F G | RΠ])
   (Ruu' : [Γ ||-<l'> u ≅ u' : F | RF ])
-  (RGu : [Γ ||-<l'> G[u..] ≅ G[u'..]]) :
+  (RGu : [Γ ||-<l'> G[u..] ≅ G'[u'..]]) :
     [Γ ||-<l'> tApp t u ≅ tApp t' u' : G[u..] | RGu].
 Proof.
   set (RΠ' :=normRedΠ RΠ).
@@ -108,7 +108,9 @@ Proof.
   + unshelve (eapply irrLREqCum, app; cbn; now erewrite eq_subst_scons); [|tea|].
     2: rewrite wk_id_ren_on; eapply irrLREqCum; tea; now rewrite wk_id_ren_on.
   + rewrite 2!wk_id_ren_on; eapply redtm_app; [now destruct (PiRedTmEq.red Rt)| now escape].
-  + rewrite wk_id_ren_on; eapply redtm_app; [now destruct (PiRedTmEq.red Rt')| now escape].
+  + rewrite wk_id_ren_on; eapply redtm_app.
+    2: eapply ty_conv; now escape.
+    1: eapply redtm_conv; [now destruct (PiRedTmEq.red Rt')| now escape].
 Qed.
 
 (* Lemma appcongTerm' {Γ t t' u u' F F' G l l' X}
