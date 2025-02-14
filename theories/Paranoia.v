@@ -149,390 +149,436 @@ Reserved Notation "[ Γ |- t ↗ u ]".
 Reserved Notation "[ Γ |- t ~>tm u ]".
 Reserved Notation "[ Γ |- t ~*tm u ]".
 
-Inductive ConvCont : forall (Γ Γ' : context), Type :=
+Inductive judgement : Type :=
+  | ConvCont
+  | ConvTy
+  | ConvWhnfTy
+  | ConvNeTy
+  | ConvCheckTm
+  | ConvTm
+  | ConvWhnfTm
+  | ConvNeRedTm
+  | ConvNeTm
+  | RedTy
+  | RedTmStep
+  | ExpTmStep
+  | RedTm.
+
+Derive NoConfusion for judgement term prod.
+
+Definition judgement_indices (j : judgement) : Type :=
+  match j with
+  | ConvCont => context × context
+  | ConvTy | ConvWhnfTy | ConvNeTy
+    => context × context × term × term
+  | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeRedTm | ConvNeTm
+    => context × context × term × term × term × term
+  | RedTy | RedTmStep | ExpTmStep | RedTm
+    => context × term × term
+  end.
+
+Inductive Paranoia : forall (j : judgement) (i : judgement_indices j), Type :=
   | connil :
       [ |- ε ≡ ε ]
-  | concons {Γ Γ' A B} :
-      [ Γ ≡ Γ' |- A ≡ B]
-   -> [ |- Γ ,, A ≡ Γ' ,, B]
-with ConvTy : forall (Γ Γ' : context) (A B : term), Type :=
-  | normTy {Γ Γ' A B A' B'} :
-      [ Γ ≡ Γ' |- A' ≡whnf B' ]
-   -> [ Γ |- A ~* A' ]
-   -> [ Γ' |- B ~* B' ]
-   -> [ Γ ≡ Γ' |- A ≡ B ]
-with ConvWhnfTy : forall (Γ Γ' : context) (A B : term), Type :=
-  | nfNat {Γ Γ'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ ≡ Γ' |- tNat ≡whnf tNat ]
-  | nfProd {Γ Γ' Dom Dom' Cod Cod'} :
-      [ Γ ≡ Γ' |- Dom ≡ Dom' ]
-   -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]
-   -> [ Γ ≡ Γ' |- tProd Dom Cod ≡whnf tProd Dom' Cod' ]
-with ConvNeTy : forall (Γ Γ' : context) (A B : term), Type :=
-with ConvCheckTm : forall (Γ Γ' : context) (A B : term) (t u : term), Type :=
-  | check {Γ Γ' A B A' B' t t'} :
-      [ Γ ≡ Γ' |- t ≡ t' ▷ A ≡whnf B ]
-   -> [ Γ ≡ Γ |- A' ≡ A ]
-   -> [ Γ' ≡ Γ' |- B' ≡ B ]
-   -> [ Γ ≡ Γ' |- t ≡ t' ◁ A' ≡ B' ]
-with ConvTm : forall (Γ Γ' : context) (A B : term) (t u : term), Type :=
-  | norm {Γ Γ' A B t t' u u'} :
-      [ Γ ≡ Γ' |- t ≡whnf t' ▷ A ≡whnf B ]
-   -> [ Γ |- u ~*tm t ]
-   -> [ Γ' |- u' ~*tm t' ]
-   -> [ Γ ≡ Γ' |- u ≡ u' ▷ A ≡whnf B ]
-with ConvWhnfTm : forall (Γ Γ' : context) (A B : term) (t u : term), Type :=
-  | nfZero {Γ Γ'} :
-      [ |- Γ ≡ Γ' ]
-   -> [ Γ ≡ Γ' |- tZero ≡whnf tZero ▷ tNat ≡whnf tNat ]
-  | nfSucc {Γ Γ' t t'} :
-      [ Γ ≡ Γ' |- t ≡ t' ▷ tNat ≡whnf tNat ]
-   -> [ Γ ≡ Γ' |- tSucc t ≡whnf tSucc t' ▷ tNat ≡whnf tNat ]
-  | nfNeNat {Γ Γ' n n'} :
-      [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ]
-   -> [ Γ ≡ Γ' |- n ≡whnf n' ▷ tNat ≡whnf tNat ]
-  | nfLambda {Γ Γ' Dom Dom' Cod Cod' t t'} :
-      [ Γ ≡ Γ' |- Dom ≡ Dom' ]
-   -> [ Γ ,, Dom ≡ Γ' ,, Dom' |- t ≡ t' ▷ Cod ≡whnf Cod' ]
-   -> [ Γ ≡ Γ' |- tLambda Dom t ≡whnf tLambda Dom' t' ▷ tProd Dom Cod ≡whnf tProd Dom' Cod' ]
-with ConvNeRedTm : forall (Γ Γ' : context) (A B : term) (t u : term), Type :=
-  | tyReduces {Γ Γ' n n' A B A' B'} :
-      [ Γ ≡ Γ' |- n ≡ne n' ▷ A ≡ B ]
-   -> [ Γ |- A ~* A' ]
-   -> [ Γ' |- B ~* B' ]
-   -> [ Γ ≡ Γ' |- n ≡ne n' ▷red A' ≡ B' ]
-with ConvNeTm : forall (Γ Γ' : context) (A B : term) (t u : term), Type :=
-  | neVar {Γ Γ' A B n} :
-      [ |- Γ ≡ Γ' ]
-   -> in_ctx Γ n A
-   -> in_ctx Γ' n B
-   -> [ Γ ≡ Γ' |- tRel n ≡ne tRel n ▷ A ≡ B ]
-  | neApp {Γ Γ' Dom Dom' Cod Cod' t t' u u'} :
-      [ Γ ≡ Γ' |- t ≡ne t' ▷red tProd Dom Cod ≡ tProd Dom' Cod' ]
-   -> [ Γ ≡ Γ' |- u ≡ u' ◁ Dom ≡ Dom' ]
-   -> [ Γ ≡ Γ' |- Cod[u..] ≡ Cod'[u'..] ]
-   -> [ Γ ≡ Γ' |- tApp t u ≡ne tApp t' u' ▷ Cod[u..] ≡ Cod'[u'..] ]
-  | neNatElim {Γ Γ' P P' hz hz' hs hs' t t'} :
-      [ Γ ,, tNat ≡ Γ' ,, tNat |- P ≡ P' ]
-   -> [ Γ ≡ Γ' |- hz ≡ hz' ◁ P[tZero..] ≡ P'[tZero..] ]
-   -> [ Γ ≡ Γ' |- hs ≡ hs' ◁ tProd tNat P[(tSucc (tRel 0))]⇑ ≡ tProd tNat P'[(tSucc (tRel 0))]⇑ ]
-   -> [ Γ ≡ Γ' |- t ≡ne t' ▷red tNat ≡ tNat ]
-   -> [ Γ ≡ Γ' |- P[t..] ≡ P'[t'..] ]
-   -> [ Γ ≡ Γ' |- tNatElim P hz hs t ≡ne tNatElim P' hz' hs' t' ▷ P[t..] ≡ P'[t'..] ]
-(* with RedTyStep : forall (Γ : context) (A B : term), Type := *)
-with RedTy : forall (Γ : context) (A B : term), Type :=
-  | redTyDone {Γ A} :
-      [ |- Γ ≡ Γ]
-   -> [ Γ |- A ~* A ]
-  (* | redTyStep {Γ A B C} :
-   *     [ Γ |- A ~> B ]
-   *  -> [ Γ |- B ~* C ]
-   *  -> [ Γ |- A ~* C ] *)
-with RedTmStep : forall (Γ : context) (t u : term), Type :=
-  | redBeta {Γ A B t u} :
-      [ Γ ,, A ≡ Γ ,, A |- t ≡ t ▷ B ≡whnf B ]
-   -> [ Γ ≡ Γ |- u ≡ u ◁ A ≡ A ]
-   -> [ Γ |- tApp (tLambda A t) u ~>tm t[u..] ]
-  | redAppHead {Γ t t' u} :
-      [ Γ |- t ~>tm t' ]
-   -> [ Γ |- tApp t u ~>tm tApp t' u ]
-with ExpTmStep : forall (Γ : context) (t u : term), Type :=
-  | expandPi {Γ n Dom Cod} :
-      [ Γ ≡ Γ |- n ≡ne n ▷red tProd Dom Cod ≡ tProd Dom Cod ]
-   -> [ Γ |- n ↗ tLambda Dom (tApp n⟨↑⟩ (tRel 0)) ]
-with RedTm : forall (Γ : context) (t u : term), Type :=
-  | redTmNoEta {Γ t} :
-      [ |- Γ ≡ Γ]
-   -> [ Γ |- t ~*tm t ]
-  | redTmEta {Γ t u} :
-      [ |- Γ ≡ Γ]
-   -> [ Γ |- t ↗ u ]
-   -> [ Γ |- t ~*tm u ]
-  | redTmStep {Γ t t' t''} :
-      [ Γ |- t ~>tm t' ]
-   -> [ Γ |- t' ~*tm t'' ]
-   -> [ Γ |- t ~*tm t'' ]
-  where "[ |- Γ ≡ Γ' ]" := (ConvCont Γ Γ')
-    and "[ Γ ≡ Γ' |- A ≡ B ]" := (ConvTy Γ Γ' A B)
-    and "[ Γ ≡ Γ' |- A ≡whnf B ]" := (ConvWhnfTy Γ Γ' A B)
-    and "[ Γ ≡ Γ' |- t ≡ t' ◁ A ≡ B ]" := (ConvCheckTm Γ Γ' A B t t')
-    and "[ Γ ≡ Γ' |- t ≡ t' ▷ A ≡whnf B ]" := (ConvTm Γ Γ' A B t t')
-    and "[ Γ ≡ Γ' |- t ≡whnf t' ▷ A ≡whnf B ]" := (ConvWhnfTm Γ Γ' A B t t')
-    and "[ Γ ≡ Γ' |- A ≡ne B ]" := (ConvNeTy Γ Γ' A B)
-    and "[ Γ ≡ Γ' |- t ≡ne t' '▷red' A ≡ B ]" := (ConvNeRedTm Γ Γ' A B t t')
-    and "[ Γ ≡ Γ' |- t ≡ne t' ▷ A ≡ B ]" := (ConvNeTm Γ Γ' A B t t')
-    (* and "[ Γ |- A ~> B ]" := (RedTyStep Γ A B) *)
-    and "[ Γ |- A ~* B ]" := (RedTy Γ A B)
-    and "[ Γ |- t ↗ u ]" := (ExpTmStep Γ t u)
-    and "[ Γ |- t ~>tm u ]" := (RedTmStep Γ t u)
-    and "[ Γ |- t ~*tm u ]" := (RedTm Γ t u).
+  | concons {Γ Γ' A B}
+      (typeWf : [ Γ ≡ Γ' |- A ≡ B])
+    : [ |- Γ ,, A ≡ Γ' ,, B]
 
-Derive NoConfusion for term.
+  | normTy {Γ Γ' A B A' B'}
+      (typeWhnf : [ Γ ≡ Γ' |- A' ≡whnf B' ])
+      (typeRedL : [ Γ |- A ~* A' ])
+      (typeRedR : [ Γ' |- B ~* B' ])
+    : [ Γ ≡ Γ' |- A ≡ B ]
 
-Derive Signature for ConvCont
-ConvTy
-ConvWhnfTy
-ConvCheckTm
-ConvTm
-ConvWhnfTm
-ConvNeRedTm
-ConvNeTm
-RedTy
-(* RedTyStep *)
-RedTmStep
-ExpTmStep
-RedTm.
+  | nfNat {Γ Γ'}
+      (contWf : [ |- Γ ≡ Γ' ])
+    : [ Γ ≡ Γ' |- tNat ≡whnf tNat ]
+  | nfProd {Γ Γ' Dom Dom' Cod Cod'}
+      (DomWf : [ Γ ≡ Γ' |- Dom ≡ Dom' ])
+      (CodWf : [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ])
+    : [ Γ ≡ Γ' |- tProd Dom Cod ≡whnf tProd Dom' Cod' ]
 
-Scheme ConvCont_rect_nodep := Minimality for ConvCont Sort Type
-  with ConvTy_rect_nodep := Minimality for ConvTy Sort Type
-  with ConvWhnfTy_rect_nodep := Minimality for ConvWhnfTy Sort Type
-  with ConvCheckTm_rect_nodep := Minimality for ConvCheckTm Sort Type
-  with ConvTm_rect_nodep := Minimality for ConvTm Sort Type
-  with ConvWhnfTm_rect_nodep := Minimality for ConvWhnfTm Sort Type
-  with ConvNeRedTm_rect_nodep := Minimality for ConvNeRedTm Sort Type
-  with ConvNeTm_rect_nodep := Minimality for ConvNeTm Sort Type
-  with RedTy_rect_nodep := Minimality for RedTy Sort Type
-  (* with RedTyStep_rect_nodep := Minimality for RedTyStep Sort Type *)
-  with RedTmStep_rect_nodep := Minimality for RedTmStep Sort Type
-  with ExpTmStep_rect_nodep := Minimality for ExpTmStep Sort Type
-  with RedTm_rect_nodep := Minimality for RedTm Sort Type.
+  | check {Γ Γ' A B A' B' t t'}
+      (termInfer : [ Γ ≡ Γ' |- t ≡ t' ▷ A ≡whnf B ])
+      (typeConvL : [ Γ ≡ Γ |- A' ≡ A ])
+      (typeConvR : [ Γ' ≡ Γ' |- B' ≡ B ])
+    : [ Γ ≡ Γ' |- t ≡ t' ◁ A' ≡ B' ]
 
-Combined Scheme _Syntax_rect_nodep from
-ConvCont_rect_nodep,
-ConvTy_rect_nodep,
-ConvWhnfTy_rect_nodep,
-ConvCheckTm_rect_nodep,
-ConvTm_rect_nodep,
-ConvWhnfTm_rect_nodep,
-ConvNeRedTm_rect_nodep,
-ConvNeTm_rect_nodep,
-RedTy_rect_nodep,
-RedTmStep_rect_nodep,
-ExpTmStep_rect_nodep,
-RedTm_rect_nodep.
+  | norm {Γ Γ' A B t t' u u'}
+      (termWhnfInfer : [ Γ ≡ Γ' |- t ≡whnf t' ▷ A ≡whnf B ])
+      (termRedL : [ Γ |- u ~*tm t ])
+      (termRedR : [ Γ' |- u' ~*tm t' ])
+    : [ Γ ≡ Γ' |- u ≡ u' ▷ A ≡whnf B ]
 
-Ltac2 make_forall (x : ident) (dom : constr) (body : constr -> constr) : constr :=
-  let f := Constr.in_context x dom (fun () => let body := body (Control.hyp x) in exact $body) in
-  match Constr.Unsafe.kind f with
-    | Constr.Unsafe.Lambda f cl => Constr.Unsafe.make (Constr.Unsafe.Prod f cl)
-    | _ => Control.throw Assertion_failure
-  end.
+  | nfZero {Γ Γ'}
+      (contWf : [ |- Γ ≡ Γ' ])
+    : [ Γ ≡ Γ' |- tZero ≡whnf tZero ▷ tNat ≡whnf tNat ]
+  | nfSucc {Γ Γ' t t'}
+      (termWf : [ Γ ≡ Γ' |- t ≡ t' ▷ tNat ≡whnf tNat ])
+    : [ Γ ≡ Γ' |- tSucc t ≡whnf tSucc t' ▷ tNat ≡whnf tNat ]
+  | nfNeNat {Γ Γ' n n'}
+      (neNat : [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ])
+    : [ Γ ≡ Γ' |- n ≡whnf n' ▷ tNat ≡whnf tNat ]
+  | nfLambda {Γ Γ' Dom Dom' Cod Cod' t t'}
+      (domWf : [ Γ ≡ Γ' |- Dom ≡ Dom' ])
+      (bodyWf : [ Γ ,, Dom ≡ Γ' ,, Dom' |- t ≡ t' ▷ Cod ≡whnf Cod' ])
+    : [ Γ ≡ Γ' |- tLambda Dom t ≡whnf tLambda Dom' t' ▷ tProd Dom Cod ≡whnf tProd Dom' Cod' ]
 
+  | neReduces {Γ Γ' n n' A B A' B'}
+      (neInfer : [ Γ ≡ Γ' |- n ≡ne n' ▷ A ≡ B ])
+      (typeRedL : [ Γ |- A ~* A' ])
+      (typeRedR : [ Γ' |- B ~* B' ])
+    : [ Γ ≡ Γ' |- n ≡ne n' ▷red A' ≡ B' ]
 
-Ltac2 make_fun (x : ident) (dom : constr) (body : constr -> constr) : constr :=
-  Constr.in_context x dom (fun () => let body := body (Control.hyp x) in exact $body).
+  | neVar {Γ Γ' A B n}
+      (contWf : [ |- Γ ≡ Γ' ])
+      (in_ctxL : in_ctx Γ n A)
+      (in_ctxR : in_ctx Γ' n B)
+    : [ Γ ≡ Γ' |- tRel n ≡ne tRel n ▷ A ≡ B ]
+  | neApp {Γ Γ' Dom Dom' Cod Cod' t t' u u'}
+      (headNe : [ Γ ≡ Γ' |- t ≡ne t' ▷red tProd Dom Cod ≡ tProd Dom' Cod' ])
+      (argChecks : [ Γ ≡ Γ' |- u ≡ u' ◁ Dom ≡ Dom' ])
+      (resTypeWf : [ Γ ≡ Γ' |- Cod[u..] ≡ Cod'[u'..] ])
+    : [ Γ ≡ Γ' |- tApp t u ≡ne tApp t' u' ▷ Cod[u..] ≡ Cod'[u'..] ]
+  | neNatElim {Γ Γ' P P' hz hz' hs hs' t t'}
+      (predWf : [ Γ ,, tNat ≡ Γ' ,, tNat |- P ≡ P' ])
+      (hzChecks : [ Γ ≡ Γ' |- hz ≡ hz' ◁ P[tZero..] ≡ P'[tZero..] ])
+      (hsChecks : [ Γ ≡ Γ' |- hs ≡ hs' ◁ tProd tNat P[(tSucc (tRel 0))]⇑ ≡ tProd tNat P'[(tSucc (tRel 0))]⇑ ])
+      (scrutNe : [ Γ ≡ Γ' |- t ≡ne t' ▷red tNat ≡ tNat ])
+      (resTypeWf : [ Γ ≡ Γ' |- P[t..] ≡ P'[t'..] ])
+    : [ Γ ≡ Γ' |- tNatElim P hz hs t ≡ne tNatElim P' hz' hs' t' ▷ P[t..] ≡ P'[t'..] ]
 
-Ltac2 get_binder (body : constr) : ident option :=
-  match Constr.Unsafe.kind body with
-    | Constr.Unsafe.Prod f _ => Constr.Binder.name f
-    | Constr.Unsafe.Lambda f _ => Constr.Binder.name f
-    | _ => None
-  end.
+  | redTyFromTm {Γ A B}
+      (redAsTm : [ Γ |- A ~*tm B ])
+    : [ Γ |- A ~* B ]
 
-Ltac2 in_goal_opt (x : ident option) : ident :=
-  match x with
-  | Some x => Fresh.in_goal x
-  | None => Fresh.in_goal @x
-  end.
+  | redBeta {Γ A B t u}
+      (bodyInfers : [ Γ ,, A ≡ Γ ,, A |- t ≡ t ▷ B ≡whnf B ])
+      (argChecks : [ Γ ≡ Γ |- u ≡ u ◁ A ≡ A ])
+    : [ Γ |- tApp (tLambda A t) u ~>tm t[u..] ]
+  | redNatElimZero {Γ P hz hs}
+      (predWf : [ Γ ,, tNat ≡ Γ ,, tNat |- P ≡ P ])
+      (hsChecks : [ Γ ≡ Γ |- hs ≡ hs ◁ tProd tNat P[(tSucc (tRel 0))]⇑ ≡ tProd tNat P[(tSucc (tRel 0))]⇑ ])
+    : [ Γ |- tNatElim P hz hs tZero ~>tm hz ]
+  | redNatElimSuc {Γ P hz hs t}
+      (contWf : [ |- Γ ≡ Γ ])
+    : [ Γ |- tNatElim P hz hs (tSucc t) ~>tm tApp hs (tNatElim P hz hs t) ]
+  | redAppHead {Γ t t' u}
+      (headReds : [ Γ |- t ~>tm t' ])
+    : [ Γ |- tApp t u ~>tm tApp t' u ]
+  | redNatElimScrut {Γ P hz hs t t'}
+      (scrutReds : [ Γ |- t ~>tm t' ])
+    : [ Γ |- tNatElim P hz hs t ~>tm tNatElim P hz hs t' ]
 
-Ltac2 rec polymorphise t :=
-  lazy_match! t with
-    | forall x : ?hyp, @?t x => make_forall (in_goal_opt (get_binder t)) hyp
-      (fun x => let t' := eval hnf in ($t $x) in let t'' := polymorphise t' in t'')
-    | (?t1 * ?t2)%type => let t1' := polymorphise t1 in let t2' := polymorphise t2 in
-        constr:($t1' × $t2')
-    | ?t' => t'
-  end.
+  | expandPi {Γ n Dom Cod}
+      (neuFun : [ Γ ≡ Γ |- n ≡ne n ▷red tProd Dom Cod ≡ tProd Dom Cod ])
+    : [ Γ |- n ↗ tLambda Dom (tApp n⟨↑⟩ (tRel 0)) ]
 
-Ltac2 rec remove_steps t :=
-  lazy_match! t with
-  | _ -> ?t => remove_steps t
-  | forall x : ?dom, @?t x => make_fun (in_goal_opt (get_binder t)) dom
-      (fun x => let t' := eval hnf in ($t $x) in let t'' := remove_steps t' in t'')
-  | ?t' => t'
-  end.
+  | redTmNoEta {Γ t}
+      (contWf : [ |- Γ ≡ Γ])
+    : [ Γ |- t ~*tm t ]
+  | redTmEta {Γ t u}
+      (contWf : [ |- Γ ≡ Γ])
+      (etaStep : [ Γ |- t ↗ u ])
+    : [ Γ |- t ~*tm u ]
+  | redTmStep {Γ t t' t''}
+      (redStep : [ Γ |- t ~>tm t' ])
+      (restRed : [ Γ |- t' ~*tm t'' ])
+    : [ Γ |- t ~*tm t'' ]
+  where "[ |- Γ ≡ Γ' ]" := (Paranoia ConvCont (Γ , Γ'))
+    and "[ Γ ≡ Γ' |- A ≡ B ]" := (Paranoia ConvTy (Γ , Γ' , A , B))
+    and "[ Γ ≡ Γ' |- A ≡whnf B ]" := (Paranoia ConvWhnfTy (Γ , Γ' , A , B))
+    and "[ Γ ≡ Γ' |- t ≡ t' ◁ A ≡ B ]" := (Paranoia ConvCheckTm (Γ , Γ' , A , B , t , t'))
+    and "[ Γ ≡ Γ' |- t ≡ t' ▷ A ≡whnf B ]" := (Paranoia ConvTm (Γ , Γ' , A , B , t , t'))
+    and "[ Γ ≡ Γ' |- t ≡whnf t' ▷ A ≡whnf B ]" := (Paranoia ConvWhnfTm (Γ , Γ' , A , B , t , t'))
+    and "[ Γ ≡ Γ' |- A ≡ne B ]" := (Paranoia ConvNeTy (Γ , Γ' , A , B))
+    and "[ Γ ≡ Γ' |- t ≡ne t' '▷red' A ≡ B ]" := (Paranoia ConvNeRedTm (Γ , Γ' , A , B , t , t'))
+    and "[ Γ ≡ Γ' |- t ≡ne t' ▷ A ≡ B ]" := (Paranoia ConvNeTm (Γ , Γ' , A , B , t , t'))
+    and "[ Γ |- A ~* B ]" := (Paranoia RedTy (Γ , A , B))
+    and "[ Γ |- t ↗ u ]" := (Paranoia ExpTmStep (Γ , t , u))
+    and "[ Γ |- t ~>tm u ]" := (Paranoia RedTmStep (Γ , t , u))
+    and "[ Γ |- t ~*tm u ]" := (Paranoia RedTm (Γ , t , u)).
 
-Definition _SyntaxInductionType :=
-  ltac2:(let ind := Fresh.in_goal @ind in
-      pose (ind := _Syntax_rect_nodep);
-      fold ind ;
-      let ind_ty := Constr.type (Control.hyp ind) in
-      exact $ind_ty).
+Inductive Paranoiaε (Pred : forall {j : judgement} {i : judgement_indices j}, Paranoia j i -> Type)
+  : forall {j : judgement} {i : judgement_indices j}, Paranoia j i -> Type :=
+  | connilε :
+      Paranoiaε (@Pred) connil
+  | conconsε {Γ Γ' A B}
+      {typeWf : [ Γ ≡ Γ' |- A ≡ B]}
+      (typeWfε : Paranoiaε (@Pred) typeWf)
+      (typeWfP : Pred typeWf)
+    : Paranoiaε (@Pred) (concons typeWf)
 
-Definition SyntaxInductionType :=
-  ltac2: (let ind := eval cbv delta [_SyntaxInductionType] zeta
-    in _SyntaxInductionType in
-    let ind' := polymorphise ind in
-  exact $ind').
+  | normTyε {Γ Γ' A B A' B'}
+      {typeWhnf : [ Γ ≡ Γ' |- A' ≡whnf B' ]}
+      (typeWhnfε : Paranoiaε (@Pred) typeWhnf)
+      (typeWhnfP : Pred typeWhnf)
+      {typeRedL : [ Γ |- A ~* A' ]}
+      (typeRedLε : Paranoiaε (@Pred) typeRedL)
+      (typeRedLP : Pred typeRedL)
+      {typeRedR : [ Γ' |- B ~* B' ]}
+      (typeRedRε : Paranoiaε (@Pred) typeRedR)
+      (typeRedRP : Pred typeRedR)
+    : Paranoiaε (@Pred) (normTy typeWhnf typeRedL typeRedR)
 
-Definition SyntaxInduction : SyntaxInductionType.
+  | nfNatε {Γ Γ'}
+      {contWf : [ |- Γ ≡ Γ' ]}
+      (contWfε : Paranoiaε (@Pred) contWf)
+      (contWfP : Pred contWf)
+    : Paranoiaε (@Pred) (nfNat contWf)
+  | nfProdε {Γ Γ' Dom Dom' Cod Cod'}
+      {DomWf : [ Γ ≡ Γ' |- Dom ≡ Dom' ]}
+      (DomWfε : Paranoiaε (@Pred) DomWf)
+      (DomWfP : Pred DomWf)
+      {CodWf : [ Γ ,, Dom ≡ Γ' ,, Dom' |- Cod ≡ Cod' ]}
+      (CodWfε : Paranoiaε (@Pred) CodWf)
+      (CodWfP : Pred CodWf)
+    : Paranoiaε (@Pred) (nfProd DomWf CodWf)
+
+  | checkε {Γ Γ' A B A' B' t t'}
+      {termInfer : [ Γ ≡ Γ' |- t ≡ t' ▷ A ≡whnf B ]}
+      (termInferε : Paranoiaε (@Pred) termInfer)
+      (termInferP : Pred termInfer)
+      {typeConvL : [ Γ ≡ Γ |- A' ≡ A ]}
+      (typeConvLε : Paranoiaε (@Pred) typeConvL)
+      (typeConvLP : Pred typeConvL)
+      {typeConvR : [ Γ' ≡ Γ' |- B' ≡ B ]}
+      (typeConvRε : Paranoiaε (@Pred) typeConvR)
+      (typeConvRP : Pred typeConvR)
+    : Paranoiaε (@Pred) (check termInfer typeConvL typeConvR)
+
+  | normε {Γ Γ' A B t t' u u'}
+      {termWhnfInfer : [ Γ ≡ Γ' |- t ≡whnf t' ▷ A ≡whnf B ]}
+      (termWhnfInferε : Paranoiaε (@Pred) termWhnfInfer)
+      (termWhnfInferP : Pred termWhnfInfer)
+      {termRedL : [ Γ |- u ~*tm t ]}
+      (termRedLε : Paranoiaε (@Pred) termRedL)
+      (termRedLP : Pred termRedL)
+      {termRedR : [ Γ' |- u' ~*tm t' ]}
+      (termRedRε : Paranoiaε (@Pred) termRedR)
+      (termRedRP : Pred termRedR)
+    : Paranoiaε (@Pred) (norm termWhnfInfer termRedL termRedR)
+
+  | nfZeroε {Γ Γ'}
+      {contWf : [ |- Γ ≡ Γ' ]}
+      (contWfε : Paranoiaε (@Pred) contWf)
+      (contWfP : Pred contWf)
+    : Paranoiaε (@Pred) (nfZero contWf)
+  | nfSuccε {Γ Γ' t t'}
+      {termWf : [ Γ ≡ Γ' |- t ≡ t' ▷ tNat ≡whnf tNat ]}
+      (termWfε : Paranoiaε (@Pred) termWf)
+      (termWfP : Pred termWf)
+    : Paranoiaε (@Pred) (nfSucc termWf)
+  | nfNeNatε {Γ Γ' n n'}
+      {neNat : [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ]}
+      (neNatε : Paranoiaε (@Pred) neNat)
+      (neNatP : Pred neNat)
+    : Paranoiaε (@Pred) (nfNeNat neNat)
+  | nfLambdaε {Γ Γ' Dom Dom' Cod Cod' t t'}
+      {domWf : [ Γ ≡ Γ' |- Dom ≡ Dom' ]}
+      (domWfε : Paranoiaε (@Pred) domWf)
+      (domWfP : Pred domWf)
+      {bodyWf : [ Γ ,, Dom ≡ Γ' ,, Dom' |- t ≡ t' ▷ Cod ≡whnf Cod' ]}
+      (bodyWfε : Paranoiaε (@Pred) bodyWf)
+      (bodyWfP : Pred bodyWf)
+    : Paranoiaε (@Pred) (nfLambda domWf bodyWf)
+
+  | neReducesε {Γ Γ' n n' A B A' B'}
+      {neInfer : [ Γ ≡ Γ' |- n ≡ne n' ▷ A ≡ B ]}
+      (neInferε : Paranoiaε (@Pred) neInfer)
+      (neInferP : Pred neInfer)
+      {typeRedL : [ Γ |- A ~* A' ]}
+      (typeRedLε : Paranoiaε (@Pred) typeRedL)
+      (typeRedLP : Pred typeRedL)
+      {typeRedR : [ Γ' |- B ~* B' ]}
+      (typeRedRε : Paranoiaε (@Pred) typeRedR)
+      (typeRedRP : Pred typeRedR)
+    : Paranoiaε (@Pred) (neReduces neInfer typeRedL typeRedR)
+
+  | neVarε {Γ Γ' A B n}
+      {contWf : [ |- Γ ≡ Γ' ]}
+      (contWfε : Paranoiaε (@Pred) contWf)
+      (contWfP : Pred contWf)
+      {in_ctxL : in_ctx Γ n A}
+      {in_ctxR : in_ctx Γ' n B}
+    : Paranoiaε (@Pred) (neVar contWf in_ctxL in_ctxR)
+  | neAppε {Γ Γ' Dom Dom' Cod Cod' t t' u u'}
+      {headNe : [ Γ ≡ Γ' |- t ≡ne t' ▷red tProd Dom Cod ≡ tProd Dom' Cod' ]}
+      (headNeε : Paranoiaε (@Pred) headNe)
+      (headNeP : Pred headNe)
+      {argChecks : [ Γ ≡ Γ' |- u ≡ u' ◁ Dom ≡ Dom' ]}
+      (argChecksε : Paranoiaε (@Pred) argChecks)
+      (argChecksP : Pred argChecks)
+      {resTypeWf : [ Γ ≡ Γ' |- Cod[u..] ≡ Cod'[u'..] ]}
+      (resTypeWfε : Paranoiaε (@Pred) resTypeWf)
+      (resTypeWfP : Pred resTypeWf)
+    : Paranoiaε (@Pred) (neApp headNe argChecks resTypeWf)
+  | neNatElimε {Γ Γ' P P' hz hz' hs hs' t t'}
+      {predWf : [ Γ ,, tNat ≡ Γ' ,, tNat |- P ≡ P' ]}
+      (predWfε : Paranoiaε (@Pred) predWf)
+      (predWfP : Pred predWf)
+      {hzChecks : [ Γ ≡ Γ' |- hz ≡ hz' ◁ P[tZero..] ≡ P'[tZero..] ]}
+      (hzChecksε : Paranoiaε (@Pred) hzChecks)
+      (hzChecksP : Pred hzChecks)
+      {hsChecks : [ Γ ≡ Γ' |- hs ≡ hs' ◁ tProd tNat P[(tSucc (tRel 0))]⇑ ≡ tProd tNat P'[(tSucc (tRel 0))]⇑ ]}
+      (hsChecksε : Paranoiaε (@Pred) hsChecks)
+      (hsChecksP : Pred hsChecks)
+      {scrutNe : [ Γ ≡ Γ' |- t ≡ne t' ▷red tNat ≡ tNat ]}
+      (scrutNeε : Paranoiaε (@Pred) scrutNe)
+      (scrutNeP : Pred scrutNe)
+      {resTypeWf : [ Γ ≡ Γ' |- P[t..] ≡ P'[t'..] ]}
+      (resTypeWfε : Paranoiaε (@Pred) resTypeWf)
+      (resTypeWfP : Pred resTypeWf)
+    : Paranoiaε (@Pred) (neNatElim predWf hzChecks hsChecks scrutNe resTypeWf)
+
+  | redTyFromTmε {Γ A B}
+      {redAsTm : [ Γ |- A ~*tm B ]}
+      (redAsTmε : Paranoiaε (@Pred) redAsTm)
+      (redAsTmP : Pred redAsTm)
+    : Paranoiaε (@Pred) (redTyFromTm redAsTm)
+
+  | redBetaε {Γ A B t u}
+      {bodyInfers : [ Γ ,, A ≡ Γ ,, A |- t ≡ t ▷ B ≡whnf B ]}
+      (bodyInfersε : Paranoiaε (@Pred) bodyInfers)
+      (bodyInfersP : Pred bodyInfers)
+      {argChecks : [ Γ ≡ Γ |- u ≡ u ◁ A ≡ A ]}
+      (argChecksε : Paranoiaε (@Pred) argChecks)
+      (argChecksP : Pred argChecks)
+    : Paranoiaε (@Pred) (redBeta bodyInfers argChecks)
+  | redNatElimZeroε {Γ P hz hs}
+      {predWf : [ Γ ,, tNat ≡ Γ ,, tNat |- P ≡ P ]}
+      (predWfε : Paranoiaε (@Pred) predWf)
+      (predWfP : Pred predWf)
+      {hsChecks : [ Γ ≡ Γ |- hs ≡ hs ◁ tProd tNat P[(tSucc (tRel 0))]⇑ ≡ tProd tNat P[(tSucc (tRel 0))]⇑ ]}
+      (hsChecksε : Paranoiaε (@Pred) hsChecks)
+      (hsChecksP : Pred hsChecks)
+    : Paranoiaε (@Pred) (redNatElimZero (hz := hz) predWf hsChecks)
+  | redNatElimSucε {Γ P hz hs t}
+      {contWf : [ |- Γ ≡ Γ ]}
+      (contWfε : Paranoiaε (@Pred) contWf)
+      (contWfP : Pred contWf)
+    : Paranoiaε (@Pred) (@redNatElimSuc Γ P hz hs t contWf)
+  | redAppHeadε {Γ t t' u}
+      {headReds : [ Γ |- t ~>tm t' ]}
+      (headRedsε : Paranoiaε (@Pred) headReds)
+      (headRedsP : Pred headReds)
+    : Paranoiaε (@Pred) (redAppHead (u := u) headReds)
+  | redNatElimScrutε {Γ P hz hs t t'}
+      {scrutReds : [ Γ |- t ~>tm t' ]}
+      (scrutRedsε : Paranoiaε (@Pred) scrutReds)
+      (scrutRedsP : Pred scrutReds)
+    : Paranoiaε (@Pred) (redNatElimScrut (P := P) (hz := hz) (hs := hs) scrutReds)
+
+  | expandPiε {Γ n Dom Cod}
+      {neuFun : [ Γ ≡ Γ |- n ≡ne n ▷red tProd Dom Cod ≡ tProd Dom Cod ]}
+      (neuFunε : Paranoiaε (@Pred) neuFun)
+      (neuFunP : Pred neuFun)
+    : Paranoiaε (@Pred) (expandPi neuFun)
+
+  | redTmNoEtaε {Γ t}
+      {contWf : [ |- Γ ≡ Γ]}
+      (contWfε : Paranoiaε (@Pred) contWf)
+      (contWfP : Pred contWf)
+    : Paranoiaε (@Pred) (redTmNoEta (t := t) contWf)
+  | redTmEtaε {Γ t u}
+      {contWf : [ |- Γ ≡ Γ]}
+      (contWfε : Paranoiaε (@Pred) contWf)
+      (contWfP : Pred contWf)
+      {etaStep : [ Γ |- t ↗ u ]}
+      (etaStepε : Paranoiaε (@Pred) etaStep)
+      (etaStepP : Pred etaStep)
+    : Paranoiaε (@Pred) (redTmEta contWf etaStep)
+  | redTmStepε {Γ t t' t''}
+      {redStep : [ Γ |- t ~>tm t' ]}
+      (redStepε : Paranoiaε (@Pred) redStep)
+      (redStepP : Pred redStep)
+      {restRed : [ Γ |- t' ~*tm t'' ]}
+      (restRedε : Paranoiaε (@Pred) restRed)
+      (restRedP : Pred restRed)
+    : Paranoiaε (@Pred) (redTmStep redStep restRed).
+
+Derive Signature for Paranoia Paranoiaε.
+
+Definition ParanoiaElim (P : forall {j : judgement} {i : judgement_indices j}, Paranoia j i -> Type)
+  (H : forall {j i} {g : Paranoia j i}, Paranoiaε (@P) g -> P g)
+  {j i}
+  (g : Paranoia j i) : P g.
 Proof.
-  intros ?**.
-  let h :=
-    List.fold_left
-      (fun a (b,_,_) => let b := Control.hyp b in constr:($a $b))
-      constr:(_Syntax_rect_nodep)
-      (Control.hyps ())
-  in pose (H := $h).
-  repeat split.
   apply H.
+  revert j i g.
+  ltac1:(fix frel 3).
+  intros.
+  destruct g.
+  all: econstructor.
+  all: eauto.
 Defined.
 
-Definition SyntaxInductionConcl := ltac2:(let t := eval cbv delta [SyntaxInductionType] beta in SyntaxInductionType in let t' := remove_steps t in exact $t').
-Print SyntaxInductionConcl.
-
-(* TODO: Should be in Constr? *)
-(* Substitutes the argument in the body of a given lambda *)
-Ltac2 app_lambda (lam : constr) (a : constr) : constr :=
-  match Constr.Unsafe.kind lam with
-  | Constr.Unsafe.Lambda _ body => Constr.Unsafe.substnl [a] 0 body
-  | _ => Control.throw Assertion_failure
+Definition SwapIndices {j} : judgement_indices j -> judgement_indices j :=
+  match j as j return (judgement_indices j -> judgement_indices j) with
+  | ConvCont => fun '(Γ, Γ') => (Γ', Γ)
+  | ConvTy | ConvWhnfTy | ConvNeTy
+    => fun '(Γ, Γ', A, B) => (Γ', Γ, B, A)
+  | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeRedTm | ConvNeTm
+    => fun '(Γ, Γ', A, B, t, u) => (Γ', Γ, B, A, u, t)
+  | RedTy | RedTmStep | ExpTmStep | RedTm
+    => id
   end.
 
-Ltac2 decompose_app_list (c : constr) :=
-  match Constr.Unsafe.kind c with
-    | Constr.Unsafe.App f cl => (f, Array.to_list cl)
-    | _ => (c,[])
+Definition ParanoiaSymmType j i : Type :=
+  match j with
+  | RedTy | RedTmStep | ExpTmStep | RedTm => unit
+  | _ => Paranoia j (SwapIndices i)
   end.
 
-Ltac2 mkApp_list (h : constr) (args : constr list) : constr :=
-  match args with
-  | [] => h
-  | _ => Constr.Unsafe.make (Constr.Unsafe.App h (Array.of_list args))
-  end.
-
-Ltac2 syntax_ind_concl (f : constr -> constr) :=
-  let rec transform_clause t :=
-    lazy_match! t with
-    (* XXX: Need to give a name to _cod so that it only matches closed terms *)
-    | ?dom -> ?_cod =>
-      let r := f dom in constr:($dom -> $r)
-    | forall (x : ?dom), @?a x => make_forall (in_goal_opt (get_binder t)) dom
-        (fun x => transform_clause (app_lambda a x))
-    end
-  in
-  let rec transform_clauses t :=
-    lazy_match! t with
-    | fun (x : ?dom) => @?a x =>
-      let f := make_fun (in_goal_opt (get_binder t)) dom
-        (fun x => transform_clauses (app_lambda a x))
-      in
-      lazy_match! f with
-      | fun _ => ?b => b
-      end
-    | ?a × ?b => let a := transform_clause a in let b := transform_clauses b in constr:($a × $b)
-    | ?a => let a := transform_clause a in a
-    end in
-  let t := eval cbv [SyntaxInductionConcl] in SyntaxInductionConcl in
-  let res := transform_clauses t in
-  res.
-
-Ltac2 Notation "syntax_ind_concl" t(next) := syntax_ind_concl t.
-
-Ltac2 synt_ind_arity (c : constr) :=
-  lazy_match! c with
-  | ConvCont => 2
-  | ConvTy => 2
-  | ConvWhnfTy => 2
-  | ConvCheckTm => 2
-  | ConvTm => 2
-  | ConvWhnfTm => 2
-  | ConvNeRedTm => 2
-  | ConvNeTm => 2
-  | RedTy => 1
-  (* | RedTyStep => 1 *)
-  | RedTmStep => 1
-  | ExpTmStep => 1
-  | RedTm => 1
-  end.
-
-Lemma Conv_ConvCont : ltac2:(
-  let f t :=
-    let (head, args) := decompose_app_list t in
-    match (synt_ind_arity head) with
-    | 2 => let Γ := List.nth args 0 in
-           let Γ' := List.nth args 1 in
-           constr:([ |- $Γ ≡ $Γ' ])
-    | 1 => let Γ := List.nth args 0 in
-           constr:([ |- $Γ ≡ $Γ ])
-    | _ => constr:(unit)
-    end in
-  refine (syntax_ind_concl f)).
+Lemma ParanoiaSymm j i : Paranoia j i -> ParanoiaSymmType j i.
 Proof.
-  apply SyntaxInduction.
-  intros **.
+  induction 1 using ParanoiaElim.
+  depelim X; econstructor; eauto.
+Defined.
+
+Definition ProjLIndices {j} : judgement_indices j -> judgement_indices j :=
+  match j as j return (judgement_indices j -> judgement_indices j) with
+  | ConvCont => fun '(Γ, _) => (Γ, Γ)
+  | ConvTy | ConvWhnfTy | ConvNeTy
+    => fun '(Γ, _, A, _) => (Γ, Γ, A, A)
+  | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeRedTm | ConvNeTm
+    => fun '(Γ, _, A, _, t, _) => (Γ, Γ, A, A, t, t)
+  | RedTy | RedTmStep | ExpTmStep | RedTm
+    => id
+  end.
+
+Definition ParanoiaLeftType j i : Type :=
+  match j with
+  | RedTy | RedTmStep | ExpTmStep | RedTm => unit
+  | _ => Paranoia j (ProjLIndices i)
+  end.
+
+Lemma ParanoiaLeft j i : Paranoia j i -> ParanoiaLeftType j i.
+Proof.
+  induction 1 using ParanoiaElim.
+  depelim X; econstructor; eauto.
+Defined.
+
+Definition ParanoiaGetCont {j} (i : judgement_indices j) : context × context :=
+  (match j as j return (judgement_indices j -> context × context) with
+  | ConvCont => fun '(Γ, Γ') => (Γ , Γ')
+  | ConvTy | ConvWhnfTy | ConvNeTy
+    => fun '(Γ, Γ', A, B) => (Γ , Γ')
+  | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeRedTm | ConvNeTm
+    => fun '(Γ, Γ', A, B, t, u) => (Γ , Γ')
+  | RedTy | RedTmStep | ExpTmStep | RedTm
+    => fun '(Γ, _, _) => (Γ , Γ)
+  end) i.
+
+Definition ParanoiaConvContType (j : judgement) (i : judgement_indices j) : Type :=
+  Paranoia ConvCont (ParanoiaGetCont i).
+
+Lemma Conv_ConvCont j {i} : Paranoia j i -> ParanoiaConvContType j i.
+Proof.
+  induction 1 using ParanoiaElim.
+  depelim X.
   repeat (assumption || constructor).
 Defined.
-
-Ltac2 fold_righti (f : int -> 'a -> 'b -> 'b) (ls : 'a list) (a : 'b) : 'b :=
-  let rec go i ls a :=
-    match ls with
-    | [] => a
-    | l :: ls => f i l (go (Int.add i 1) ls a)
-    end
-  in go 0 ls a.
-
-Ltac2 unzip (ls : 'a list) : 'a list * 'a list :=
-  let f i x (l, r) :=
-    if Int.equal (Int.mod i 2) 0
-    then (x :: l, r)
-    else (l, x :: r)
-  in
-  fold_righti f ls ([],[]).
-
-Ltac2 rec zipWith (f : 'a -> 'b -> 'c) (l : 'a list) (r : 'b list) : 'c list :=
-  match l with
-  | [] => []
-  | hl :: l =>
-    match r with
-    | [] => []
-    | hr :: r => f hl hr :: zipWith f l r
-  end end.
-
-Ltac2 zip (l : 'a list) (r : 'b list) : ('a * 'b) list :=
-  zipWith (fun a b => (a, b)) l r.
-
-Ltac2 uncurry (f : 'a -> 'b -> 'c) (u : 'a * 'b) : 'c :=
-  let (a , b) := u in f a b.
-
-Lemma Conv_Symm : ltac2:(
-  let f t :=
-    let (head, args) := decompose_app_list t in
-    match (synt_ind_arity head) with
-    | 2 => let m := List.concat (uncurry (zipWith (fun a b => [b ; a])) (unzip args)) in
-        mkApp_list head m
-    | _ => constr:(unit)
-    end in
-  refine (syntax_ind_concl f)).
-Proof.
-  apply SyntaxInduction; now econstructor.
-Defined.
-
-Lemma Conv_Left : ltac2:(
-  let f t :=
-    let (head, args) := decompose_app_list t in
-    match (synt_ind_arity head) with
-    | 2 => let m := List.concat (uncurry (zipWith (fun a _ => [a ; a])) (unzip args)) in
-        mkApp_list head m
-    | _ => constr:(unit)
-    end in
-  let t := syntax_ind_concl f
-  in exact $t).
-Proof.
-  apply SyntaxInduction; now econstructor.
-Defined.
-
-Ltac2 Notation "rename" renames(list1(seq(ident, "into", ident), ",")) := Std.rename renames.
-
-
-Ltac2 rec eapplyprod c :=
-  (Unification.unify (TransparentState.current ()) c open_constr:((_ , _));
-  eapply (fst $c) + eapplyprod constr:(snd $c))
-  + eapply $c.
-
-Ltac2 convsymmetries () :=
-  () + eapply Conv_Left; () + eapply Conv_Symm.
 
 Instance Ren_nat_nat : Ren1 (nat -> nat) nat nat := fun f n => f n.
 
@@ -558,62 +604,88 @@ Ltac2 myautosubst_tac () :=
   cbn delta [ren1 Ren_term ren_term Ren_nat_nat upRen_term_term up_ren scons] beta iota in *;
   rewrite <- ?shift_upRen, -> ?substRen, -> ?shiftScons in * |- *.
 
-Create HintDb typing discriminated.
-
-Hint Resolve Conv_Left Conv_Symm : typing.
-Hint Constructors ConvCont
-ConvTy
-ConvWhnfTy
-ConvCheckTm
-ConvTm
-ConvWhnfTm
-ConvNeRedTm
-ConvNeTm
-RedTy
-RedTmStep
-ExpTmStep
-RedTm
-
-in_ctx
-renames : typing.
-
-Print HintDb typing.
-
 Ltac2 iter_hypo (f : ident -> unit) := match! goal with [ h : _ |- _] => f h end.
 
+Definition RenStableIndices Δ Δ' (ρ : nat -> nat) {j} : judgement_indices j -> judgement_indices j :=
+  match j as j return (judgement_indices j -> judgement_indices j) with
+  | ConvCont => fun '(_, _) => (Δ, Δ')
+  | ConvTy | ConvWhnfTy | ConvNeTy
+    => fun '(_, _, A, B) => (Δ, Δ', A⟨ρ⟩, B⟨ρ⟩)
+  | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeRedTm | ConvNeTm
+    => fun '(_, _, A, B, t, u) => (Δ, Δ', A⟨ρ⟩, B⟨ρ⟩, t⟨ρ⟩, u⟨ρ⟩)
+  | RedTy | RedTmStep | ExpTmStep | RedTm
+    => fun '(_, t, u) => (Δ, t⟨ρ⟩, u⟨ρ⟩)
+  end.
+
+Definition RenStableType {j i} (_ : Paranoia j i) : Type :=
+  match j with
+  | ConvCont
+  | ConvTy | ConvWhnfTy | ConvNeTy
+  | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeRedTm | ConvNeTm
+    => let '(Γ, Γ') := ParanoiaGetCont i in
+      forall Δ Δ' ρ,
+      [ |- Δ ≡ Δ' ] -> renames Δ ρ Γ -> renames Δ' ρ Γ'
+      -> Paranoia j (RenStableIndices Δ Δ' ρ i)
+  | RedTy | RedTmStep | ExpTmStep | RedTm
+    => let '(Γ, _) := ParanoiaGetCont i in
+      forall Δ ρ,
+      [ |- Δ ≡ Δ ] -> renames Δ ρ Γ
+      -> Paranoia j (RenStableIndices Δ Δ ρ i)
+  end.
+
+Ltac2 any (tacs : (unit -> unit) list) : unit :=
+  List.fold_left (fun a t () => Control.plus a (fun _ => t ())) fail0 tacs ().
+
+Ltac2 rec expandprodevars c :=
+  lazy_match! c with
+  | _ × ?b => let left := expandprodevars b in '((_ , $left ))
+  | _ => '_
+  end.
+
+Ltac2 eapplyI0 (c : constr) : unit :=
+  let s := Env.get [@LogRel; @Paranoia; @judgement] in
+  let ref := match s with | Some (Std.IndRef i) => i | _ => Control.throw Assertion_failure end
+  in
+  let data := Ind.data ref
+  in
+  let instance := match Constr.Unsafe.kind (Env.instantiate (Std.IndRef ref)) with
+    | Constr.Unsafe.Ind _ i => i
+    | _ => Control.throw Assertion_failure end
+  in
+  let blocks := List.map (fun i => Ind.get_block data i) (List.init (Ind.nblocks data) (fun i => i))
+  in
+  let constructors :=
+    List.concat
+      (List.map (fun block => List.map (fun i => Ind.get_constructor block i) (List.init (Ind.nconstructors block) (fun i => i))) blocks)
+  in
+  let constrs := List.map (fun c => Constr.Unsafe.make (Constr.Unsafe.Constructor c instance)) constructors
+  in
+  let f constr :=
+    let normty := eval cbn in (judgement_indices $constr)
+    in
+    let expanded := expandprodevars normty
+    in
+    let res := '($c $constr $expanded)
+    in (eapply $res)
+  in
+  let tacs := List.map (fun constr () => f constr) constrs
+  in (any (tacs)).
+
+Ltac2 Notation "eapplyI" c(constr) := eapplyI0 c.
+
 (* Lemmas *)
-Lemma RenStable : ltac2:(
-  let f t :=
-    let (head, args) := decompose_app_list t in
-    match (synt_ind_arity head) with
-    | 2 =>
-      let (Γ , Γ' , args) := match args with
-      | Γ :: (Γ' :: args) => Γ , Γ' , args
-      | _ => Control.throw Assertion_failure
-      end in
-       constr:(forall (Δ Δ' : context) ρ,
-         [ |- Δ ≡ Δ' ] -> renames Δ ρ $Γ -> renames Δ' ρ $Γ' ->
-         ltac2:(refine (mkApp_list head (&Δ :: &Δ' :: (List.map (fun c => constr:($c⟨&ρ⟩)) args)))))
-    | 1 =>
-      let (Γ , args) := match args with
-      | Γ :: args => Γ , args
-      | _ => Control.throw Assertion_failure
-      end in
-      constr:(forall (Δ : context) ρ,
-        [ |- Δ ≡ Δ] -> renames Δ ρ $Γ ->
-        ltac2:(refine (mkApp_list head (&Δ ::(List.map (fun c => constr:($c⟨&ρ⟩)) args)))))
-    | _ => constr:(unit)
-    end in
-  refine (syntax_ind_concl f)).
+Lemma RenStable j {i} (p : Paranoia j i) : RenStableType p.
 Proof.
-  apply SyntaxInduction.
-  > (intros *; repeat (first [ intros ? ? * | try (rename H into H'); intros H ])).
+  induction p using ParanoiaElim.
+  depelim X.
+  cbn delta [RenStableType RenStableIndices ParanoiaGetCont] iota beta in *.
+  intros **.
   1-2: eassumption.
 
   myautosubst_tac ().
 
   (* Use resp. each constructor of the mind block  *)
-  let s := Env.get [@LogRel; @Paranoia; @ConvCont] in
+  let s := Env.get [@LogRel; @Paranoia; @Paranoia] in
   let ref := match s with | Some (Std.IndRef i) => i | _ => Control.throw Assertion_failure end
   in
   let data := Ind.data ref
@@ -641,13 +713,12 @@ Proof.
   try (ltac1:(change (?a ⟨upRen_term_term ρ⟩[?b]⇑) with (a ⟨upRen_term_term ρ⟩[b⟨upRen_term_term ρ⟩]⇑))).
   rewrite <- ?substRen, -> ?substUp.
 
-  try (once (repeat (> iter_hypo (fun h => let h := Control.hyp h in eapply $h) || (eapply Conv_Left; now (() + eapply Conv_Symm)) || econstructor || eapply RenWeakenOnce || (ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)); rewrite <- (renRen_term _ ↑)))); >fail).
-
-  - apply H0.
+  try (once (repeat (> iter_hypo (fun h => let h := Control.hyp h in eapply $h) || (eapplyI ParanoiaLeft; now (() + eapplyI ParanoiaSymm)) || econstructor || eapply RenWeakenOnce || (ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)); rewrite <- (renRen_term _ ↑)))); >fail).
+  - apply bodyInfersP.
     + econstructor.
-      assert (U : _) by (now eapply H2).
+      assert (U : _) by (now eapply (argChecksP _ _ ρ)).
       depelim U.
-      now eapply Conv_Left.
+      now eapplyI ParanoiaLeft.
     + econstructor.
       ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)).
       * now eapply RenWeakenOnce.
