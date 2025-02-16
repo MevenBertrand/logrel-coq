@@ -15,7 +15,7 @@ Set Universe Polymorphism.
 Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section RedImplemComplete.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
   #[local]Definition R_aux := lexprod term term cored term_subterm.
 
@@ -349,7 +349,7 @@ Qed.
 
 Section ConversionComplete.
 
-Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
 Let PTyEq (Γ : context) (A B : term) :=
   forall v, graph _conv (ty_state;Γ;v;A;B) ok.
@@ -577,7 +577,7 @@ Proof.
     all: now econstructor ; [exact (IHm tt)|constructor].
 Qed.
 
-(* Corollary implem_conv_complete `{!ConvComplete (ta := de) (ta' := al)} Γ A B :
+(* Corollary implem_conv_complete `{!ConvImplies de al} Γ A B :
   [Γ |-[de] A ≅ B] ->
   graph tconv (Γ,A,B) ok.
 Proof.
@@ -594,9 +594,9 @@ Qed. *)
 
 End ConversionComplete.
 
-Section TypingComplete.
+Section TypingImplies.
 
-Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
 Variable conv : (context × term × term) ⇀ exn errors unit.
 
@@ -761,4 +761,4 @@ Proof.
     all: now boundary.
 Qed.
 
-End TypingComplete.
+End TypingImplies.

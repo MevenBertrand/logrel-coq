@@ -15,7 +15,7 @@ Import IntermediateTypingProperties BundledTypingData.
 #[local]Existing Instances
   TypingSubstLogRel RedCompleteLogRel TypeConstructorsInjLogRel
   TermConstructorsInjLogRel ConvNeutralConvPosLogRel
-  ConvCompleteLogRel CompleteAlgoNormalisation.
+  ConvImpliesLogRel CompleteAlgoNormalisation.
 
 Definition inspect {A} (a : A) : ∑ b, a = b :=
   (a;eq_refl).

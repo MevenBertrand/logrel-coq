@@ -3,7 +3,7 @@ From LogRel Require Import Utils Sections Syntax.All GenericTyping DeclarativeTy
 From LogRel.TypingProperties Require Import DeclarativeProperties PropertiesDefinition SubstConsequences TypeConstructorsInj NeutralConvProperties Normalisation.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData BundledTypingData.
+Import DeclarativeTypingProperties AlgorithmicTypedConvData BundledTypingData.
 
 (** ** Stability of algorithmic conversion by type/term expansion *)
 
@@ -270,17 +270,15 @@ Section CompleteNormalisation.
   Import BundledIntermediateData.
 
   #[refine]Instance CompleteAlgoNormalisation
-    `{! ConvComplete (ta := de) (ta' := bni)} :
-    DeepNormalisation (ta := de) := {}.
+    `{! ConvImplies de al} :
+    DeepNormalisation de := {}.
   Proof.
     - intros * Hty.
       eapply algo_conv_dnorm.
-      eapply TermRefl, tm_conv_compl in Hty as [].
-      eassumption.
+      now eapply TermRefl, tm_conv_compl in Hty.
     - intros * Hty.
       eapply algo_conv_dnorm.
-      eapply TypeRefl, ty_conv_compl in Hty as [].
-      eassumption.
+      now eapply TypeRefl, ty_conv_compl in Hty.
   Qed.
 
 End CompleteNormalisation.
@@ -291,7 +289,7 @@ End CompleteNormalisation.
 ones, algorithmic conversion still holds, possibly with a different output type
 (when there is one). *)
 Section AlgoConvConv.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de}.
 
   Lemma in_ctx_conv_r Γ' Γ n decl :
   [|-[de] Γ' ≅ Γ] ->
@@ -612,7 +610,7 @@ End AlgoConvConv.
 (** ** Lifting of algorithmic conversion from terms at the universe to types *)
 
 Section TermTypeConv.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de}.
 
   Let PTyEq (Γ : context) (A B : term) := True.
   Let PNeEq (Γ : context) (A t u : term) := True.
@@ -653,7 +651,7 @@ End TermTypeConv.
 (** ** Symmetry *)
 
 Section Symmetry.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de}.
 
   Let PTyEq (Γ : context) (A B : term) := forall Δ,
     [|-[de] Γ ≅ Δ] ->
@@ -996,7 +994,7 @@ End Symmetry.
 (** ** Transitivity *)
 
 Section Transitivity.
-  Context `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de}.
 
   Let PTyEq (Γ : context) (A B : term) := forall Δ C,
     [|-[de] Γ ≅ Δ] ->
@@ -1333,7 +1331,7 @@ Module AlgorithmicConvProperties.
     econstructor ; try assumption.
 
   #[export, refine] Instance ConvTypeAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     ConvTypeProperties (ta := bn) := {}.
   Proof.
     2: split.
@@ -1387,7 +1385,7 @@ Module AlgorithmicConvProperties.
 Qed.
 
   #[export, refine] Instance ConvTermAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     ConvTermProperties (ta := bn) := {}.
   Proof.
     1: split.
@@ -1498,7 +1496,7 @@ Qed.
   Qed.
 
   #[export, refine] Instance ConvNeuAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     ConvNeuProperties (ta := bn) := {}.
   Proof.
     1: split.
@@ -1705,7 +1703,7 @@ Module IntermediateTypingProperties.
   Qed.
 
   #[export, refine] Instance TypingIntProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     TypingProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
@@ -1737,7 +1735,7 @@ Module IntermediateTypingProperties.
   Qed.
 
   #[export, refine] Instance ConvTypeIntProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     ConvTypeProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
@@ -1778,7 +1776,7 @@ Module IntermediateTypingProperties.
   Qed.
 
   #[export, refine] Instance ConvTermIntProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     ConvTermProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
@@ -1849,7 +1847,7 @@ Module IntermediateTypingProperties.
   Qed.
 
   #[export, refine] Instance ConvNeuIntProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     ConvNeuProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
@@ -1908,7 +1906,7 @@ Module IntermediateTypingProperties.
   Qed.
 
   #[export, refine] Instance RedTermIntProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     RedTermProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
@@ -2014,7 +2012,7 @@ Module IntermediateTypingProperties.
     Qed.
 
   #[export, refine] Instance RedTypeIntProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     RedTypeProperties (ta := bni) := {}.
   Proof.
     all: unfold_bni.
@@ -2040,7 +2038,7 @@ Module IntermediateTypingProperties.
   Qed.
 
   #[export] Instance IntermediateTypingProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     GenericTypingProperties bni _ _ _ _ _ _ _ _ _ _ := {}.
 
 End IntermediateTypingProperties.

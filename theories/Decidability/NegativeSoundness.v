@@ -81,7 +81,7 @@ Proof.
 
 Qed.
 
-Lemma prod_tm_inj `{TermConstructorsInj (ta := de)} Γ A B A' B' :
+Lemma prod_tm_inj `{TermConstructorsInj de} Γ A B A' B' :
   [Γ |-[de] tProd A B ≅ tProd A' B' : U] ->
   [Γ |-[de] A' ≅ A : U] × [Γ,,A' |-[de] B ≅ B' : U].
 Proof.
@@ -90,7 +90,7 @@ Proof.
   now cbn in *.
 Qed.
 
-Lemma sig_tm_inj `{TermConstructorsInj (ta := de)} Γ A B A' B' :
+Lemma sig_tm_inj `{TermConstructorsInj de} Γ A B A' B' :
   [Γ |-[de] tSig A B ≅ tSig A' B' : U] ->
   [Γ |-[de] A ≅ A' : U] × [Γ,,A |-[de] B ≅ B' : U].
 Proof.
@@ -99,7 +99,7 @@ Proof.
   now cbn in *.
 Qed.
 
-Lemma id_tm_inj `{TermConstructorsInj (ta := de)} Γ A x y A' x' y' :
+Lemma id_tm_inj `{TermConstructorsInj de} Γ A x y A' x' y' :
   [Γ |-[de] tId A x y ≅ tId A' x' y' : U] ->
   [× [Γ |-[de] A ≅ A' : U], [Γ |-[de] x ≅ x' : A] & [Γ |-[de] y ≅ y' : A]].
 Proof.
@@ -111,8 +111,8 @@ Qed.
 Import AlgorithmicTypingProperties.
 
 Section ConvSoundNeg.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}
-    `{!TermConstructorsInj (ta := de)} `{!ConvNeutralConvPos (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de}
+    `{!TermConstructorsInj de} `{!ConvNeutralConvPos de}.
 
   #[universes(polymorphic)]Definition conv_sound_type
       (x : conv_full_dom)
@@ -539,7 +539,7 @@ Section ConvSoundNeg.
 End ConvSoundNeg.
 
 Section TypingSoundNeg.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
   Variable conv : (context × term × term) ⇀ exn errors unit.
 

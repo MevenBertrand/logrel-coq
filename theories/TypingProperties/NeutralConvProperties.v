@@ -14,7 +14,7 @@ Import DeclarativeTypingData.
 instance to prove! *)
 
 Section NeuConvProperties.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
   Lemma conv_neu_wk Γ Δ (ρ : Δ ≤ Γ) A m n :
     [|- Δ] ->
@@ -186,7 +186,7 @@ Section NeuConvProperties.
 
   (** Equivalence between the "local" view on neutral injectivity, and the global one. *)
 
-  Lemma neu_inj_conv_neu `{H : !NeutralInj (ta := de)} : ConvNeutralConv (ta := de).
+  Lemma neu_inj_conv_neu `{H : !NeutralInj de} : ConvNeutralConv de.
   Proof.
     destruct H as [neu_inj].
     constructor.
@@ -199,7 +199,7 @@ Section NeuConvProperties.
     now boundary.
   Qed.
 
-  Lemma conv_neu_neu_inj `{H : ! ConvNeutralConv (ta := de)} : NeutralInj (ta := de).
+  Lemma conv_neu_neu_inj `{H : !ConvNeutralConv de} : NeutralInj de.
   Proof.
     destruct H as [conv_neu_conv].
     constructor.
@@ -467,7 +467,7 @@ Module DeclarativeTypingProperties.
   #[export] Existing Instance RedTypeDeclProperties.
 
   #[export, refine] Instance ConvTermDeclProperties
-    `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}
+    `{!TypingSubst de} `{!TypeConstructorsInj de}
     : ConvTermProperties (ta := de) := {}.
   Proof.
     4,7,11: shelve.
@@ -503,7 +503,7 @@ Module DeclarativeTypingProperties.
   Qed.
 
   #[export, refine] Instance ConvNeuDeclProperties
-    `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeConstructorsInj de} :
     ConvNeuProperties (ta := de) := {}.
   Proof.
     all: try solve [now econstructor].
@@ -520,7 +520,7 @@ Module DeclarativeTypingProperties.
   Qed.
 
   #[export] Instance DeclarativeTypingProperties
-    `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeConstructorsInj de} :
     GenericTypingProperties de _ _ _ _ _ _ _ _ _ _ := {}.
 
 End DeclarativeTypingProperties.

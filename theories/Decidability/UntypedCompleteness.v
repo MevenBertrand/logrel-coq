@@ -13,11 +13,11 @@ Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section ConversionComplete.
   Context
-    `{!TypingSubst (ta := de)}
-    `{!TypeConstructorsInj (ta := de)}
-    `{!TypeReductionComplete (ta := de)}
-    `{!ConvComplete (ta := de) (ta' := al)}
-    `{!Normalisation (ta := de)}.
+    `{!TypingSubst de}
+    `{!TypeConstructorsInj de}
+    `{!TypeReductionComplete de}
+    `{!ConvImplies de al}
+    `{!Normalisation de}.
   (* We are using normalisation, because we need soundness of untyped conversion,
     which is currently obtained by going through typed algo conversion, but the
     implication untyped algo -> typed algo relies on normalisation.

@@ -15,7 +15,7 @@ type (in which case it has to be small).
 So we need to show admissibility of the more general rule. *)
 
 Lemma algo_typing_small_large
-  `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
+  `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de}
   Γ A :
   [Γ |-[bn] A : U] ->
   [Γ |-[bn] A].
@@ -61,7 +61,7 @@ Module AlgorithmicTypingProperties.
     econstructor ; try assumption.
 
   #[export, refine] Instance WfCtxAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     WfContextProperties (ta := bn) := {}.
   Proof.
     1-8: intros_bn.
@@ -71,7 +71,7 @@ Module AlgorithmicTypingProperties.
   Qed.
 
   #[export, refine] Instance WfTypeAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!ConvComplete (ta := de) (ta' := al)}:
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} `{!ConvImplies de al}:
     WfTypeProperties (ta := bn) := {}.
   Proof.
     all: cycle -1.
@@ -82,7 +82,7 @@ Module AlgorithmicTypingProperties.
   Qed.
 
   #[export, refine] Instance TypingAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!ConvComplete (ta := de) (ta' := al)}:
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} `{!ConvImplies de al}:
     TypingProperties (ta := bn) := {}.
   Proof.
     - intros_bn.
@@ -208,7 +208,7 @@ Module AlgorithmicTypingProperties.
   Qed.
 
   #[export, refine] Instance RedTermAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!ConvComplete (ta := de) (ta' := al)}:
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} `{!ConvImplies de al}:
     RedTermProperties (ta := bn) := {}.
   Proof.
     - intros_bn.
@@ -387,7 +387,7 @@ Module AlgorithmicTypingProperties.
   Qed.
 
   #[export, refine] Instance RedTypeAlgProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} :
     RedTypeProperties (ta := bn) := {}.
   Proof.
     - intros_bn.
@@ -404,7 +404,7 @@ Module AlgorithmicTypingProperties.
   Qed.
 
   #[export] Instance AlgorithmicTypingProperties
-    `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!ConvComplete (ta := de) (ta' := al)}:
+    `{!TypingSubst de} `{!TypeReductionComplete de} `{!TypeConstructorsInj de} `{!ConvImplies de al}:
     GenericTypingProperties bn _ _ _ _ _ _ _ _ _ _ := {}.
 
 End AlgorithmicTypingProperties.
@@ -415,7 +415,7 @@ Import AlgorithmicTypingData AlgorithmicTypingProperties.
 
 (** *** Uniqueness of types *)
 
-Lemma type_uniqueness `{! TypingComplete (ta := de) (ta' := bn)} Γ A A' t :
+Lemma type_uniqueness `{! TypingImplies (ta := de) (ta' := bn)} Γ A A' t :
   [Γ |-[de] t : A] ->
   [Γ |-[de] t : A'] ->
   [Γ |-[de] A ≅ A'].

@@ -11,7 +11,7 @@ Import WeakDeclarativeTypingProperties.
 
 Section MoreSubst.
 
-  Context `{!TypingSubst (ta := de)}.
+  Context `{!TypingSubst de}.
 
   Lemma ctx_refl Γ :
     [|- Γ] ->
@@ -217,7 +217,7 @@ End MoreSubst.
 
 Section Stability.
 
-  Context `{!TypingSubst (ta := de)}.
+  Context `{!TypingSubst de}.
 
   Let PCon (Γ : context) := True.
   Let PTy (Γ : context) (A : term) := forall Δ,
@@ -258,7 +258,7 @@ End Stability.
 
 Section ElimSuccHyp.
 
-  Context `{!TypingSubst (ta := de)}.
+  Context `{!TypingSubst de}.
 
   Lemma elimSuccHypTy_ty Γ P :
     [|- Γ] ->
@@ -324,7 +324,7 @@ Proof.
   rewrite wk1_ren_on; now eapply ty_var0.
 Qed.
 
-Lemma _idElimMotiveCtxConv `{!TypingSubst (ta := de)} {Γ Γ' A A' x x'} :
+Lemma _idElimMotiveCtxConv `{!TypingSubst de} {Γ Γ' A A' x x'} :
 [|- Γ ≅ Γ'] ->
 [Γ |- A ≅ A'] ->
 [Γ |- x ≅ x' : A] ->
@@ -345,7 +345,7 @@ Proof.
 Qed.
 
 Section Boundary.
-  Context `{!TypingSubst (ta := de)}.
+  Context `{!TypingSubst de}.
 
   Lemma in_ctx_wf Γ n decl :
     [|- Γ] ->
@@ -639,7 +639,7 @@ boundary_tm_conv_l boundary_tm_conv_r boundary_tm_conv_ty
 boundary_red_tm_l boundary_red_tm_r boundary_red_tm_ty
 boundary_red_ty_r : boundary.
 
-Lemma boundary_ctx_conv_l `{!TypingSubst (ta := de)} (Γ Δ : context) :
+Lemma boundary_ctx_conv_l `{!TypingSubst de} (Γ Δ : context) :
   [ |- Γ ≅ Δ] ->
   [|- Γ].
 Proof.
@@ -649,7 +649,7 @@ Qed.
 
 #[export] Hint Resolve boundary_ctx_conv_l : boundary.
 
-Corollary conv_ctx_refl_l `{!TypingSubst (ta := de)} (Γ Δ : context) :
+Corollary conv_ctx_refl_l `{!TypingSubst de} (Γ Δ : context) :
 [ |- Γ ≅ Δ] ->
 [|- Γ ≅ Γ].
 Proof.
@@ -658,7 +658,7 @@ Proof.
 Qed.
 
 Section Stability.
-  Context `{!TypingSubst (ta := de)}.
+  Context `{!TypingSubst de}.
 
   Lemma conv_well_subst (Γ Δ : context) :
     [ |- Γ ≅ Δ] ->
@@ -715,7 +715,7 @@ Section Stability.
 End Stability.
 
 Section TypingStronger.
-  Context `{!TypingSubst (ta := de)}.
+  Context `{!TypingSubst de}.
 
   Theorem stability1 (Γ : context) A A' :
     [Γ |- A ≅ A'] ->

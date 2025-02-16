@@ -8,7 +8,6 @@ Section Properties.
     `{!WfContext ta} `{!WfType ta} `{!Typing ta} `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
     `{!RedType ta} `{!RedTerm ta}.
 
-
   (** Typing is stable by substitution *) 
   Class TypingSubst :=
   {
@@ -213,19 +212,31 @@ Section Properties.
   }.
 
   Context `{ta' : tag}
-    `{!WfContext ta'} `{!WfType ta'} `{!Typing ta'} `{!ConvType ta'} `{!ConvTerm ta'} `{!ConvNeuConv ta'}
-    `{!RedType ta'} `{!RedTerm ta'}.
+    `{!WfContext ta'} `{!WfType ta'} `{!Typing ta'} `{!ConvType ta'} `{!ConvTerm ta'}.
 
-  (** ** Completeness (of typing `ta'` with respect to typing `ta`). *)
+  (** ** Implication between two different instances. *)
 
-  Class ConvComplete := {
+  Class ConvImplies := {
     ty_conv_compl Γ A A' : [Γ |-[ta] A ≅ A'] -> [Γ |-[ta'] A ≅ A'] ;
     tm_conv_compl Γ A t t' : [Γ |-[ta] t ≅ t' : A] -> [Γ |-[ta'] t ≅ t' : A] ;
   }.
 
-  Class TypingComplete := {
+  Class TypingImplies := {
     ty_compl Γ A : [Γ |-[ta] A] -> [Γ |-[ta'] A] ;
     tm_compl Γ A t : [Γ |-[ta] t : A] -> [Γ |-[ta'] t : A] ;
   }.
   
 End Properties.
+
+Arguments TypingSubst _ {_ _ _ _ _}.
+Arguments Strengthening _ {_ _ _ _ _}.
+Arguments TypeReductionComplete _ {_ _}.
+Arguments TypeConstructorsInj _ {_ _}.
+Arguments TermConstructorsInj _ {_ _}.
+Arguments ConvNeutralConvPos _ {_ _}.
+Arguments ConvNeutralConv _ {_ _}.
+Arguments NeutralInj _ {_ _}.
+Arguments Normalisation _ {_ _}.
+Arguments DeepNormalisation _ {_ _}.
+Arguments ConvImplies _ {_ _} _ {_ _}.
+Arguments TypingImplies _ {_ _} _ {_ _}.

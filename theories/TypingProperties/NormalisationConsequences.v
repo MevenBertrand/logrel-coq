@@ -5,7 +5,7 @@ From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping Prop
 Import DeclarativeTypingProperties.
 
 
-#[refine]Instance NormDeepNorm `{DeepNormalisation} : Normalisation := {}.
+#[refine]Instance NormDeepNorm `{ta : tag} `{DeepNormalisation ta} : Normalisation ta := {}.
 Proof.
   - intros * [* ?? ?%dnf_whnf]%tm_dnorm.
     now econstructor.
@@ -15,7 +15,7 @@ Qed.
 
 (** ** Well-foundedness of reduction *)
 
-Theorem typing_acc_cored Γ t `{!Normalisation (ta := de)} :
+Theorem typing_acc_cored Γ t `{!Normalisation de} :
   well_formed Γ t ->
   Acc cored t.
 Proof.
@@ -46,9 +46,9 @@ Qed.
 (** There are no closed proofs of false, i.e. no closed inhabitants of the empty type.*)
 
 Section Consistency.
-  Context `{!TypingSubst (ta := de)}
-    `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)}
-    `{!Normalisation (ta := de)}.
+  Context `{!TypingSubst de}
+    `{!TypeReductionComplete de} `{!TypeConstructorsInj de}
+    `{!Normalisation de}.
 
 
   Lemma no_neutral_empty_ctx {A t} : whne t -> [ε |-[de] t : A] -> False.
@@ -88,8 +88,8 @@ End Consistency.
   deep normalisation here, with only wh normalisation we would only get that a closed natural
   number is convertible to 0 or a successor, but would have no control over the argument of the latter. *)
 Section Canonicity.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)}
-    `{!DeepNormalisation (ta := de)}.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de}
+    `{!DeepNormalisation de}.
 
   Let Pnorm Γ A t := (Γ = ε) -> A = tNat -> [ε |- t : tNat] ->
     ∑ n : nat, [ε |- t ≅ Nat.iter n tSucc tZero : tNat].

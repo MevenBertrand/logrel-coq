@@ -15,9 +15,9 @@ Import DeclarativeTypingProperties AlgorithmicTypingData.
 
 Section ConversionTerminates.
   Context
-    `{!TypingSubst (ta := de)}
-    `{!TypeConstructorsInj (ta := de)}
-    `{!DeepNormalisation (ta := de)}.
+    `{!TypingSubst de}
+    `{!TypeConstructorsInj de}
+    `{!DeepNormalisation de}.
 
   Let PNormTy (Γ : context) (A : term) :=
     forall v B',
@@ -474,9 +474,9 @@ End ConversionTerminates.
 Section TypingTerminates.
 
   Context
-    `{!TypingSubst (ta := de)}
-    `{!TypeConstructorsInj (ta := de)}
-    `{!Normalisation (ta := de)}.
+    `{!TypingSubst de}
+    `{!TypeConstructorsInj de}
+    `{!Normalisation de}.
 
   Import AlgorithmicTypingData.
 
