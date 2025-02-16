@@ -154,6 +154,8 @@ Section Definitions.
 
 (** ** Typing *)
 
+  Context `{ConvType}.
+
   (** **** Type well-formation *)
   Inductive WfTypeAlg : context -> term -> Type :=
     | wfTypeU Γ : [ Γ |- U ]
@@ -258,7 +260,7 @@ Section Definitions.
   with CheckAlg : context -> term -> term -> Type :=
     | checkConv {Γ t A A'} :
       [ Γ |- t ▹ A ] -> 
-      [ Γ |- A ≅ A'] -> 
+      conv_type Γ A A' ->
       [ Γ |- t ◃ A' ]
 
   where "[ Γ |- A ]" := (WfTypeAlg Γ A)
@@ -278,18 +280,33 @@ Section Definitions.
 End Definitions.
 
 (** ** Instances *)
+
 Module AlgorithmicTypingData.
+
+  #[export] Instance WfContext_Algo `{ta : tag} `{! ConvType ta} : WfContext ta | 100 := WfContextAlg.
+  #[export] Instance WfType_Algo `{ta : tag} `{! ConvType ta} : WfType ta | 100 := WfTypeAlg.
+  #[export] Instance Inferring_Algo `{ta : tag} `{! ConvType ta} : Inferring ta | 100 := InferAlg.
+  #[export] Instance InferringRed_Algo `{ta : tag} `{! ConvType ta} : InferringRed ta | 100 := InferRedAlg.
+  #[export] Instance Checking_Algo `{ta : tag} `{! ConvType ta} : Checking ta | 100 := CheckAlg.
+
+  Ltac fold_algo :=
+    change (@WfContextAlg ?ta _) with (wf_context (ta := ta)) in * ;
+    change (@WfTypeAlg ?ta _) with (wf_type (ta := ta)) in *;
+    change (@InferAlg ?ta _) with (inferring (ta := ta)) in * ;
+    change (@InferRedAlg ?ta _) with (infer_red (ta := ta)) in * ;
+    change (@CheckAlg ?ta _) with (check (ta := ta)) in *.
+
+  Smpl Add fold_algo : refold.
+
+End AlgorithmicTypingData.
+
+Module AlgorithmicTypedConvData.
 
   Definition al : tag.
   Proof.
-  constructor.
+    constructor.
   Qed.
 
-  #[export] Instance WfContext_Algo : WfContext al := WfContextAlg.
-  #[export] Instance WfType_Algo : WfType al := WfTypeAlg.
-  #[export] Instance Inferring_Algo : Inferring al := InferAlg.
-  #[export] Instance InferringRed_Algo : InferringRed al := InferRedAlg.
-  #[export] Instance Checking_Algo : Checking al := CheckAlg.
   #[export] Instance ConvType_Algo : ConvType al := ConvTypeAlg.
   #[export] Instance ConvTypeRed_Algo : ConvTypeRed al :=  ConvTypeRedAlg.
   #[export] Instance ConvTerm_Algo : ConvTerm al := ConvTermAlg.
@@ -297,12 +314,7 @@ Module AlgorithmicTypingData.
   #[export] Instance ConvNeu_Algo : ConvNeu al := ConvNeuAlg.
   #[export] Instance ConvNeuRed_Algo : ConvNeuRed al := ConvNeuRedAlg.
 
-  Ltac fold_algo :=
-    change WfContextAlg with (wf_context (ta := al)) in * ;
-    change WfTypeAlg with (wf_type (ta := al)) in *;
-    change InferAlg with (inferring (ta := al)) in * ;
-    change InferRedAlg with (infer_red (ta := al)) in * ;
-    change CheckAlg with (check (ta := al)) in * ;
+  Ltac fold_algo_tconv :=
     change ConvTypeAlg with (conv_type (ta := al)) in * ;
     change ConvTypeRedAlg with (conv_type_red (ta := al)) in * ;
     change ConvTermAlg with (conv_term (ta := al)) in * ;
@@ -312,9 +324,9 @@ Module AlgorithmicTypingData.
     change ConvTermRedAlg with (conv_term_red (ta := al)) in * ;
     change ConvNeuRedAlg with (conv_neu_red (ta := al)) in *.
 
-  Smpl Add fold_algo : refold.
+  Smpl Add fold_algo_tconv : refold.
 
-End AlgorithmicTypingData.
+End AlgorithmicTypedConvData.
 
 (** ** Induction principles *)
 
@@ -322,7 +334,7 @@ End AlgorithmicTypingData.
 Scheme to something that fits our purpose, and we also define a function that computes
 the conclusion of a proof by induction. *)
 Section InductionPrinciples.
-  Import AlgorithmicTypingData.
+  Import AlgorithmicTypingData AlgorithmicTypedConvData.
 
 Scheme 
     Minimality for ConvTypeAlg Sort Type with
@@ -389,8 +401,8 @@ Let AlgoTypingInductionType :=
 
 Lemma AlgoTypingInduction : AlgoTypingInductionType.
 Proof.
-  intros PTy PInf PInfRed PCheck **.
-  pose proof (_AlgoTypingInduction PTy PInf PInfRed PCheck) as H.
+  intros ? conv PTy PInf PInfRed PCheck **.
+  pose proof (_AlgoTypingInduction _ _ PTy PInf PInfRed PCheck) as H.
   destruct H as [?[?[?]]] ; cycle -1.
   1: by_prod_splitter.
   all: assumption.
@@ -411,12 +423,14 @@ Definition AlgoTypingInductionConcl :=
 End InductionPrinciples.
 
 Arguments AlgoConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq : rename.
-Arguments AlgoTypingInductionConcl PTy PInf PInfRed PCheck : rename.
+Arguments AlgoConvInduction PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq : rename.
+Arguments AlgoTypingInductionConcl {ta conv} PTy PInf PInfRed PCheck : rename.
+Arguments AlgoTypingInduction {ta conv} PTy PInf PInfRed PCheck : rename.
 
 (** ** Stability by weakening *)
 
-Section TypingWk.
-  Import AlgorithmicTypingData.
+Section ConvWk.
+  Import AlgorithmicTypedConvData.
   
   Let PTyEq (Γ : context) (A B : term) := forall Δ (ρ : Δ ≤ Γ),
     [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩].
@@ -498,7 +512,7 @@ Section TypingWk.
     - intros ??? A? ? IH *; cbn.
       rewrite (subst_ren_wk_up (A:=A)).
       econstructor; now eapply IH.
-    - intros * ? IHe (*?? ?? ?? ?? ?? *) ? IHp **; erewrite <-2!wk_idElim, subst_ren_wk_up2.
+    - intros * ? IHe ? IHp **; erewrite <-2!wk_idElim, subst_ren_wk_up2.
       econstructor; eauto.
       + rewrite 2!(wk_up_wk1 ρ).
         eapply IHp; constructor; tea.
@@ -548,6 +562,35 @@ Section TypingWk.
       + eauto.
       + now eapply isPosType_ren.
   Qed.
+
+
+  Corollary algo_conv_shift : AlgoConvInductionConcl
+      (fun (Γ : context) (A B : term) => forall T, [Γ,, T |- A⟨↑⟩ ≅ B⟨↑⟩])
+      (fun (Γ : context) (A B : term) => forall T, [Γ,, T |- A⟨↑⟩ ≅h B⟨↑⟩])
+      (fun (Γ : context) (A m n : term) => forall T, [Γ,, T |- m⟨↑⟩ ~ n⟨↑⟩ ▹ A⟨↑⟩])
+      (fun (Γ : context) (A m n : term) => forall T, [Γ,, T |- m⟨↑⟩ ~h n⟨↑⟩ ▹ A⟨↑⟩])
+      (fun (Γ : context) (A t u : term) => forall T, [Γ,, T |- t⟨↑⟩ ≅ u⟨↑⟩ : A⟨↑⟩])
+      (fun (Γ : context) (A t u : term) => forall T, [Γ,, T |- t⟨↑⟩ ≅h u⟨↑⟩ : A⟨↑⟩]).
+  Proof.
+    red.
+    repeat match goal with |- _ × _ => split end.
+    all: intros Γ * Hty T.
+    all: eapply algo_conv_wk in Hty.
+    all: specialize (Hty _ (@wk1 Γ T)).
+    all: repeat rewrite <- (extRen_term _ _ (@wk1_ren Γ T)) ; refold.
+    all: now eapply Hty.
+  Qed.
+
+End ConvWk.
+
+Section TypingWk.
+
+  Context `{ta : tag} `{! ConvType ta}.
+  Hypothesis conv_wk :
+    forall Γ A B, [Γ |-[ta] A ≅ B] ->
+    forall Δ (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩ ≅ B⟨ρ⟩].
+
+  Import AlgorithmicTypingData.
 
   Let PTy (Γ : context) (A : term) := forall Δ (ρ : Δ ≤ Γ), [Δ |- A⟨ρ⟩].
   Let PInf (Γ : context) (A t : term) := forall Δ (ρ : Δ ≤ Γ),
@@ -652,24 +695,7 @@ Section TypingWk.
     - intros.
       econstructor.
       + eauto.
-      + now eapply algo_conv_wk.
-  Qed.
-
-  Corollary algo_conv_shift : AlgoConvInductionConcl
-      (fun (Γ : context) (A B : term) => forall T, [Γ,, T |- A⟨↑⟩ ≅ B⟨↑⟩])
-      (fun (Γ : context) (A B : term) => forall T, [Γ,, T |- A⟨↑⟩ ≅h B⟨↑⟩])
-      (fun (Γ : context) (A m n : term) => forall T, [Γ,, T |- m⟨↑⟩ ~ n⟨↑⟩ ▹ A⟨↑⟩])
-      (fun (Γ : context) (A m n : term) => forall T, [Γ,, T |- m⟨↑⟩ ~h n⟨↑⟩ ▹ A⟨↑⟩])
-      (fun (Γ : context) (A t u : term) => forall T, [Γ,, T |- t⟨↑⟩ ≅ u⟨↑⟩ : A⟨↑⟩])
-      (fun (Γ : context) (A t u : term) => forall T, [Γ,, T |- t⟨↑⟩ ≅h u⟨↑⟩ : A⟨↑⟩]).
-  Proof.
-    red.
-    repeat match goal with |- _ × _ => split end.
-    all: intros Γ * Hty T.
-    all: eapply algo_conv_wk in Hty.
-    all: specialize (Hty _ (@wk1 Γ T)).
-    all: repeat rewrite <- (extRen_term _ _ (@wk1_ren Γ T)) ; refold.
-    all: now eapply Hty.
+      + now eapply conv_wk.
   Qed.
 
   Corollary algo_typing_shift : AlgoTypingInductionConcl
@@ -693,7 +719,7 @@ End TypingWk.
 
 (** We show that the predicates that should apply only to weak-head normal forms/neutrals
 indeed imply that the relevant arguments are such weak-head normal forms/neutrals. *)
-Section AlgTypingWh.
+Section AlgoConvWh.
 
   Let PTyEq (Γ : context) (A B : term) := True.
   Let PTyRedEq (Γ : context) (A B : term) := 
@@ -715,14 +741,13 @@ Section AlgTypingWh.
     all: try solve [now constructor].
     all: gen_typing.
   Qed.
-End AlgTypingWh.
-
+End AlgoConvWh.
 
 (** ** Determinism: there is at most one inferred type *)
 
-Section AlgoTypingDet.
+Section AlgoConvDet.
 
-Import AlgorithmicTypingData.
+Import AlgorithmicTypedConvData.
 
 Let PTyEq (Γ : context) (A B : term) := True.
 Let PTyRedEq (Γ : context) (A B : term) := True.
@@ -768,11 +793,19 @@ Proof.
     now eapply whred_det.
 Qed.
 
+End AlgoConvDet.
+
+Section AlgoTypingDet.
+
+Context `{ta : tag} `{! ConvType ta}.
+
+Import AlgorithmicTypingData.
+
 Theorem algo_typing_det :
   AlgoTypingInductionConcl
     (fun _ _ => True)
-    (fun Γ A t => forall A', [Γ |-[al] t ▹ A'] -> A' = A)
-    (fun Γ A t => forall A', [Γ |-[al] t ▹h A'] -> A' = A)
+    (fun Γ A t => forall A', [Γ |-[ta] t ▹ A'] -> A' = A)
+    (fun Γ A t => forall A', [Γ |-[ta] t ▹h A'] -> A' = A)
     (fun _ _ _ => True).
 Proof.
   apply AlgoTypingInduction.
