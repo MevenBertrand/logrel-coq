@@ -74,15 +74,6 @@ Section Definitions.
       [ Γ |- tSnd m ~ tSnd n ▹ B[(tFst m)..] ]
     | neuIdElimCong {Γ A A' A'' x x' x'' P P' hr hr' y y' y'' e e'} :
       [Γ |- e ~h e' ▹ tId A'' x'' y''] ->
-      (* [Γ |- A'' ] -> *)
-      (* [Γ |- A'' ≅ A] -> *)
-      (* [Γ |- x'' ◃ A] -> *)
-      (* [Γ |- x'' ≅ x : A] -> *)
-      (* [Γ |- y'' ◃ A] -> *)
-      (* [Γ |- y'' ≅ y : A] -> *)
-      (* [Γ |- A ≅ A'] ->
-      [Γ |- x ≅ x' : A] ->
-      [Γ |- y ≅ y' : A] -> *)
       [Γ ,, A ,, tId A⟨@wk1 Γ A⟩ x⟨@wk1 Γ A⟩ (tRel 0) |- P ≅ P'] ->
       [Γ |- hr ≅ hr' : P[tRefl A x .: x..]] ->
       [Γ |- tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' ▹ P[e .: y..] ]

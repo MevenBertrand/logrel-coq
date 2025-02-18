@@ -1,93 +1,52 @@
 (** * LogRel.Decidability.UntypedTermination: the implementation always terminates on well-typed inputs. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel.AutoSubst Require Import core unscoped Ast Extra.
-From LogRel Require Import BasicAst Context Notations UntypedReduction Weakening DeclarativeTyping DeclarativeInstance GenericTyping NormalForms.
-From LogRel Require Import Validity LogicalRelation Fundamental DeclarativeSubst TypeConstructorsInj AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
+From LogRel Require Import Utils Syntax.All DeclarativeTyping
+  DeclarativeProperties GenericTyping PropertiesDefinition.
+From LogRel Require Import SubstConsequences TypeConstructorsInj NeutralConvProperties AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import UntypedAlgorithmicConversion.
-From LogRel Require Import Utils. (* at the end, to get the right easy tactic… *)
+
 From LogRel.Decidability Require Import Functions UntypedFunctions Soundness UntypedSoundness Completeness UntypedCompleteness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData.
+Import DeclarativeTypingProperties AlgorithmicTypedConvData.
 
 Set Universe Polymorphism.
 
+Section UConvSound.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de} `{!TypeReductionComplete de}
+    `{!ConvImplies de al} `{!Normalisation de}.
 
-Lemma uconv_sound_decl :
-  UAlgoConvInductionConcl
-    (fun t u => 
-      (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[de] t ≅ u]) ×
-      (forall Γ A, [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[de] t ≅ u : A]))
+  Lemma uconv_sound_decl :
+    UAlgoConvInductionConcl
+      (fun t u => 
+        (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[de] t ≅ u]) ×
+        (forall Γ A, [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[de] t ≅ u : A]))
 
-    (fun t u =>
-      (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[de] t ≅ u]) ×
-      (forall Γ A, isType A -> [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[de] t ≅ u : A]))
+      (fun t u =>
+        (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[de] t ≅ u]) ×
+        (forall Γ A, isType A -> [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[de] t ≅ u : A]))
 
-    (fun t u =>
-      forall Γ, well_typed Γ t × well_typed Γ u ->
-      ∑ A'', [Γ |-[de] t ≅ u : A'']).
-Proof.
-  split ; [..|split].
-  all: intros t u Hconv.
-  1-2: split.
-  - intros * [].
-    eapply uconv_sound in Hconv as [?%algo_conv_sound _]; eauto.
-  - intros * [].
-    eapply uconv_sound in Hconv as [_ ?%algo_conv_sound]; eauto.
-  - intros * [].
-    eapply uconv_sound in Hconv as [?%algo_conv_sound _]; eauto. 
-  - intros * ? [].
-    eapply uconv_sound in Hconv as [_ ?%algo_conv_sound]; eauto.
-  - intros * [].
-    eapply uconv_sound in Hconv as [? []%algo_conv_sound] ; eauto.
-Qed.
-
-Section GraphInversion.
-
-  Context {I} `{CT : CallTypes I} `{!CallableProps CT} {A B} (f : ∇ (x : A), I ⇒ B x).
-
-  Definition orec_graph'
-    {a} (o : orec I A B (B a)) (b : B a) : Prop :=
-    match o with
-    | _ret x => x = b
-    | _rec x κ => exists v, orec_graph f (f x) v /\ orec_graph f (κ v) b
-    | _call i x κ => exists v, cp_graph i x v /\ orec_graph f (κ v) b
-    | undefined => False
-    end.
-
-  Definition orec_graph_from {a} {o : orec I A B (B a)} {b}
-    (e : orec_graph f o b) : orec_graph' o b :=
-      match e with
-      | ret_graph _ _ => eq_refl 
-      | rec_graph _ _ _ v _ h h' =>
-          ex_intro _ v (conj h h')
-      | call_graph _ _ _ _ v _ h h' =>
-          ex_intro _ v (conj h h')
-      end.
-
-  Import EqNotations.
-
-  Definition orec_graph_to {a} {o : orec I A B (B a)} {b} :
-    orec_graph' o b -> orec_graph f o b :=
-      match o with
-      | _ret x => fun e => rew e in ret_graph _ _
-      | _rec x κ => fun '(ex_intro _ v (conj h h')) =>
-          rec_graph _ _ _ v _ h h'
-      | _call i x κ => fun '(ex_intro _ v (conj h h')) =>
-          call_graph _ _ _ _ v _ h h'
-      | undefined => fun f => False_rect _ f
-      end.
-
-  Lemma orec_graph_equiv {a} {o : orec I A B (B a)} {b} :
-  orec_graph f o b <-> orec_graph' o b.
+      (fun t u =>
+        forall Γ, well_typed Γ t × well_typed Γ u ->
+        ∑ A'', [Γ |-[de] t ≅ u : A'']).
   Proof.
-    split.
-    - apply orec_graph_from.
-    - apply orec_graph_to.
+    split ; [..|split].
+    all: intros t u Hconv.
+    1-2: split.
+    - intros * [].
+      eapply uconv_tconv in Hconv as [?%algo_conv_sound _]; eauto.
+    - intros * [].
+      eapply uconv_tconv in Hconv as [_ ?%algo_conv_sound]; eauto.
+    - intros * [].
+      eapply uconv_tconv in Hconv as [?%algo_conv_sound _]; eauto. 
+    - intros * ? [].
+      eapply uconv_tconv in Hconv as [_ ?%algo_conv_sound]; eauto.
+    - intros * [].
+      eapply uconv_tconv in Hconv as [? []%algo_conv_sound] ; eauto.
   Qed.
 
-End GraphInversion.
+End UConvSound.
 
 Section AlgoStr.
 
@@ -136,7 +95,7 @@ Section AlgoStr.
       reflexivity.
 
     - split ; [easy|..].
-      intros * IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       2: reflexivity.
       2:{
@@ -160,7 +119,7 @@ Section AlgoStr.
       all: now bsimpl.
 
     - split ; [easy|..].
-      intros * IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       2: reflexivity.
       2:{
@@ -174,7 +133,7 @@ Section AlgoStr.
       now bsimpl.
 
     - split ; [easy|..].
-      intros * IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -192,7 +151,7 @@ Section AlgoStr.
       now bsimpl.
 
     - split ; [easy|..].
-      intros * IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -206,7 +165,7 @@ Section AlgoStr.
       now bsimpl.
 
     - split ; [easy|..].
-      intros * IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -224,7 +183,7 @@ Section AlgoStr.
       now bsimpl.
  
     - split ; [easy|..].
-      intros * IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -239,7 +198,7 @@ Section AlgoStr.
 
     - split ; [easy|..].
       destruct s.
-      all: intros * IH ? [] ? [=] ? ; subst.
+      all: intros * ? IH ? [] ? [=] ? ; subst.
       all: edestruct IH as [? []] ; [reflexivity|..] ; [shelve|..].
       all: subst.
       all: eexists ; split ; [..|reflexivity].
@@ -397,7 +356,7 @@ Section AlgoStr.
     - funelim (uconv_tm _) ; cbn.
       intros ? red ? red'.
       split ; [easy|..].
-      intros ? IH ** ; subst.
+      intros ?? IH ** ; subst.
       unfold graph ; simp _uconv uconv_tm ; cbn.
       eapply wh_red_str in red as [? [->]], red' as [? [->]].
       econstructor.
@@ -409,23 +368,15 @@ Section AlgoStr.
       now eapply IH.
 
     - funelim (uconv_tm_red _) ; cbn.
-      all: match goal with | _ : _ = _ |- _ => shelve | _ => idtac end.
-      all: solve [crush].
-      Unshelve.
-
-      + crush.
-        all: eapply H ; [now eapply up_inj | reflexivity|..].
-        all: now asimpl.
-
-      + crush.
-        all: eapply H ; [now eapply up_inj |idtac|reflexivity].
-        all: now asimpl.
-
-      + crush.
+      1-7,10-16: solve [crush].
       
       + crush.
+        all: eapply H0 ; [now eapply up_inj | reflexivity|..].
+        all: now asimpl.
 
       + crush.
+        all: eapply H0 ; [now eapply up_inj |idtac|reflexivity].
+        all: now asimpl.
 
       + intros.
         subst.
@@ -468,35 +419,55 @@ Section AlgoStr.
 
   Qed.
 
+  Corollary uconv_str ρ s t u r :
+    ssrfun.injective ρ ->
+    graph _uconv (s,t⟨ρ⟩,u⟨ρ⟩) r ->
+    graph _uconv (s,t,u) r.
+  Proof.
+    intros Hρ H.
+    eapply (funrect_graph _ _ _ _ _ _uconv_str) in H.
+    2: easy.
+    cbn in *.
+    now eapply H.
+  Qed.
+
 End AlgoStr.
 
-Lemma uconv_expand_ne_eta n n' :
-  whne n ->
-  whne n' ->
-  domain _uconv (tm_state, eta_expand n, eta_expand n') ->
-  domain _uconv (ne_state, n, n').
-Proof.
-  intros w w' [v g].
-  unfold graph in g.
-  simp _uconv uconv_tm in g ; cbn in g.
-  apply (orec_graph_call_inv _uconv) in g as [? [red g]] ; cbn in *.
-  eapply red_sound in red as [<-%red_whne _].
-  2: now constructor ; apply whne_ren.
-  apply (orec_graph_call_inv _uconv) in g as [? [red g]] ; cbn in *.
-  eapply red_sound in red as [<-%red_whne _].
-  2: now constructor ; apply whne_ren.
-  apply (orec_graph_rec_inv _uconv) in g as [? [g _]] ; cbn in *.
-  simp _uconv uconv_tm_red in g.
-  apply (orec_graph_rec_inv _uconv) in g as [? [g _]] ; cbn in *.
-  simp _uconv uconv_ne to_neutral_diag in g ; cbn in *.
-  apply (orec_graph_rec_inv _uconv) in g as [r [g _]] ; cbn in *.
-  eapply uconv_wk in g.
-  - now eexists.
-  - intros ??.
-    auto.
-Qed.
+Import DeclarativeTypingProperties.
 
-Lemma uconv_expand_ne_fst n n' :
+Section ConversionTerminates.
+
+Context `{!TypingSubst de} `{!TypeConstructorsInj de} `{!TypeReductionComplete de}
+    `{!ConvImplies de al} `{!Normalisation de}.
+
+
+  Lemma uconv_expand_ne_eta n n' :
+    whne n ->
+    whne n' ->
+    domain _uconv (tm_state, eta_expand n, eta_expand n') ->
+    domain _uconv (ne_state, n, n').
+  Proof.
+    intros w w' [v g].
+    unfold graph in g.
+    simp _uconv uconv_tm in g ; cbn in g.
+    apply (orec_graph_call_inv _uconv) in g as [? [red g]] ; cbn in *.
+    eapply red_sound in red as [<-%red_whne _].
+    2: now constructor ; apply whne_ren.
+    apply (orec_graph_call_inv _uconv) in g as [? [red g]] ; cbn in *.
+    eapply red_sound in red as [<-%red_whne _].
+    2: now constructor ; apply whne_ren.
+    apply (orec_graph_rec_inv _uconv) in g as [? [g _]] ; cbn in *.
+    simp _uconv uconv_tm_red in g.
+    apply (orec_graph_rec_inv _uconv) in g as [? [g _]] ; cbn in *.
+    simp _uconv uconv_ne in g ; cbn in *.
+    apply (orec_graph_rec_inv _uconv) in g as [r [g _]] ; cbn in *.
+    eapply uconv_str in g.
+    - now eexists.
+    - intros ??.
+      auto.
+  Qed.
+  
+  Lemma uconv_expand_ne_fst n n' :
     whne n ->
     whne n' ->
     domain _uconv (tm_state, tFst n, tFst n') ->
@@ -514,12 +485,12 @@ Lemma uconv_expand_ne_fst n n' :
     apply (orec_graph_rec_inv _uconv) in g as [? [g _]] ; cbn in *.
     simp _uconv uconv_tm_red in g.
     apply (orec_graph_rec_inv _uconv) in g as [? [g _]] ; cbn in *.
-    simp _uconv uconv_ne to_neutral_diag in g ; cbn in *.
+    simp _uconv uconv_ne in g ; cbn in *.
     apply (orec_graph_rec_inv _uconv) in g as [r [g _]] ; cbn in *.
     now eexists.
-Qed.
-
-Lemma uconv_expand Γ A t t' B u u':
+  Qed.
+  
+  Lemma uconv_expand Γ A t t' B u u':
     [Γ |- t : A] ->
     [t ⤳* t'] ->
     [Γ |- u : B] ->
@@ -556,11 +527,6 @@ Lemma uconv_expand Γ A t t' B u u':
     2: easy.
     now eexists.
 Qed.
-
-Import DeclarativeTypingProperties.
-
-Section ConversionTerminates.
-
 
 Let PTyEq (Γ : context) (A B : term) :=
   forall B',
@@ -603,10 +569,10 @@ Proof.
     simp _conv conv_ty.
     cbn.
     split.
-    1: eapply wh_red_complete ; now exists istype.
+    1: eapply wh_red_complete ; [now exists istype|now eapply ty_norm].
     intros A'' []%red_sound.
     split.
-    1: eapply wh_red_complete ; now exists istype.
+    1: eapply wh_red_complete ; [now exists istype|now eapply ty_norm].
     intros B'' []%red_sound.
     replace A'' with A'
       by (eapply whred_det ; tea ; eapply algo_conv_wh in HA as [] ; gen_typing).
@@ -692,7 +658,7 @@ Proof.
   - intros ? n ? ? * wu' [Hconcl]%dup.
     apply compute_domain.
     destruct wu' as [n'| | | | | |].
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn ; try easy.
+    all: simp _uconv uconv_ne ; cbn ; try easy.
     now destruct (Nat.eqb_spec n n') ; cbn.
 
   - intros * Hm ? ?? * wu' [Hconcl]%dup.
@@ -704,7 +670,7 @@ Proof.
     split ; [eauto | intros [] ; cbn ; [|easy]].
 
     inversion Hm as [????? Hm'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_sound ; eauto.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
     eapply algo_conv_det in Hm' ; tea ; subst.
     eapply neuConvRed in Hpost1 ; refold ; tea. 
     eapply algo_conv_sound, neuAppCongAlg_prem1 in Hpost1 ; eauto.
@@ -718,7 +684,7 @@ Proof.
     split ; [eauto | intros [] ; cbn ; [|easy]].
 
     inversion Hn as [????? Hm'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_sound ; eauto.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
     eapply algo_conv_det in Hm' ; tea ; subst.
     eapply neuConvRed in Hpost1 ; refold ; tea. 
     eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
@@ -741,7 +707,7 @@ Proof.
     split ; [eauto | intros [] ; cbn ; [|easy]].
 
     inversion Hn as [????? Hm'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_sound ; eauto.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
     eapply algo_conv_det in Hm' ; tea ; subst.
     eapply neuConvRed in Hpost1 ; refold ; tea. 
     eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
@@ -750,27 +716,27 @@ Proof.
   - intros * Hn ? * wu' [Hconcl]%dup.
     apply compute_domain.
     destruct wu'.
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn; try exact I.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
 
     eapply neuFstCongAlg_prem0 in Hconcl ; eauto.
     
   - intros * Hn ? * wu' [Hconcl]%dup.
     apply compute_domain.
     destruct wu'.
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn; try exact I.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
 
     eapply neuSndCongAlg_prem0 in Hconcl ; eauto.
 
   - intros * _ * _ * _ * He ?? ?? ?? * wu' [Hconcl]%dup.
     apply compute_domain.
     destruct wu'.
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn; try exact I.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
 
     eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     split ; [eauto | intros [] ; cbn ; [|easy]].
 
     inversion He as [????? He'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_sound ; eauto.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
     eapply algo_conv_det in He' ; tea ; subst.
     eapply neuConvRed in Hpost1 ; refold ; tea. 
     eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
@@ -788,10 +754,10 @@ Proof.
     simp _uconv uconv_tm ; cbn.
 
     split.
-    1: eapply wh_red_complete ; now eexists (isterm _).
+    1: eapply wh_red_complete ; [now eexists (isterm _)|now eapply tm_norm].
     intros t'' []%red_sound.
     split.
-    1: eapply wh_red_complete ; now eexists (isterm _).
+    1: eapply wh_red_complete ; [now eexists (isterm _)|now eapply tm_norm].
     intros u'' []%red_sound.
 
     replace t'' with t' in * by (eapply whred_det ; eassumption).
@@ -847,7 +813,7 @@ Proof.
     eapply fun_isFun in w, w' ; eauto.
     destruct w, w'.
 
-    + eapply LamCongUAlg_prem0 in Hconcl as (?&?&[[=<-<-]]).
+    + eapply LamCongUAlg_prem0 in Hconcl as (?&?&[[= <- <-]%red_whnf]).
       2: now constructor.
       cbn ; split ; [..|easy].
       eapply uconv_expand ; [..|eapply IH ; split] ; eauto.
@@ -855,7 +821,7 @@ Proof.
       2: reflexivity.
       now eapply redalg_one_step, eta_expand_beta.
 
-    + eapply LamNeUAlg_prem0 in Hconcl as (?&?&[[=<-<-]]).
+    + eapply LamNeUAlg_prem0 in Hconcl as (?&?&[[= <- <-]%red_whnf]).
       2: now constructor.
       cbn.
       unshelve (erewrite whne_nf_view1) ; tea ; cbn.
@@ -865,7 +831,7 @@ Proof.
       * eapply redalg_one_step, eta_expand_beta.
       * reflexivity.
 
-    + eapply NeLamUAlg_prem0 in Hconcl as (?&?&[[=<-<-]]).
+    + eapply NeLamUAlg_prem0 in Hconcl as (?&?&[[= <- <-]%red_whnf]).
       2: now constructor.
       cbn.
       unshelve (erewrite whne_nf_view1) ; tea ; cbn.
@@ -900,7 +866,7 @@ Proof.
     destruct w, w'.
 
     + cbn.
-      eapply PairCongUAlg_prem0 in Hconcl as (?&?&[[=<-<-] [[]]%dup]).
+      eapply PairCongUAlg_prem0 in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
       2: now constructor.
       cbn.
       split.
@@ -919,7 +885,7 @@ Proof.
       all: now econstructor.
 
     + cbn.
-      eapply PairNeUAlg_prem0 in Hconcl as (?&?&[[=<-<-] [[]]%dup]).
+      eapply PairNeUAlg_prem0 in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
       2: now constructor.
       unshelve erewrite whne_nf_view1 ; tea ; cbn.
       split.
@@ -938,7 +904,7 @@ Proof.
       all: now econstructor.
 
     + cbn.
-      eapply NePairUAlg_prem0 in Hconcl as (?&?&[[=<-<-] [[]]%dup]).
+      eapply NePairUAlg_prem0 in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
       2: now constructor.
       unshelve erewrite whne_nf_view1 ; tea ; cbn.
       split.
@@ -947,6 +913,7 @@ Proof.
       intros [] ; cbn ; [|easy].
       intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
       eapply NePairUAlg_prem1 in Hpost1 as [] ; eauto.
+      reflexivity.
 
     + cbn.
       do 2 (unshelve erewrite whne_nf_view1 ; tea ; cbn).
@@ -976,7 +943,7 @@ Proof.
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2.
     eapply id_isId in wu' ; tea.
-    destruct wu' as [|(?&?&->)] ; cbn ; try exact I.
+    destruct wu' as [|] ; cbn ; try exact I.
     now unshelve erewrite whne_nf_view1 ; cbn.
 
   - intros * []%algo_conv_wh IH Hpos ? wu' [Hconcl [? Hty]]%dup. 
@@ -985,7 +952,7 @@ Proof.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
     destruct wu' ; cbn ; try easy.
     + eapply termGen' in Hty as (?&[? [->]]&Hconv).
-      eapply red_compl_prod_l' in Hconv as (?&?&[->]).
+      eapply conv_prod_l in Hconv as (?&?&[->]).
       2: gen_typing.
       inversion Hpos.
       inv_whne.
@@ -998,5 +965,7 @@ Proof.
       split ; [..|easy].
       eapply IH ; tea.
       split ; now eexists.
- 
+
 Qed.
+
+End ConversionTerminates.

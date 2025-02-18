@@ -11,9 +11,10 @@ From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData.
+Import DeclarativeTypingProperties.
 
 Section ConversionTerminates.
+  Import AlgorithmicTypedConvData.
   Context
     `{!TypingSubst de}
     `{!TypeConstructorsInj de}
@@ -473,23 +474,28 @@ End ConversionTerminates.
 
 Section TypingTerminates.
 
+  Import AlgorithmicTypingData.
+
+  Context `{ta : tag} `{! ConvType ta}.
   Context
     `{!TypingSubst de}
     `{!TypeConstructorsInj de}
     `{!Normalisation de}.
+  Context (conv : (context × term × term) ⇀ exn errors unit).
 
-  Import AlgorithmicTypingData.
+  Hypothesis conv_sound :
+    forall Γ A A', [Γ |-[de] A] -> [Γ |-[de] A'] -> [Γ |-[ta] A ≅ A'] -> [Γ |-[de] A ≅ A'].
 
-  Variable conv : (context × term × term) ⇀ exn errors unit.
-
-  Hypothesis conv_sound : forall Γ T V,
+  Hypothesis implem_sound : forall Γ T V,
     graph conv (Γ,T,V) ok ->
-    [Γ |-[al] T ≅ V].
+    [Γ |-[ta] T ≅ V].
 
-  Hypothesis conv_terminates : forall Γ A A',
+  Hypothesis implem_terminates : forall Γ A A',
     [Γ |-[de] A] ->
     [Γ |-[de] A'] ->
     domain conv (Γ,A,A').
+
+  Let implem_typing_sound := (implem_typing_sound _ implem_sound).
 
   Definition lt_state (s s' : typing_state) :=
     match s, s' with
@@ -558,7 +564,7 @@ Proof.
     + apply IH ; cbn ; try easy.
       left ; cbn ; now do 2 econstructor.
     + intros [[]|] ; cbn ; try easy.
-      intros ?%implem_typing_sound%algo_typing_sound ; tea.
+      intros ?%implem_typing_sound%algo_typing_sound_generic ; tea.
       split ; cbn.
       2: now intros [[]|] ; cbn.
       apply IH ; cbn ; try easy.
@@ -570,7 +576,7 @@ Proof.
     + apply IH ; cbn ; try easy.
      left ; cbn ; now do 2 econstructor.
     + intros [|] ; cbn ; try easy.
-      intros ?%implem_typing_sound%algo_typing_sound ; tea.
+      intros ?%implem_typing_sound%algo_typing_sound_generic ; tea.
       split.
       2: intros [] ; now cbn.
       apply IH ; cbn ; try easy.
@@ -580,7 +586,7 @@ Proof.
     + apply IH ; cbn ; try easy.
       left ; cbn ; now do 2 econstructor.
     + intros [[]|] ; cbn ; try easy.
-      intros Hf%implem_typing_sound%algo_typing_sound ; tea.
+      intros Hf%implem_typing_sound%algo_typing_sound_generic ; tea.
       split.
       2: intros [] ; now cbn.
       apply IH ; cbn ; tea.
@@ -597,7 +603,7 @@ Proof.
       left ; cbn ; now do 2 econstructor.
     }
     intros [[]|] ; cbn ; try easy.
-    intros Hn%implem_typing_sound%algo_typing_sound ; tea.
+    intros Hn%implem_typing_sound%algo_typing_sound_generic ; tea.
     set (Γ' := _ ,, tNat).
     assert ([|-[de] Γ']) by (now econstructor ; [|econstructor]). 
     split.
@@ -606,7 +612,7 @@ Proof.
       left ; cbn ; now do 2 econstructor.
     }
     intros [|] ; cbn ; [|easy].
-    intros ?%implem_typing_sound%algo_typing_sound ; tea.
+    intros ?%implem_typing_sound%algo_typing_sound_generic ; tea.
     split.
     2: intros [|] ; cbn ; intros _ ; split; [|intros []] ; try (cbn ; easy).
     + apply IH ; cbn ; try easy.
@@ -622,7 +628,7 @@ Proof.
       left ; cbn ; now do 2 econstructor.
     }
     intros [[]|] ; cbn ; try easy.
-    intros Hn%implem_typing_sound%algo_typing_sound ; tea.
+    intros Hn%implem_typing_sound%algo_typing_sound_generic ; tea.
     set (Γ' := _ ,, tEmpty).
     assert ([|-[de] Γ']) by (now econstructor ; [|econstructor]). 
     split.
@@ -634,22 +640,22 @@ Proof.
   - split.
     1: apply IH; cbn; try easy; left; cbn; now do 2 econstructor.
     intros [[]|]; cbn; try easy.
-    intros Hn%implem_typing_sound%algo_typing_sound ; tea; split.
+    intros Hn%implem_typing_sound%algo_typing_sound_generic ; tea; split.
     set (Γ' := _ ,, _); assert [|-[de] Γ'] by (econstructor; tea; destruct s; now econstructor).
     1: apply IH; cbn; try easy; left; cbn; now do 2 econstructor.
     intros [[]|]; cbn; try easy.
   - split.
     1: apply IH; cbn; try easy; left; cbn; now do 2 econstructor.
     intros [[]|]; cbn; try easy.
-    intros HA%implem_typing_sound%algo_typing_sound ; tea.
+    intros HA%implem_typing_sound%algo_typing_sound_generic ; tea.
     set (Γ' := _ ,, _); assert [|-[de] Γ'] by (econstructor; tea; destruct s; now econstructor).
     split.
     1: apply IH; cbn; try easy; left; cbn; now do 2 econstructor.
     intros [[]|]; cbn; try easy.
-    intros HB%implem_typing_sound%algo_typing_sound ; tea; split.
+    intros HB%implem_typing_sound%algo_typing_sound_generic ; tea; split.
     1: apply IH ; cbn ; tea; left; cbn; now do 2 econstructor.
     intros [[]|]; cbn; try easy.
-    intros Ha%implem_typing_sound%algo_typing_sound ; tea; split.
+    intros Ha%implem_typing_sound%algo_typing_sound_generic ; tea; split.
     match goal with
     | _ : [ ?Γ |-[de] _ : _] |- _ => assert [Γ|-[de] B[a..]] by now eapply typing_subst1
     end.
@@ -662,30 +668,30 @@ Proof.
     1: apply IH; cbn; try easy; left; cbn; now do 2 econstructor.
     intros [[]|]; cbn; easy.
   - split; cycle -1.
-    1: intros [t|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [t|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound_generic; tea.
     1: destruct t; cbn; try easy.
     1: assert [Γ0 |-[de] A] by (destruct s; now econstructor).
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hx%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hx%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; cycle -1.
     1: intros [|]; cbn; easy.
     all: eapply IH; cbn; tea; try easy.
     all: left; cbn; do 2 constructor.
   - split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; cycle -1.
     1: intros [|]; cbn; easy.
     all: eapply IH; cbn; tea; try easy.
     all: left; cbn; do 2 constructor.
   - split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hx%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hx%implem_typing_sound%algo_typing_sound_generic; tea.
     1: rewrite <- !(Weakening.wk1_ren_on Γ0 A).
     1: assert [ |-[ de ] (Γ0,, A),, tId A⟨@Weakening.wk1 Γ0 A⟩ x⟨@Weakening.wk1 Γ0 A⟩ (tRel 0)]
       by now eapply idElimMotiveCtx.
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hP%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hP%implem_typing_sound%algo_typing_sound_generic; tea.
     1: assert [Γ0 |-[ de ] P[tRefl A x .: x..]].
     1:{ 
       eapply typing_subst2; tea; cbn.
@@ -693,28 +699,28 @@ Proof.
       now econstructor.
     }
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hhr%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hhr%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hy%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hy%implem_typing_sound%algo_typing_sound_generic; tea.
     1: assert [Γ0 |-[ de ] tId A x y] by now econstructor.
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros he%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros he%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; cycle -1.
     all: eapply IH; cbn; tea; try easy; left; cbn; do 2 constructor.
   - split.
     + apply IH ; cbn ; try easy.
       1: now right ; cbn.
     + intros [|] ; cbn ; [|easy].
-      intros ?%implem_typing_sound%algo_typing_sound ; cbn in * ; tea.
+      intros ?%implem_typing_sound%algo_typing_sound_generic ; cbn in * ; tea.
       split.
       2: easy.
-      eapply conv_terminates ; tea.
+      eapply implem_terminates ; tea.
       boundary.
   - split.
     + apply IH ; cbn ; try easy.
       right; now cbn.
     + intros [|] ; cbn ; [|easy].
-      intros ?%implem_typing_sound%algo_typing_sound ; cbn in * ; tea.
+      intros ?%implem_typing_sound%algo_typing_sound_generic ; cbn in * ; tea.
       split.
       2: easy.
       eapply wh_red_complete.
@@ -727,7 +733,7 @@ Proof.
       left ; cbn ; now do 2 econstructor.
     }
     intros [|] ; cbn ; try easy.
-    intros ?%implem_typing_sound%algo_typing_sound ; tea.
+    intros ?%implem_typing_sound%algo_typing_sound_generic ; tea.
     split.
     2: intros []; now cbn.
     apply IH ; cbn ; try easy.
@@ -736,21 +742,21 @@ Proof.
   - split.
     1: apply IH; cbn; try easy; left; cbn; now do 2 econstructor.
     intros [|] ; cbn ; try easy.
-    intros ?%implem_typing_sound%algo_typing_sound ; tea.
+    intros ?%implem_typing_sound%algo_typing_sound_generic ; tea.
     split.
     2: intros []; now cbn.
     apply IH ; cbn ; try easy.
     1: left ; cbn ; now do 2 econstructor.
     now econstructor.
   - split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; cycle -1.
-    1: intros [|]; cbn; [|easy]; intros hx%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [|]; cbn; [|easy]; intros hx%implem_typing_sound%algo_typing_sound_generic; tea.
     1: split; [|easy].
     all: eapply IH; cbn; tea; try easy.
     all: left; do 2 constructor.
   - split; cycle -1.
-    1: intros [t|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound; tea.
+    1: intros [t|]; cbn; [|easy]; intros hA%implem_typing_sound%algo_typing_sound_generic; tea.
     1: destruct t; cbn; try easy.
     eapply IH; cbn; tea; try easy; right; now cbn.
 Qed.

@@ -228,6 +228,13 @@ Module BundledTypingData.
     change OneStepRedTermBun with (osred_tm (ta := bn)) in * ;
     change RedTermBun with (red_tm (ta := bn)) in *.
 
+  #[export,refine] Instance ConvImplies_Bundle
+    `{ta : tag} `{ConvType ta} `{ConvTerm ta} `{i : !ConvImplies ta bn} : 
+    `{ConvImplies ta al} := {}.
+  Proof.
+    all: now intros * []%i.
+  Qed.
+
 End BundledTypingData.
 
 Import BundledTypingData.
@@ -251,6 +258,13 @@ Module BundledIntermediateData.
     change (conv_type (ta := bni)) with (conv_type (ta := bn)) in * ;
     change (conv_term (ta := bni)) with (conv_term (ta := bn)) in * ;
     change (conv_neu_ty (ta := bni)) with (conv_neu_ty (ta := bn)) in *.
+
+  #[export,refine] Instance ConvImplies_BundleInt
+    `{ta : tag} `{ConvType ta} `{ConvTerm ta} `{i : !ConvImplies ta bni} : 
+    `{ConvImplies ta al} := {}.
+  Proof.
+    all: now intros * []%i.
+  Qed.
 
 End BundledIntermediateData.
 

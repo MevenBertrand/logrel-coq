@@ -7,7 +7,7 @@ From LogRel Require Import Utils Syntax.All DeclarativeTyping GenericTyping
 From LogRel.Decidability Require Import Functions Soundness NegativeSoundness Termination.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
-Import AlgorithmicTypingProperties DeclarativeTypingProperties.
+Import AlgorithmicTypingProperties AlgorithmicTypedConvData DeclarativeTypingProperties.
 Set Universe Polymorphism.
 
 Import IntermediateTypingProperties BundledTypingData.
@@ -35,7 +35,8 @@ check Γ t T hΓ hT with (inspect (def (typing tconv) (check_state;Γ;T;t) _)) :
   }.
 Next Obligation.
   intros.
-  apply typing_terminates ; tea.
+  apply (typing_terminates (ta := al)) ; tea.
+  - now intros * ?? ?%algo_conv_sound. 
   - intros. now apply implem_tconv_sound.
   - now intros ; eapply tconv_terminates.
 Qed.
@@ -44,7 +45,7 @@ Next Obligation.
   apply bn_alg_typing_sound.
   epose proof (def_graph_sound _ _ _) as Hgraph.
   rewrite e in Hgraph.
-  apply implem_typing_sound in Hgraph ; cbn in Hgraph.
+  apply (implem_typing_sound (ta := al)) in Hgraph ; cbn in Hgraph.
   2: apply implem_tconv_sound.
   now constructor.
 Qed.
@@ -54,7 +55,8 @@ Next Obligation.
   clearbody Hter.
   pose proof (def_graph_sound _ _ Hter) as Hgraph.
   rewrite e in Hgraph.
-  eapply implem_typing_sound_neg in Hgraph ; cbn in * ; eauto.
+  eapply (implem_typing_sound_neg (ta := al)) in Hgraph ; cbn in * ; eauto.
+  + now intros * ?? ?%algo_conv_sound.
   + eapply implem_tconv_sound.
   + intros ; eapply implem_tconv_sound_neg ; tea.
 Qed.

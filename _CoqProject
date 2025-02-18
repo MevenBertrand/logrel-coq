@@ -86,6 +86,7 @@ theories/Decidability/Completeness.v
 theories/Decidability/Termination.v
 theories/Decidability/UntypedSoundness.v
 theories/Decidability/UntypedCompleteness.v
+theories/Decidability/UntypedTermination.v
 theories/Decidability.v
 
 theories/Decidability/Execution.v

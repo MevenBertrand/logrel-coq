@@ -30,7 +30,7 @@ Ltac infer_auto :=
   | |- [ε |- ?t : ?T] =>
     assert [|- ε] by econstructor ;
       eassert (graph (typing tconv) (inf_state;ε;tt;t) (success _))
-        as ?%implem_typing_sound%algo_typing_sound
+        as ?%(implem_typing_sound _ implem_tconv_sound)%algo_typing_sound
         by (apply (fueled_graph_sound (typing tconv) 1000 (inf_state;_)) ; reflexivity)
   end ; auto using implem_tconv_sound.
 
@@ -39,7 +39,7 @@ Ltac wf_ty_auto :=
   | |- [ε |- ?T] =>
       assert [|- ε] by econstructor ;
       eassert (graph (typing tconv) (wf_ty_state;ε;tt;T) (success _))
-        as ?%implem_typing_sound%algo_typing_sound
+        as ?%(implem_typing_sound _ implem_tconv_sound)%algo_typing_sound
         by (apply (fueled_graph_sound (typing tconv) 1000 (wf_ty_state;_)) ; reflexivity)
   end ; auto using implem_tconv_sound.
 
@@ -48,10 +48,10 @@ Ltac check_auto :=
   | |- [ε |- ?t : ?T] =>
     assert [|- ε] by econstructor ;
     eassert (graph (typing tconv) (check_state;ε;T;t) (success _))
-      as ?%implem_typing_sound%algo_typing_sound
+      as ?%(implem_typing_sound _ implem_tconv_sound)%algo_typing_sound
       by (apply (fueled_graph_sound (typing tconv) 1000 (check_state;_)) ; reflexivity) ;
     eassert (graph (typing tconv) (wf_ty_state;ε;tt;T) (success _))
-      as ?%implem_typing_sound%algo_typing_sound
+      as ?%(implem_typing_sound _ implem_tconv_sound)%algo_typing_sound
       by (apply (fueled_graph_sound (typing tconv) 1000 (wf_ty_state;_)) ; reflexivity)
 end ; auto using implem_tconv_sound.
 

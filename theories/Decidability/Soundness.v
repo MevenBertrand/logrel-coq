@@ -6,8 +6,6 @@ From LogRel Require Import Utils Syntax.All GenericTyping AlgorithmicTyping.
 From LogRel.Decidability Require Import Functions.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
-Import AlgorithmicTypingData.
-
 Set Universe Polymorphism.
 
 Section RedImplemSound.
@@ -203,7 +201,7 @@ Proof.
 Qed.
 
 Section ConversionSound.
-
+  Import AlgorithmicTypedConvData.
 
   #[universes(polymorphic)]Definition conv_sound_type
     (x : conv_full_dom)
@@ -296,22 +294,24 @@ Ltac funelim_typing :=
       funelim (typing_wf_ty _ _) ].
 
 Section TypingSound.
+  Import AlgorithmicTypingData.
 
-  Variable conv : (context × term × term) ⇀ exn errors unit.
+  Context `{ta : tag} `{! ConvType ta}.
+  Context (conv : (context × term × term) ⇀ exn errors unit).
 
   Hypothesis conv_sound : forall Γ T V,
     graph conv (Γ,T,V) ok ->
-    [Γ |-[al] T ≅ V].
+    [Γ |-[ta] T ≅ V].
 
   #[universes(polymorphic)]Definition typing_sound_type
     (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term)
     (r : exn errors (tstate_output x.π1)) : Type :=
   match x, r with
   | _, (exception _) => True
-  | (wf_ty_state;Γ;_;T), (success _) => [Γ |-[al] T]
-  | (inf_state;Γ;_;t), (success T) => [Γ |-[al] t ▹ T]
-  | (inf_red_state;Γ;_;t), (success T) => [Γ |-[al] t ▹h T]
-  | (check_state;Γ;T;t), (success _) => [Γ |-[al] t ◃ T]
+  | (wf_ty_state;Γ;_;T), (success _) => [Γ |-[ta] T]
+  | (inf_state;Γ;_;t), (success T) => [Γ |-[ta] t ▹ T]
+  | (inf_red_state;Γ;_;t), (success T) => [Γ |-[ta] t ▹h T]
+  | (check_state;Γ;T;t), (success _) => [Γ |-[ta] t ◃ T]
   end.
 
   Lemma _implem_typing_sound :
@@ -364,7 +364,7 @@ Section TypingSound.
      
   Lemma check_ctx_sound Γ :
     graph (check_ctx conv) Γ ok ->
-    [|-[al] Γ].
+    [|-[ta] Γ].
   Proof.
     eintros ?%funrect_graph.
     2: eapply _check_ctx_sound.

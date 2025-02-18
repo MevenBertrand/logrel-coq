@@ -5,7 +5,7 @@ From LogRel Require Import Sections.
 From LogRel.TypingProperties Require Import PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj NeutralConvProperties.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData.
+Import DeclarativeTypingProperties AlgorithmicTypedConvData AlgorithmicTypingData.
 
 
 (** ** Definitions *)
@@ -154,6 +154,11 @@ Notation "[ A ≅ B ]" := (UConvAlg A B).
 Notation "[ A ≅h B ]" := (UConvRedAlg A B).
 Notation "[ m ~ n ]" := (UConvNeuAlg m n).
 
+
+(** ** Strengthening of untyped conversion *)
+(** This will be useful in the equivalence proof, when we get an induction hypothesis
+  that is weakened because of η-expansions. *)
+
 Section UConvStr.
   
   Let PEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
@@ -266,9 +271,142 @@ Section UConvStr.
 
 End UConvStr.
 
-Section NeutralConversion.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!TypeReductionComplete (ta := de)} `{!ConvComplete (ta := de) (ta' := al)}.
 
+(** ** Typed algorithmic conversion implies untyped algorithmic conversion *)
+
+Section TypedToUntyped.
+  Context
+    `{!TypingSubst de}
+    `{!TypeConstructorsInj de}.
+
+  Lemma whne_app_inv f g :
+  [tApp f⟨↑⟩ (tRel 0) ~ tApp g⟨↑⟩ (tRel 0)] ->
+  [f ~ g].
+  Proof.
+    inversion 1 ; subst.
+    unshelve eapply algo_uconv_str.
+    6: eassumption.
+    3: unshelve eapply wk1 ; tea ; exact ε.
+    all: now bsimpl.
+  Qed.
+
+  Let PTyEq (Γ : context) (A B : term) := 
+    [A ≅ B] × (whne A -> whne B -> [A ~ B]).
+  Let PTyRedEq (Γ : context) (A B : term) :=
+    [A ≅h B] × (whne A -> whne B -> [A ~ B]).
+  Let PNeEq (Γ : context) (A t u : term) := [t ~ u].
+  Let PNeRedEq (Γ : context) (A t u : term) := [t ~ u].
+  Let PTmEq (Γ : context) (A t u : term) :=
+    [t ≅ u] × (whne t -> whne u -> [t ~ u]).
+  Let PTmRedEq (Γ : context) (A t u : term) :=
+    [t ≅h u] × (whne t -> whne u -> [t ~ u]).
+
+  Theorem bundled_conv_uconv :
+    BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+  Proof.
+    all: subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
+    apply BundledConvInduction ; cbn in *.
+    all: try solve [
+      intros ; prod_hyp_splitter ; 
+      now econstructor |
+      intros ; prod_hyp_splitter ; 
+      split ; [now econstructor|..] ;
+      intros ;
+      repeat match goal with
+        | H : [_ ⤳* _] |- _ => eapply red_whne in H ; [..|eassumption] end ;
+      now subst |
+      intros ; prod_hyp_splitter ; 
+      split ; [now econstructor|..] ;
+      intros Hne ; now inversion Hne].
+    - intros ; now prod_hyp_splitter.
+
+    (** Comparison of two functions *)
+    - intros * whf whg ? [[IHconv IHne]] [Hf Hg].
+      eapply fun_isFun in Hf ; tea.
+      eapply fun_isFun in Hg ; tea.
+      destruct Hf, Hg.
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor.
+        inversion IHconv ; subst.
+        econstructor ; tea.
+        all: eapply eta_expand_beta_inv ; tea.
+        all: now eapply algo_uconv_wh in H2 as [].
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor ; tea.
+        inversion IHconv ; subst.
+        econstructor ; tea.
+        eapply eta_expand_beta_inv ; tea.
+        now eapply algo_uconv_wh in H2 as [].
+      + split.
+        2: intros ? Hne ; inversion Hne.
+        econstructor ; tea.
+        inversion IHconv ; subst.
+        econstructor ; tea.
+        eapply eta_expand_beta_inv ; tea.
+        now eapply algo_uconv_wh in H2 as [].
+      + split.
+        1: econstructor.
+        2: intros _ _.
+        all: eapply whne_app_inv, IHne ; econstructor ; now eapply whne_ren.
+
+    (** Comparison of two pairs *)
+    - intros * whp whq ? [[IHconv IHne]] ? [[IHconv' IHne']] [Hp Hq].
+      eapply sig_isPair in Hp ; tea.
+      eapply sig_isPair in Hq ; tea.
+      destruct Hp, Hq.
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor.
+        * inversion IHconv ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_fst_inv ; tea.
+          all: now eapply algo_uconv_wh in H3 as [].
+        * inversion IHconv' ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_snd_inv ; tea.
+          all: now eapply algo_uconv_wh in H3 as [].
+      + split.
+        2: intros Hne ; inversion Hne.
+        econstructor ; tea.
+        * inversion IHconv ; subst.
+          econstructor ; tea.
+          eapply eta_expand_fst_inv ; tea.
+          now eapply algo_uconv_wh in H3 as [].
+        * inversion IHconv' ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_snd_inv ; tea.
+          all: now eapply algo_uconv_wh in H3 as [].
+      + split.
+        2: intros ? Hne ; inversion Hne.
+        econstructor ; tea.
+        * inversion IHconv ; subst.
+          econstructor ; tea.
+          eapply eta_expand_fst_inv ; tea.
+          now eapply algo_uconv_wh in H3 as [].
+        * inversion IHconv' ; subst.
+          econstructor ; tea.
+          all: eapply eta_expand_snd_inv ; tea.
+          all: now eapply algo_uconv_wh in H3 as [].
+      + split.
+        1: econstructor.
+        2: intros _ _.
+        all: unshelve (epose proof (IHne _ _) as IHne_ ; inversion IHne_ ; subst ; tea).
+        all: now econstructor. 
+  Qed.
+  
+End TypedToUntyped.
+
+(** ** Algorithmic typed neutral comparison *)
+(** We prove that algorithmic neutral comparison implies algorithmic conversion, *at all types*.
+  The quick proof goes through completeness of algorithmic conversion. Otherwise, we'd
+  need deep normalisation of the type… In any case, of form of normalisation is unavoidable:
+  at a non-normalising type, a variable is related to itself as a neutral but not as a normal form. *)
+
+Section NeutralConversion.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de}
+    `{!TypeReductionComplete de} `{!ConvImplies de al}.
 
   Import AlgorithmicTypingData.
 
@@ -313,9 +451,11 @@ Section NeutralConversion.
 
 End NeutralConversion.
 
-Section PremisePreserve.
-  Context `{!TypingSubst (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!TypeReductionComplete (ta := de)}.
 
+(** ** Extra preservation lemmas for untyped conversion *)
+
+Section PremisePreserve.
+  Context `{!TypingSubst de} `{!TypeConstructorsInj de} `{!TypeReductionComplete de}.
 
   Lemma LamCongUAlg_prem0 Γ T A t A' t' :
     [Γ |-[ de ] tLambda A t : T] × [Γ |-[ de ] tLambda A' t' : T] ->
@@ -650,13 +790,15 @@ Section PremisePreserve.
 
 End PremisePreserve.
 
-Section Soundness.
+(** Untyped algorithmic conversion implies typed algorithmic conversion *)
+
+Section UntypedToTyped.
   Context
-    `{!TypingSubst (ta := de)}
-    `{!TypeConstructorsInj (ta := de)}
-    `{!TypeReductionComplete (ta := de)}
-    `{!ConvComplete (ta := de) (ta' := al)}
-    `{!Normalisation (ta := de)}.
+    `{!TypingSubst de}
+    `{!TypeConstructorsInj de}
+    `{!TypeReductionComplete de}
+    `{!ConvImplies de al}
+    `{!Normalisation de}.
 
   Let PEq (t u : term) :=
     (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[al] t ≅ u]) ×
@@ -670,7 +812,7 @@ Section Soundness.
     forall Γ, well_typed Γ t × well_typed Γ u ->
     ∑ A'', [Γ |-[al] t ~ u ▹ A''].
 
-  Lemma uconv_sound :
+  Lemma uconv_tconv :
     UAlgoConvInductionConcl PEq PRedEq PNeEq.
   Proof.
     subst PEq PRedEq PNeEq.
@@ -1016,126 +1158,4 @@ Section Soundness.
       now econstructor.
   Qed.
 
-End Soundness.
-
-Section Completeness.
-  Context
-    `{!TypingSubst (ta := de)}
-    `{!TypeConstructorsInj (ta := de)}
-    `{!TypeReductionComplete (ta := de)}
-    `{!ConvComplete (ta := de) (ta' := al)}.
-
-  Lemma whne_app_inv f g :
-  [tApp f⟨↑⟩ (tRel 0) ~ tApp g⟨↑⟩ (tRel 0)] ->
-  [f ~ g].
-  Proof.
-    inversion 1 ; subst.
-    unshelve eapply algo_uconv_str.
-    6: eassumption.
-    3: unshelve eapply wk1 ; tea ; exact ε.
-    all: now bsimpl.
-  Qed.
-
-  Let PTyEq (Γ : context) (A B : term) := 
-    [A ≅ B] × (whne A -> whne B -> [A ~ B]).
-  Let PTyRedEq (Γ : context) (A B : term) :=
-    [A ≅h B] × (whne A -> whne B -> [A ~ B]).
-  Let PNeEq (Γ : context) (A t u : term) := [t ~ u].
-  Let PNeRedEq (Γ : context) (A t u : term) := [t ~ u].
-  Let PTmEq (Γ : context) (A t u : term) :=
-    [t ≅ u] × (whne t -> whne u -> [t ~ u]).
-  Let PTmRedEq (Γ : context) (A t u : term) :=
-    [t ≅h u] × (whne t -> whne u -> [t ~ u]).
-
-  Theorem bundled_conv_uconv :
-    BundledConvInductionConcl PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
-  Proof.
-    all: subst PTyEq PTyRedEq PNeEq PNeRedEq PTmEq PTmRedEq.
-    apply BundledConvInduction ; cbn in *.
-    all: try solve [
-      intros ; prod_hyp_splitter ; 
-      now econstructor |
-      intros ; prod_hyp_splitter ; 
-      split ; [now econstructor|..] ;
-      intros ;
-      repeat match goal with
-        | H : [_ ⤳* _] |- _ => eapply red_whne in H ; [..|eassumption] end ;
-      now subst |
-      intros ; prod_hyp_splitter ; 
-      split ; [now econstructor|..] ;
-      intros Hne ; now inversion Hne].
-    - intros ; now prod_hyp_splitter.
-    - intros * whf whg ? [[IHconv IHne]] [Hf Hg].
-      eapply fun_isFun in Hf ; tea.
-      eapply fun_isFun in Hg ; tea.
-      destruct Hf, Hg.
-      + split.
-        2: intros Hne ; inversion Hne.
-        econstructor.
-        inversion IHconv ; subst.
-        econstructor ; tea.
-        all: eapply eta_expand_beta_inv ; tea.
-        all: now eapply algo_uconv_wh in H2 as [].
-      + split.
-        2: intros Hne ; inversion Hne.
-        econstructor ; tea.
-        inversion IHconv ; subst.
-        econstructor ; tea.
-        eapply eta_expand_beta_inv ; tea.
-        now eapply algo_uconv_wh in H2 as [].
-      + split.
-        2: intros ? Hne ; inversion Hne.
-        econstructor ; tea.
-        inversion IHconv ; subst.
-        econstructor ; tea.
-        eapply eta_expand_beta_inv ; tea.
-        now eapply algo_uconv_wh in H2 as [].
-      + split.
-        1: econstructor.
-        2: intros _ _.
-        all: eapply whne_app_inv, IHne ; econstructor ; now eapply whne_ren.
-    - intros * whp whq ? [[IHconv IHne]] ? [[IHconv' IHne']] [Hp Hq].
-      eapply sig_isPair in Hp ; tea.
-      eapply sig_isPair in Hq ; tea.
-      destruct Hp, Hq.
-      + split.
-        2: intros Hne ; inversion Hne.
-        econstructor.
-        * inversion IHconv ; subst.
-          econstructor ; tea.
-          all: eapply eta_expand_fst_inv ; tea.
-          all: now eapply algo_uconv_wh in H3 as [].
-        * inversion IHconv' ; subst.
-          econstructor ; tea.
-          all: eapply eta_expand_snd_inv ; tea.
-          all: now eapply algo_uconv_wh in H3 as [].
-      + split.
-        2: intros Hne ; inversion Hne.
-        econstructor ; tea.
-        * inversion IHconv ; subst.
-          econstructor ; tea.
-          eapply eta_expand_fst_inv ; tea.
-          now eapply algo_uconv_wh in H3 as [].
-        * inversion IHconv' ; subst.
-          econstructor ; tea.
-          all: eapply eta_expand_snd_inv ; tea.
-          all: now eapply algo_uconv_wh in H3 as [].
-      + split.
-        2: intros ? Hne ; inversion Hne.
-        econstructor ; tea.
-        * inversion IHconv ; subst.
-          econstructor ; tea.
-          eapply eta_expand_fst_inv ; tea.
-          now eapply algo_uconv_wh in H3 as [].
-        * inversion IHconv' ; subst.
-          econstructor ; tea.
-          all: eapply eta_expand_snd_inv ; tea.
-          all: now eapply algo_uconv_wh in H3 as [].
-      + split.
-        1: econstructor.
-        2: intros _ _.
-        all: unshelve (epose proof (IHne _ _) as IHne_ ; inversion IHne_ ; subst ; tea).
-        all: now econstructor.
-  Qed.
-  
-End Completeness.
+End UntypedToTyped.

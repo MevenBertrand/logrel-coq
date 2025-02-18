@@ -12,7 +12,7 @@ From PartialFun Require Import Monad PartialFun MonadExn.
 Set Universe Polymorphism.
 #[global] Unset Asymmetric Patterns.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData.
+Import DeclarativeTypingProperties.
 
 Section RedImplemComplete.
   Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
@@ -286,7 +286,6 @@ Section RedImplemComplete.
 
 End RedImplemComplete.
 
-
 Definition whne_ne_view1 {N} (w : whne N) : ne_view1 N :=
   match w with
   | whne_tRel => ne_view1_rel _
@@ -348,6 +347,8 @@ Qed.
     end).
 
 Section ConversionComplete.
+
+Import AlgorithmicTypedConvData.
 
 Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
@@ -595,10 +596,12 @@ Qed. *)
 End ConversionComplete.
 
 Section TypingImplies.
+Import AlgorithmicTypingData.
 
+Context `{ta : tag} `{! ConvType ta}.
 Context `{!TypingSubst de} `{!TypeConstructorsInj de}.
 
-Variable conv : (context × term × term) ⇀ exn errors unit.
+Context (conv : (context × term × term) ⇀ exn errors unit).
 
 Hypothesis conv_complete : forall Γ T V,
   [Γ |-[de] T ≅ V] ->

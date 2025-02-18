@@ -9,7 +9,7 @@ From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
 
-Import DeclarativeTypingProperties AlgorithmicTypingData.
+Import DeclarativeTypingProperties AlgorithmicTypedConvData.
 
 Section ConversionComplete.
   Context
@@ -79,7 +79,7 @@ Proof.
 
       eapply typePiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
       econstructor ; [now eapply IHA_ty|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHA_ty as [Hpost0%algo_conv_sound _]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHA_ty as [Hpost0%algo_conv_sound _]; tea.
       eapply typePiCongAlg_prem1 in Hpost0 ; eauto.
       patch_rec_ret ; econstructor ; [now eapply IHB_ty|..].
       now constructor.
@@ -95,7 +95,7 @@ Proof.
     }
 
     econstructor ; [now eapply IHA_tm|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
     eapply termPiCongAlg_prem1 in Hpost0 ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHB_tm|..].
     now constructor.
@@ -175,7 +175,7 @@ Proof.
 
       eapply typeSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
       econstructor ; [now eapply IHA_ty|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHA_ty as [Hpost0%algo_conv_sound _]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHA_ty as [Hpost0%algo_conv_sound _]; tea.
       eapply typeSigCongAlg_prem1 in Hpost0 ; eauto.
       patch_rec_ret ; econstructor ; [now eapply IHB_ty|..].
       now constructor.
@@ -192,7 +192,7 @@ Proof.
       }
 
       econstructor ; [now eapply IHA_tm|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHA_tm as [_ Hpost0%algo_conv_sound]; tea.
       eapply termSigCongAlg_prem1 in Hpost0 ; eauto.
       patch_rec_ret ; econstructor ; [now eapply IHB_tm|..].
       now constructor.
@@ -205,7 +205,7 @@ Proof.
 
     eapply PairCongUAlg_prem0 in Hconcl as (?&?&[? [Hpre0 []]%dup]) ; tea.
     econstructor ; [now eapply IHp|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHp as [_ Hpost0%algo_conv_sound]; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHp as [_ Hpost0%algo_conv_sound]; tea.
     eapply PairCongUAlg_prem1 in Hpost0 ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHq|..].
     now constructor.
@@ -218,7 +218,7 @@ Proof.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
     eapply PairNeUAlg_prem0 in Hconcl as (?&?&[? [Hpre0 []]%dup]) ; tea.
     econstructor ; [now eapply IHp|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHp as [_ Hpost0%algo_conv_sound]; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHp as [_ Hpost0%algo_conv_sound]; tea.
     eapply PairNeUAlg_prem1 in Hpost0 ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHq|..].
     now constructor.
@@ -231,7 +231,7 @@ Proof.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
     eapply NePairUAlg_prem0 in Hconcl as (?&?&[? [Hpre0 []]%dup]) ; tea.
     econstructor ; [now eapply IHp|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHp as [_ Hpost0%algo_conv_sound]; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHp as [_ Hpost0%algo_conv_sound]; tea.
     eapply NePairUAlg_prem1 in Hpost0 ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHq|..].
     now constructor.
@@ -244,10 +244,10 @@ Proof.
       simp _uconv uconv_tm_red build_nf_view2 ; cbn.
       eapply typeIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
       econstructor ; [now eapply IHA_ty|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHA_ty as [[Hpost0]%algo_conv_sound%dup _]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHA_ty as [[Hpost0]%algo_conv_sound%dup _]; tea.
       eapply typeIdCongAlg_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto. 
       econstructor ; [now eapply IHx|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHx as [_ Hpost1%algo_conv_sound]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHx as [_ Hpost1%algo_conv_sound]; tea.
       eapply typeIdCongAlg_prem2 in Hpost1 as [Hpre2 []]%dup ; eauto.
       patch_rec_ret ; econstructor ; [now eapply IHy|..] ; cbn.
       now econstructor.
@@ -263,10 +263,10 @@ Proof.
       }
 
       econstructor ; [now eapply IHA_tm|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHA_tm as [_ [Hpost0]%algo_conv_sound%dup]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHA_tm as [_ [Hpost0]%algo_conv_sound%dup]; tea.
       eapply termIdCongAlg_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto. 
       econstructor ; [now eapply IHx|..] ; cbn.
-      eapply implem_uconv_graph, uconv_sound in IHx as [_ Hpost1%algo_conv_sound]; tea.
+      eapply implem_uconv_graph, uconv_tconv in IHx as [_ Hpost1%algo_conv_sound]; tea.
       eapply termIdCongAlg_prem2 in Hpost1 as [Hpre2 []]%dup ; eauto.
       patch_rec_ret ; econstructor ; [now eapply IHy|..] ; cbn.
       now econstructor.
@@ -308,7 +308,7 @@ Proof.
     simp _uconv uconv_ne ; cbn.
     eapply neuAppCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     econstructor ; [now eapply IHm|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHm as [? Hpost0] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHm as [? Hpost0] ; tea.
     eapply AppCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1 []]%dup]); eauto.
     eapply neuAppCongAlg_prem1 in Hpre1 as [Hpre1 []]%dup ; eauto. 
     patch_rec_ret ; econstructor ; [now eapply IHt|..] ; cbn.
@@ -319,15 +319,15 @@ Proof.
     simp _uconv uconv_ne ; cbn.
     eapply neuNatElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     econstructor ; [now eapply IH|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IH as [? Hpost0] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IH as [? Hpost0] ; tea.
     eapply NatElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
     eapply neuNatElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
     econstructor ; [now eapply IHP|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHP as [Hpos1 _] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHP as [Hpos1 _] ; tea.
     eapply algo_conv_sound in Hpos1 as [Hpos1]%dup ; eauto.
     eapply neuNatElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
     econstructor ; [now eapply IHz|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHz as [_ Hpos2] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHz as [_ Hpos2] ; tea.
     eapply algo_conv_sound in Hpos2 as [Hpos2]%dup ; eauto.
     eapply neuNatElimCong_prem3 in Hpos2 as [Hpre3 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHs|..] ; cbn.
@@ -338,7 +338,7 @@ Proof.
     simp _uconv uconv_ne ; cbn.
     eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     econstructor ; [now eapply IH|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IH as [? Hpost0] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IH as [? Hpost0] ; tea.
     eapply EmptyElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
     eapply neuEmptyElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHP|..] ; cbn.
@@ -363,11 +363,11 @@ Proof.
     simp _uconv uconv_ne ; cbn.
     eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
     econstructor ; [now eapply IH|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IH as [? Hpost0] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IH as [? Hpost0] ; tea.
     eapply IdElimCongUAlg_bridge in Hpost0 as (?&?&?&[? [Hpost0]%dup]); eauto.
     eapply neuIdElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
     econstructor ; [now eapply IHP|..] ; cbn.
-    eapply implem_uconv_graph, uconv_sound in IHP as [Hpos1 _] ; tea.
+    eapply implem_uconv_graph, uconv_tconv in IHP as [Hpos1 _] ; tea.
     eapply algo_conv_sound in Hpos1 as [Hpos1]%dup ; eauto.
     eapply neuIdElimCong_prem2 in Hpos1 as [Hpre2 []]%dup ; eauto.
     patch_rec_ret ; econstructor ; [now eapply IHe|..] ; cbn.
