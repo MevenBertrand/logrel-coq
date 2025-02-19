@@ -60,7 +60,7 @@ Proof.
     simp _conv conv_tm ; cbn.
 
     split.
-    1: eapply wh_red_complete ; [exists istype|eapply ty_norm] ; boundary.
+    1: eapply wh_red_complete ; [exists istype|eapply ty_norm] ; cbn ; boundary.
     intros A'' []%red_sound.
     split.
     1: now eapply wh_red_complete ; [eexists (isterm _)|eapply tm_norm].
@@ -356,7 +356,7 @@ Proof.
     intros [Hpost0 []]%implem_conv_graph%algo_conv_sound%dup ; eauto.
     2: now eapply dnf_whnf in Hn.
     split ; [..|easy].
-    eapply wh_red_complete ; [exists istype|eapply ty_norm] ; boundary.
+    eapply wh_red_complete ; [exists istype|eapply ty_norm] ; cbn ; boundary.
   
   - intros * ? HA IHA * [? Hconcl]%dup.
     apply compute_domain.
@@ -726,7 +726,7 @@ Proof.
       eapply wh_red_complete.
       1: exists istype.
       2: eapply ty_norm.
-      all: now boundary.
+      all: now cbn ; boundary.
   - split.
     1:{
       apply IH ; cbn ; try easy.

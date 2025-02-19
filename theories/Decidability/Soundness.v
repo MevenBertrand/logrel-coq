@@ -27,7 +27,7 @@ Proof.
 Qed.
 
 Lemma red_stack_sound :
-  funrect wh_red_stack (fun _ => True) (fun '(t,π) t' => [zip t π ⤳* t']).
+  funrect wh_red_stack (fun _ => True) (fun '(t,π) _ t' => [zip t π ⤳* t']).
 Proof.
   intros ? _.
   funelim (wh_red_stack _).
@@ -67,27 +67,29 @@ Proof.
 Qed.
 
 Lemma red_stack_whnf :
-funrect wh_red_stack (fun _ => True) (fun '(t,π) t' => whnf t').
+funrect wh_red_stack (fun _ => True) (fun '(t,π) _ t' => whnf t').
 Proof.
   intros ? _.
   funelim (wh_red_stack _).
   all: cbn ; try solve [constructor ; eauto]. 
-  - now eapply isType_whnf, isType_tm_view1.
+  - intros ; now eapply isType_whnf, isType_tm_view1.
   - econstructor. eapply stack_ne.
     now econstructor.
-  - now eapply whnf_tm_view1_nat.
+  - intros ; now eapply whnf_tm_view1_nat.
 Qed.
 
 Corollary _red_sound :
-  funrect wh_red (fun _ => True) (fun t t' => [t ⤳* t'] × whnf t').
+  funrect wh_red (fun _ => True) (fun t _ t' => [t ⤳* t'] × whnf t').
 Proof.
   intros ? _.
   cbn; intros ? H; split.
-  - eapply funrect_graph in H.
-    2: exact red_stack_sound. (* apply fails !? *)
+  - eapply funrect_graph in H ; cbn in H.
+    2: apply red_stack_sound.
+    Unshelve.
     all: easy.
   - eapply funrect_graph in H.
-    2: exact red_stack_whnf.
+    2: apply red_stack_whnf.
+    Unshelve.
     all: easy.
 Qed.
 
@@ -96,9 +98,8 @@ Qed.
   [t ⤳* t'] × whnf t'.
 Proof.
   intros H.
-  eapply (funrect_graph wh_red _ _ _ _ _red_sound). (* weird universe inconsistency? *)
-  1: easy.
-  eassumption.
+  eapply (funrect_graph wh_red _ _ _ _ _red_sound).
+  all: easy.
 Qed.
 
 End RedImplemSound.
@@ -205,6 +206,7 @@ Section ConversionSound.
 
   #[universes(polymorphic)]Definition conv_sound_type
     (x : conv_full_dom)
+    (_ : True)
     (r : conv_full_cod x) : Type :=
   match x, r with
   | _, (exception _) => True
@@ -225,7 +227,7 @@ Section ConversionSound.
     all: intros ; simp conv_sound_type ; try easy ; cbn.
     all: repeat (
       match goal with
-      | |- True * _ => split ; [easy|..]
+      | |- { _ : True & _ } => split ; [easy|..]
       | |- forall x : exception _ _, _ => intros [|] ; [..|easy] ; cbn
       | |- _ -> _ => simp conv_sound_type ; intros ?
       | |- context [match ?t with | _ => _ end] => destruct t ; cbn ; try easy
@@ -258,10 +260,11 @@ Section ConversionSound.
 
   Corollary implem_conv_graph x r :
     graph _conv x r ->
-    conv_sound_type x r.
+    conv_sound_type x I r.
   Proof.
+    intros.
     eapply funrect_graph.
-    1: now apply _implem_conv_sound.
+    1: now eapply _implem_conv_sound.
     easy.
   Qed.
 
@@ -270,7 +273,7 @@ Section ConversionSound.
     [Γ |-[al] T ≅ V].
   Proof.
     assert (funrect tconv (fun _ => True)
-      (fun '(Γ,T,V) r => match r with | success _ => [Γ |-[al] T ≅ V] | _ => True end)) as Hrect.
+      (fun '(Γ,T,V) _ r => match r with | success _ => [Γ |-[al] T ≅ V] | _ => True end)) as Hrect.
     {
      intros ? _.
      funelim (tconv _) ; cbn.
@@ -282,6 +285,8 @@ Section ConversionSound.
     eintros ?%funrect_graph.
     2: eassumption.
     all: now cbn in *.
+    Unshelve.
+    all: easy.
   Qed.
 
 End ConversionSound.
@@ -305,6 +310,7 @@ Section TypingSound.
 
   #[universes(polymorphic)]Definition typing_sound_type
     (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term)
+    (_ : True)
     (r : exn errors (tstate_output x.π1)) : Type :=
   match x, r with
   | _, (exception _) => True
@@ -322,7 +328,7 @@ Section TypingSound.
     all: intros ; simp typing_sound_type ; try easy ; cbn.
     all: repeat (
       match goal with
-      | |- True * _ => split ; [easy|..]
+      | |- { _ : True & _} => split ; [easy|..]
       | |- forall x : exception _ _, _ => intros [|] ; simp typing_sound_type ; try easy ; cbn
       | |- _ -> _ => simp typing_sound_type ; intros ?
       | |- context [match ?t with | _ => _ end] => destruct t ; cbn ; simp typing_sound_type ; try easy
@@ -342,15 +348,16 @@ Section TypingSound.
 
   Lemma implem_typing_sound x r:
     graph (typing conv) x r ->
-    typing_sound_type x r.
+    typing_sound_type x I r.
   Proof.
+    intros.
     eapply funrect_graph.
     1: now apply _implem_typing_sound.
     easy.
   Qed.
 
   Lemma _check_ctx_sound :
-    funrect (check_ctx conv) (fun _ => True) (fun Γ r => if r then [|- Γ] else True).
+    funrect (check_ctx conv) (fun _ => True) (fun Γ _ r => if r then [|- Γ] else True).
   Proof.
     intros ? _.
     funelim (check_ctx _ _) ; cbn.
@@ -369,6 +376,8 @@ Section TypingSound.
     eintros ?%funrect_graph.
     2: eapply _check_ctx_sound.
     all: easy.
+    Unshelve.
+    easy.
   Qed.
 
 End TypingSound.

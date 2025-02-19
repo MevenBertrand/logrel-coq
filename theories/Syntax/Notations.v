@@ -56,6 +56,11 @@ Notation "[ Γ |- t : A ]" := (typing Γ A t)
 Notation "[ Γ |-[ ta  ] t : A ]" :=
   (typing (ta := ta) Γ A t) (at level 0, ta, Γ, t, A at level 50) : typing_scope.
 
+(** Term or type t is well-formed at class A in Γ *)
+Reserved Notation "[ Γ |- t ∈ A ]" (at level 0, Γ, t, A at level 50).
+(** Term or type t is well-formed at class A in Γ *)
+Reserved Notation "[ Γ |-[ ta  ] t ∈ A ]" (at level 0, ta, Γ, t, A at level 50).
+
 (** The term t checks against type A in Γ *)
 Notation "[ Γ |- t ◃ A ]" := (check Γ A t)
   (at level 0, Γ, t, A at level 50, only parsing) : typing_scope.
@@ -82,6 +87,10 @@ Notation "[ Γ |- t ≅ t' : A ]" := (conv_term Γ A t t')
   (at level 0, Γ, t, t', A at level 50, only parsing) : typing_scope.
 Notation "[ Γ |-[ ta  ] t ≅ t' : A ]" := (conv_term (ta := ta) Γ A t t')
   (at level 0, ta, Γ, t, t', A at level 50) : typing_scope.
+(** Terms or types t and t' are convertible at class A in Γ *)
+Reserved Notation "[ Γ |- t ≅ u ∈ A ]" (at level 0, Γ, t, u, A at level 50).
+(** Terms or types t and t' are convertible at class A in Γ *)
+Reserved Notation "[ Γ |-[ ta  ] t ≅ u ∈ A ]" (at level 0, ta, Γ, t, u, A at level 50).
 (** Whnfs t and t' are convertible in Γ *)
 Notation "[ Γ |- t '≅h' t' : A ]" := (conv_term_red Γ A t t') (at level 0, Γ, t, t', A at level 50, only parsing) : typing_scope.
 Notation "[ Γ |-[ ta  ] t '≅h' t' : A ]" := (conv_term_red (ta := ta) Γ A t t') (at level 0, ta, Γ, t, t', A at level 50) : typing_scope.
@@ -121,9 +130,9 @@ Reserved Notation "[ t ⤳* t' ]" (at level 0, t, t' at level 50).
 
 (** Type A one-step weak-head reduces to type B in Γ *)
 Reserved Notation "[ Γ |- A ⤳ B ]" (at level 0, Γ, A, B at level 50).
-(** Term or type t one-step weak-head reduces to term or type type u as class A in Γ *)
+(** Term or type t one-step weak-head reduces to term or type type u at class A in Γ *)
 Reserved Notation "[ Γ |- t ⤳ u ∈ A ]" (at level 0, Γ, t, u, A at level 50).
-(** Term or type t multi-step weak-head reduces to term or type type u as class A in Γ *)
+(** Term or type t multi-step weak-head reduces to term or type type u at class A in Γ *)
 Reserved Notation "[ Γ |- t ⤳* u ∈ A ]" (at level 0, Γ, t, u, A at level 50).
 (** Term t one-step weak-head reduces to term u at type A in Γ *)
 Notation "[ Γ |- t ⤳ u : A ]" := (osred_tm Γ A t u) (at level 0, Γ, t, u, A at level 50, only parsing) : typing_scope.

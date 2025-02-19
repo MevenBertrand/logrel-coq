@@ -1,4 +1,4 @@
-(** * LogRel.Decidability.UntypedTermination: the implementation always terminates on well-typed inputs. *)
+(** * LogRel.Decidability.UntypedTermination: the untyped implementation always terminates on well-typed inputs. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel Require Import Utils Syntax.All DeclarativeTyping
@@ -79,23 +79,23 @@ Section AlgoStr.
 
   Lemma red_stack_str :
     funrect wh_red_stack (fun _ => True)
-      (fun '(t,π) u => forall (ρ : nat -> nat) t' π',
+      (fun '(t,π) _ u => forall (ρ : nat -> nat) t' π',
         t = t'⟨ρ⟩ -> π = List.map (dest_entry_rename ρ) π' -> ∑ u', graph wh_red_stack (t',π') u' × u = u'⟨ρ⟩).
   Proof.
     intros ? _ ; cbn.
     funelim (wh_red_stack _) ; cbn ; try easy.
     - destruct t1 ; cbn.
-      all: intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
+      all: intros ?? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
       all: eexists ; split ; [unfold graph ; simp wh_red_stack ; now econstructor|..].
       all: now bsimpl.
 
-    - intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
+    - intros ?? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
       eexists ; split.
       1: unfold graph ; simp wh_red_stack ; econstructor.
       reflexivity.
 
     - split ; [easy|..].
-      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ?? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       2: reflexivity.
       2:{
@@ -108,18 +108,18 @@ Section AlgoStr.
       }
       now bsimpl.
 
-    - intros ? [] ? [=] ? ; subst.
+    - intros ?? [] ? [=] ? ; subst.
       eexists ; split.
       1: unfold graph ; simp wh_red_stack ; econstructor.
       now rewrite zip_rename.
 
     - destruct n0 ; cbn.
-      all: intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
+      all: intros ?? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
       all: eexists ; split ; [unfold graph ; simp wh_red_stack ; now econstructor|..].
       all: now bsimpl.
 
     - split ; [easy|..].
-      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ?? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       2: reflexivity.
       2:{
@@ -133,7 +133,7 @@ Section AlgoStr.
       now bsimpl.
 
     - split ; [easy|..].
-      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ?? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -146,12 +146,12 @@ Section AlgoStr.
       }
       now bsimpl.
       
-    - intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
+    - intros ?? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
       eexists ; split ; [unfold graph ; simp wh_red_stack ; now econstructor|..].
       now bsimpl.
 
     - split ; [easy|..].
-      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ?? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -165,7 +165,7 @@ Section AlgoStr.
       now bsimpl.
 
     - split ; [easy|..].
-      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ?? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -178,12 +178,12 @@ Section AlgoStr.
       }
       now bsimpl.
 
-    - intros ? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
+    - intros ?? [] ? [=] ->%eq_sym%List.map_eq_nil ; subst.
       eexists ; split ; [unfold graph ; simp wh_red_stack ; now econstructor|..].
       now bsimpl.
  
     - split ; [easy|..].
-      intros * ? IH ? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
+      intros * ? IH ?? [] ? [=] ([]&?&[? [=]])%eq_sym%map_eq_cons ; subst.
       edestruct IH as [? []].
       1: reflexivity.
       2:{
@@ -198,7 +198,7 @@ Section AlgoStr.
 
     - split ; [easy|..].
       destruct s.
-      all: intros * ? IH ? [] ? [=] ? ; subst.
+      all: intros * ? IH ?? [] ? [=] ? ; subst.
       all: edestruct IH as [? []] ; [reflexivity|..] ; [shelve|..].
       all: subst.
       all: eexists ; split ; [..|reflexivity].
@@ -210,20 +210,21 @@ Section AlgoStr.
   Qed.
 
   Corollary _wh_red_str :
-    funrect wh_red (fun _ => True) (fun t u => forall (ρ : nat -> nat) t',
+    funrect wh_red (fun _ => True) (fun t _ u => forall (ρ : nat -> nat) t',
       t = t'⟨ρ⟩ -> ∑ u', graph wh_red t' u' × u = u'⟨ρ⟩).
   Proof.
     intros ? _.
-    cbn ; intros ? H ρ t' ->.
+    cbn ; intros ? H ? ρ t' ->.
     eapply funrect_graph in H.
     2: apply red_stack_str.
-    2: easy.
     edestruct (H ρ t' nil) as [? []].
     1-2: reflexivity.
     eexists ; split ; tea.
     unfold graph.
     econstructor ; cbn ; tea.
     now constructor.
+    Unshelve.
+    now easy.
   Qed.
   
   Lemma wh_red_str (ρ : nat -> nat) t v :
@@ -233,10 +234,11 @@ Section AlgoStr.
     intros g.
     eapply funrect_graph in g.
     2: apply _wh_red_str.
-    2: easy.
     cbn in g.
     edestruct g as [? []].
     1: reflexivity.
+    now easy.
+    Unshelve.
     now easy.
   Qed.
 
@@ -337,7 +339,7 @@ Section AlgoStr.
               (destruct t' ; cbn in _eq ; try solve [congruence] ; inversion _eq ; subst ; clear _eq)
       | |- forall _ : _, _ => intros ?
       | |- True => trivial
-      | |- True * _ => split ; [trivial|..]
+      | |- {_ : True & _} => split ; [trivial|..]
       | |- graph _uconv (_, _, _) _ => unfold graph ; simp _uconv uconv_tm_red uconv_ne build_nf_view2 ; cbn
       | H : _ |- orec_graph ?f (?f ?t) ?r => simple eapply H ; [..|reflexivity|reflexivity]
       | |- orec_graph _ _ _ => cbn ; patch_rec_ret ; econstructor
@@ -347,7 +349,7 @@ Section AlgoStr.
 
   Lemma _uconv_str :
     funrect _uconv (fun _ => True)
-      (fun '(s,t,u) r => forall (ρ : nat -> nat) t' u', ssrfun.injective ρ ->
+      (fun '(s,t,u) _ r => forall (ρ : nat -> nat) t' u', ssrfun.injective ρ ->
         t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ -> graph _uconv (s,t',u') r).
   Proof.
     intros ? _ ; cbn.

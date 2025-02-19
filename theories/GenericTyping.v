@@ -107,6 +107,12 @@ Section RedDefinitions.
         by (now rewrite Heq).
   Qed.
 
+  Definition WellClass (Γ : context) (A : class) (t : term) :=
+    match A with
+      | istype => [Γ |- t]
+      | isterm A => [Γ |- t : A]
+    end.
+
   Record well_typed Γ t :=
   {
     well_typed_type : term ;
@@ -116,11 +122,19 @@ Section RedDefinitions.
   Record well_formed Γ t :=
   {
     well_formed_class : class ;
-    well_formed_typed :
-    match well_formed_class with
-    | istype => [Γ |- t]
-    | isterm A => [Γ |- t : A]
-    end
+    well_formed_typed : WellClass Γ well_formed_class t
+  }.
+
+  Definition ConvClass (Γ : context) (A : class) (t u : term) :=
+    match A with
+      | istype => [Γ |- t ≅ u]
+      | isterm A => [Γ |- t ≅ u : A]
+    end.
+
+  Record RedClosureClass (Γ : context) (A : class) (t u : term) := {
+    reddecl_typ : match A with istype => [Γ |- t] | isterm A => [Γ |- t : A] end;
+    reddecl_red : RedClosureAlg t u;
+    reddecl_conv : ConvClass Γ A t u ;
   }.
 
   Inductive isWfFun (Γ : context) (A B : term) : term -> Set :=
@@ -164,6 +178,10 @@ Notation "[ Γ '|-s' σ ≅ τ : A ]" := (ConvSubst Γ A σ τ) (only parsing) :
 Notation "[ Γ |-[ ta ']s' σ ≅ τ : A ]" := (ConvSubst (ta := ta) Γ A σ τ) : typing_scope.
 Notation "[ |- Γ ≅ Δ ]" := (ConvCtx Γ Δ) (only parsing) : typing_scope.
 Notation "[ |-[ ta  ] Γ ≅ Δ ]" := (ConvCtx (ta := ta) Γ Δ) : typing_scope.
+Notation "[ Γ |- t ∈ A ]" := (WellClass Γ A t) : typing_scope.
+Notation "[ Γ |-[ ta  ] t ∈ A ]" := (WellClass (ta := ta) Γ A t) : typing_scope.
+Notation "[ Γ |- t ≅ t' ∈ A ]" := (ConvClass Γ A t t') : typing_scope.
+Notation "[ Γ |-[ ta  ] t ≅ t' ∈ A ]" := (ConvClass (ta := ta) Γ A t t') : typing_scope.
 
 #[export] Hint Resolve
   Build_TypeRedWhnf Build_TermRedWhnf Build_TypeConvWf

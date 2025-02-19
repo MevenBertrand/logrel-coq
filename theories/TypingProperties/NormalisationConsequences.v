@@ -19,7 +19,7 @@ Theorem typing_acc_cored Γ t `{!Normalisation de} :
   well_formed Γ t ->
   Acc cored t.
 Proof.
-  intros [[] Hty].
+  intros [[] Hty] ; cbn in Hty.
   all: first [
     apply ty_norm in Hty as [wh red] |
     apply tm_norm in Hty as [wh red]].

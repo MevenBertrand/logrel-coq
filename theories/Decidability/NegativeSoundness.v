@@ -1,10 +1,9 @@
 (** * LogRel.Decidability.NegativeSoundness: implementation failure implies negation of typing. *)
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
-From LogRel Require Import Syntax.All GenericTyping DeclarativeTyping AlgorithmicTyping.
+From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping AlgorithmicTyping.
 From LogRel.TypingProperties Require Import PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj NeutralConvProperties.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
-From LogRel Require Import Utils.
 
 From LogRel.Decidability Require Import Functions Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
@@ -114,19 +113,6 @@ Section ConvSoundNeg.
   Context `{!TypingSubst de} `{!TypeConstructorsInj de}
     `{!TermConstructorsInj de} `{!ConvNeutralConvPos de}.
 
-  #[universes(polymorphic)]Definition conv_sound_type
-      (x : conv_full_dom)
-      (r : conv_full_cod x) : Type :=
-    match x, r with
-    | (ty_state;Γ;_;T;V), (exception _) => ~ [Γ |-[de] T ≅ V]
-    | (ty_red_state;Γ;_;T;V), (exception _) => ~ [Γ |-[de] T ≅ V]
-    | (tm_state;Γ;A;t;u), (exception _) => ~ [Γ |-[de] t ≅ u : A]
-    | (tm_red_state;Γ;A;t;u), (exception _) => ~ [Γ |-[de] t ≅ u : A]
-    | (ne_state;Γ;_;m;n), (exception _) => ~ ∑ T, [Γ |-[de] m ~ n : T]
-    | (ne_red_state;Γ;_;m;n), (exception _) => ~ ∑ T, ([Γ |-[de] m ~ n : T] × whnf T)
-    | _, success _ =>  True
-    end.
-
   #[universes(polymorphic)]Definition conv_sound_pre
     (x : conv_full_dom) : Type :=
   match x with
@@ -138,6 +124,19 @@ Section ConvSoundNeg.
   | (ne_red_state;Γ;_;m;n) => (whne m × whne n) × (well_typed (ta := de) Γ m × well_typed (ta := de) Γ n)
   end.
 
+  #[universes(polymorphic)]Definition conv_sound_type
+      (x : conv_full_dom)
+      (p : conv_sound_pre x)
+      (r : conv_full_cod x) : Type :=
+    match x, r with
+    | (ty_state;Γ;_;T;V), (exception _) => ~ [Γ |-[de] T ≅ V]
+    | (ty_red_state;Γ;_;T;V), (exception _) => ~ [Γ |-[de] T ≅ V]
+    | (tm_state;Γ;A;t;u), (exception _) => ~ [Γ |-[de] t ≅ u : A]
+    | (tm_red_state;Γ;A;t;u), (exception _) => ~ [Γ |-[de] t ≅ u : A]
+    | (ne_state;Γ;_;m;n), (exception _) => ~ ∑ T, [Γ |-[de] m ~ n : T]
+    | (ne_red_state;Γ;_;m;n), (exception _) => ~ ∑ T, ([Γ |-[de] m ~ n : T] × whnf T)
+    | _, success _ =>  True
+    end.
 
   Lemma _implem_conv_neg_sound :
     funrect _conv conv_sound_pre conv_sound_type.
@@ -159,7 +158,7 @@ Section ConvSoundNeg.
       split ; [split|..] ; tea.
       intros [|] _ Hnty ; cbn in *.
       1: easy.
-      intros Hty.
+      intros _ Hty.
       eapply Hnty.
       etransitivity.
       2: etransitivity ; tea.
@@ -170,45 +169,45 @@ Section ConvSoundNeg.
     - destruct pre as [_ _ [pre [[]]%typePiCongAlg_prem0%dup]%dup].
       split ; [easy|..].
       intros [|] Hty ? ; cbn.
-      2: now intros []%prod_ty_inj.
+      2: now intros _ []%prod_ty_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty ; cbn in * ; tea.
       eapply dup in pre as [pre ?%typePiCongAlg_prem1] ; tea.
       split ; [easy|..].
       intros [|] _ Hty' ; [easy|..].
-      intros []%prod_ty_inj.
+      intros _ []%prod_ty_inj.
       eapply Hty', stability1 ; eassumption.
 
     - destruct pre as [_ _ [pre [[]]%typeSigCongAlg_prem0%dup]%dup].
       split ; [easy|..].
       intros [|] Hty ? ; cbn in *.
-      2: now intros []%sig_ty_inj.
+      2: now intros _ []%sig_ty_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty ; tea.
       eapply dup in pre as [pre ?%typeSigCongAlg_prem1] ; tea.
       split ; [easy|..].
       intros [|] ? Hty' ; [easy|..].
-      now intros []%sig_ty_inj.
+      now intros _ []%sig_ty_inj.
     
     - destruct pre as [_ _ [pre [[]]%typeIdCongAlg_prem0%dup]%dup].
       split ; [easy|..].
       intros [|] Hty ? ; cbn.
-      2: now intros [? _]%id_ty_inj.
+      2: now intros _ [? _]%id_ty_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty ; tea.
       eapply dup in pre as [pre [[]]%typeIdCongAlg_prem1%dup] ; tea.
       split ; [easy|..].
       intros [|] Hty' ? ; cbn in *.
-      2: now intros []%id_ty_inj.
+      2: now intros _ []%id_ty_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty' ; tea.
       eapply dup in pre as [pre ?%typeIdCongAlg_prem2] ; tea.
       split ; [easy|..].
       intros [|] ? Hty'' ; cbn in * ; [easy|..].
-      now intros []%id_ty_inj.
+      now intros _ []%id_ty_inj.
 
     - eapply ty_view2_neutral_can in e as [].
       destruct pre as [?%not_can_whne ?%not_can_whne pre] ; tea.
       eapply dup in pre as [pre [[]]%typeNeuConvAlg_prem2%dup] ; tea.
       split ; [now split|..].
       intros [|] _ Hty ; cbn in * ; [easy|..].
-      unshelve eintros Hty'%ty_conv_inj.
+      unshelve eintros _ Hty'%ty_conv_inj.
       1-2: now econstructor.
       cbn in Hty'.
       unshelve eapply conv_neu_conv_p in Hty' ; eauto.
@@ -217,7 +216,7 @@ Section ConvSoundNeg.
     - destruct pre as [wt wu [Ht Hu]].
       eapply type_isType in Ht, Hu ; tea.
       unshelve eapply ty_mismatch_hd_view in e ; tea.
-      unshelve eintros H_view%ty_conv_inj ; tea.
+      unshelve eintros _ H_view%ty_conv_inj ; tea.
       rewrite e in H_view.
       eassumption.
 
@@ -225,7 +224,7 @@ Section ConvSoundNeg.
       eapply termConvRed_prem3 in pre as [[] Hpost3]%dup ; tea.
       split ; [split|..] ; tea.
       intros [|] _ Hnty ; cbn in * ; [easy|..].
-      intros Hty.
+      intros _ Hty.
       eapply Hnty.
       eapply TermConv ; refold.
       2: eapply RedConvTyC, subject_reduction_type ; eauto ; boundary.
@@ -239,12 +238,12 @@ Section ConvSoundNeg.
       destruct pre as [??? [pre [[]]%termPiCongAlg_prem0%dup]%dup].
       split ; [easy|..].
       intros [|] Hty ? ; cbn in *.
-      2:now intros []%prod_tm_inj.
+      2:now intros _ []%prod_tm_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty ; tea.
       eapply dup in pre as [pre ?%termPiCongAlg_prem1] ; tea.
       split ; [easy|..].
       intros [|] ? Hty' ; [easy|..].
-      intros []%prod_tm_inj.
+      intros _ []%prod_tm_inj.
       eapply Hty', stability1 ; tea.
       now econstructor.
       
@@ -252,28 +251,28 @@ Section ConvSoundNeg.
       destruct pre as [??? [pre [[]]%termSigCongAlg_prem0%dup]%dup].
       split ; [easy|..].
       intros [|] Hty ? ; cbn in *.
-      2:now intros []%sig_tm_inj.
+      2:now intros _ []%sig_tm_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty ; tea.
       eapply dup in pre as [pre ?%termSigCongAlg_prem1] ; tea.
       split ; [easy|..].
       intros [|] ? Hty' ; [easy|..].
-      now intros []%sig_tm_inj.
+      now intros _ []%sig_tm_inj.
 
     - destruct s.
       destruct pre as [??? [pre [[]]%termIdCongAlg_prem0%dup]%dup].
       split ; [easy|..].
       intros [|] Hty ? ; cbn in *.
-      2:now intros []%id_tm_inj.
+      2:now intros _ []%id_tm_inj.
       eapply implem_conv_graph, algo_conv_sound in Hty ; tea.
       eapply dup in pre as [pre [? []]%termIdCongAlg_prem1%dup] ; tea.
       split ; [easy|..].
       intros [|] Hty'%implem_conv_graph ? ; cbn in *.
-      2: now intros []%id_tm_inj.
+      2: now intros _ []%id_tm_inj.
       eapply dup in Hty' as [Hty' ?%algo_conv_sound] ; tea.
       eapply dup in pre as [pre ?%termIdCongAlg_prem2] ; tea.
       split ; [easy|..].
       intros [|] ? Hty'' ; cbn in * ; [easy|..].
-      now intros []%id_tm_inj.
+      now intros _ []%id_tm_inj.
 
     - destruct pre as [??? [pre [[]]%termNeuConvAlg_prem0%dup]%dup] ; tea.
       eapply whnf_view3_ty_neutral_can in e as [?%not_can_whne ?%not_can_whne] ; tea.
@@ -281,14 +280,14 @@ Section ConvSoundNeg.
       intros [|] ? Hty ; cbn ; [easy|..].
       
       destruct s.
-      unshelve eintros ?%conv_neu_conv_p ; eauto.
+      unshelve eintros _ ?%conv_neu_conv_p ; eauto.
       gen_typing.
 
     - destruct s.
       destruct pre as [_ wt wu [Ht Hu]].
       eapply wft_term, type_isType in Ht, Hu ; tea.
       unshelve eapply univ_mismatch_hd_view in e ; tea.
-      unshelve eintros H_view%univ_conv_inj ; tea.
+      unshelve eintros _ H_view%univ_conv_inj ; tea.
       rewrite e in H_view.
       eassumption.
 
@@ -296,7 +295,7 @@ Section ConvSoundNeg.
       split ; [easy|..].
       intros [|] ? Hty ; cbn ; [easy|..].
 
-      intros Hty'.
+      intros _ Hty'.
       eapply Hty.
       eapply convtm_meta_conv.
       3: reflexivity.
@@ -319,7 +318,7 @@ Section ConvSoundNeg.
     - destruct pre as [??? [pre [[]]%termSuccCongAlg_prem0%dup]%dup] ; tea.
       split ; [easy|..].
       intros [|] ? Hty ; cbn in * ; [easy|..].
-      unshelve eintros ?%nat_conv_inj.
+      unshelve eintros _ ?%nat_conv_inj.
       1-2: now constructor.
       cbn in *.
       eauto.
@@ -333,10 +332,10 @@ Section ConvSoundNeg.
         split ; [easy|..].
         intros [|].
         1: now econstructor.
-        intros ? Hnty Hty.
+        intros ? Hnty ? Hty.
         eapply Hnty.
         now econstructor.
-      + intros ? Hnty Hty.
+      + intros ? Hnty ? Hty.
         eapply Hnty.
         now econstructor.
     
@@ -345,7 +344,7 @@ Section ConvSoundNeg.
       split.
       1: split ; tea ; eauto using not_can_whne.
       intros [|] ; cbn ; [easy|..].
-      intros ? Hnty Hty.
+      intros ? Hnty ? Hty.
       eapply not_can_whne in Wn, Wn' ; eauto.
       eapply Hnty.
       exists A.
@@ -355,10 +354,10 @@ Section ConvSoundNeg.
       eapply type_isType in w.
       2: boundary.
       unshelve eapply mismatch_hd_view in e as [(?&?&[->])|(?&?&?&?&?&[->])] ; tea.
-      + unshelve eintros ?%nat_conv_inj ; tea.
+      + unshelve eintros _ ?%nat_conv_inj ; tea.
         now rewrite e in H.
 
-      + unshelve eintros ?%id_conv_inj ; tea.
+      + unshelve eintros _ ?%id_conv_inj ; tea.
         now rewrite e in H.
 
     - destruct (Nat.eqb_spec n n') ; cbn.
@@ -367,7 +366,7 @@ Section ConvSoundNeg.
         1: econstructor.
         all: eassumption.
         
-      + intros [? (?&[[= ->]])%neuConvGen].
+      + intros _ [? (?&[[= ->]])%neuConvGen].
         eauto.
       
     - destruct pre as [[wn wn'] [pre [[] ]%neuAppCongAlg_prem0%dup]%dup] ; eauto.
@@ -384,13 +383,13 @@ Section ConvSoundNeg.
         split ; [eauto|..].
         intros [|] ? ; cbn in * ; [easy|..].
 
-        intros Hneg [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+        intros Hneg ? [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
         apply Hneg.
         eapply TermConv ; refold ; tea.
         eapply prod_ty_inj, Hfu.
         eauto using conv_neu_sound with boundary.
 
-      + intros ? Hneg [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
+      + intros ? Hneg ? [? (?&?&?&?&[[=]])%neuConvGen] ; subst.
         apply Hneg.
         eexists ; split ; eauto.
         now constructor.
@@ -423,7 +422,7 @@ Section ConvSoundNeg.
       intros [|] ; cbn ; [easy|..].
 
       Unshelve.
-      all: intros ? Hneg [? (?&?&?&?&[[= <- <- <-]])%neuConvGen] ; subst.
+      all: intros ? Hneg ? [? (?&?&?&?&[[= <- <- <-]])%neuConvGen] ; subst.
       all: apply Hneg ; eauto.
       eexists ; split ; gen_typing.
     
@@ -443,7 +442,7 @@ Section ConvSoundNeg.
       intros [|] ; cbn ; [easy|..].
 
       Unshelve.
-      all: intros ? Hneg [? (?&?&[[=]])%neuConvGen] ; subst.
+      all: intros ? Hneg ? [? (?&?&[[=]])%neuConvGen] ; subst.
       all: apply Hneg ; eauto.
       eexists ; split ; gen_typing.
     
@@ -455,9 +454,9 @@ Section ConvSoundNeg.
       + intros [Hpost]%implem_conv_graph ; tea.
         eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
         eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
-        now destruct T.
+        now destruct T ; cbn.
 
-      + intros ? Hneg [? (?&?&?&[[= <-]])%neuConvGen].
+      + intros ? Hneg ? [? (?&?&?&[[= <-]])%neuConvGen].
         eapply Hneg.
         eexists ; split ; gen_typing.
     
@@ -469,9 +468,9 @@ Section ConvSoundNeg.
       + intros [Hpost]%implem_conv_graph ; tea.
         eapply algo_conv_sound in Hpost as [Hconv Hfu ?] ; tea.
         eapply dup in pre as [pre [[? (?&(?&?&->&Hp)&?)%termGen'] _]].
-        now destruct T.
+        now destruct T ; cbn.
 
-      + intros ? Hneg [? (?&?&?&[[= <-]])%neuConvGen].
+      + intros ? Hneg ? [? (?&?&?&[[= <-]])%neuConvGen].
         eapply Hneg.
         eexists ; split ; gen_typing.
     
@@ -499,12 +498,12 @@ Section ConvSoundNeg.
       intros [|] ; cbn ; [easy|..].
 
       Unshelve.
-      all: intros ? Hneg [? (?&?&?&?&?&?&[[= <- <- <-]])%neuConvGen] ; subst.
+      all: intros ? Hneg ?[? (?&?&?&?&?&?&[[= <- <- <-]])%neuConvGen] ; subst.
       all: apply Hneg ; eauto.
       + eexists ; split ; gen_typing.
-      + now erewrite <- !wk1_ren_on. 
+      + now erewrite <- !wk1_ren_on.
 
-    - intros [? ?%neuConvGen].
+    - intros ? [? ?%neuConvGen].
       destruct t ; cbn in * ; try solve [easy].
       all: prod_hyp_splitter ; subst.
       all: simp build_ne_view2 in e ; cbn in *.
@@ -512,7 +511,7 @@ Section ConvSoundNeg.
     
     - split ; [easy|..].
       intros [|] ? Hty ; cbn ; [easy|..].
-      intros [? []].
+      intros ? [? []].
       now eapply Hty.
 
   Qed.
@@ -525,7 +524,7 @@ Section ConvSoundNeg.
     intros Hgraph **.
     eapply (funrect_graph _
       (fun '(Γ',T',V') => [Γ' |-[de] T'] × [Γ' |-[de] V'])
-      (fun '(Γ',T',V') r => match r with | success _ => True | exception _ => ~ [Γ' |-[de] T' ≅ V'] end)) in Hgraph ; try easy.
+      (fun '(Γ',T',V') _ r => match r with | success _ => True | exception _ => ~ [Γ' |-[de] T' ≅ V'] end)) in Hgraph ; try easy.
     
     intros (?&?&?) [].
     funelim (tconv _) ; cbn.
@@ -534,6 +533,8 @@ Section ConvSoundNeg.
     eintros ?%funrect_graph.
     2: now apply _implem_conv_neg_sound.
     all: now cbn in *.
+    Unshelve.
+    all: cbn ; easy.
   Qed.
 
 End ConvSoundNeg.
@@ -557,17 +558,6 @@ Section TypingSoundNeg.
     [Γ |-[de] T] -> [Γ |-[de] V] ->
     ~ [Γ |-[de] T ≅ V].
 
-  #[universes(polymorphic)]Definition typing_sound_neg_type
-    (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term)
-    (r : exn errors (tstate_output x.π1)) : Type :=
-  match x, r with
-  | _, (success _) => True
-  | (wf_ty_state;Γ;_;T), (exception _) => ~ [Γ |-[de] T]
-  | (inf_state;Γ;_;t), (exception _) => forall T, ~ [Γ |-[de] t : T]
-  | (inf_red_state;Γ;_;t), (exception _) => forall T, ~ [Γ |-[de] t : T]
-  | (check_state;Γ;T;t), (exception _) => ~ [Γ |-[de] t : T]
-  end.
-
   #[universes(polymorphic)]Definition typing_sound_neg_pre
     (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term) : Type :=
   match x with
@@ -575,6 +565,18 @@ Section TypingSoundNeg.
   | (inf_state;Γ;_;t) => [|-[de] Γ]
   | (inf_red_state;Γ;_;t) => [|-[de] Γ]
   | (check_state;Γ;T;t) => [Γ |-[de] T]
+  end.
+
+  #[universes(polymorphic)]Definition typing_sound_neg_type
+    (x : ∑ (c : typing_state) (_ : context) (_ : tstate_input c), term)
+    (_ : typing_sound_neg_pre x)
+    (r : exn errors (tstate_output x.π1)) : Type :=
+  match x, r with
+  | _, (success _) => True
+  | (wf_ty_state;Γ;_;T), (exception _) => ~ [Γ |-[de] T]
+  | (inf_state;Γ;_;t), (exception _) => forall T, ~ [Γ |-[de] t : T]
+  | (inf_red_state;Γ;_;t), (exception _) => forall T, ~ [Γ |-[de] t : T]
+  | (check_state;Γ;T;t), (exception _) => ~ [Γ |-[de] t : T]
   end.
 
   Lemma term_univ_can Γ t :
@@ -610,53 +612,53 @@ Section TypingSoundNeg.
     1: funelim (typing_inf _ _) ; cbn ; inversion eqargs ; subst ; clear eqargs.
     all: try trivial.
 
-    - intros ? (?&[]&?)%termGen'.
+    - intros ?? (?&[]&?)%termGen'.
     - split.
       1: boundary.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
       
       intros Hty%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn.
       2: shelve.
-      all: eintros ? (?&[-> ?%infer_U]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[-> ?%infer_U]&?)%termGen' ; tea ; congruence.
       Unshelve.
       destruct s.
       split.
       1: econstructor ; [..|eapply algo_typing_sound_generic in Hty] ; gen_typing.
 
       intros [|].
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
       intros Hty'%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn ; try easy.
-      all: eintros ? (?&[-> ? ?%infer_U]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[-> ? ?%infer_U]&?)%termGen' ; tea ; congruence.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&(?&[])&?)%termGen' ; eauto.
+      2: intros _ IH ?? (?&(?&[])&?)%termGen' ; eauto.
 
       intros HA%implem_typing_sound _ ; cbn in * ; tea.
       split.
       1: econstructor ; now eapply algo_typing_sound_generic in HA.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&(?&[])&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&(?&[])&?)%termGen' ; now eapply IH.
       easy.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&(?&?&[])&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&(?&?&[])&?)%termGen' ; now eapply IH.
 
       intros Hf%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn.
       3: shelve.
-      all: eintros ? (?&(?&?&[? (?&?&?)%infer_prod])&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&(?&?&[? (?&?&?)%infer_prod])&?)%termGen' ; tea ; congruence.
       Unshelve.
       split.
       1: eapply prod_ty_inv ; eapply algo_typing_sound_generic in Hf ; boundary.
 
       intros [|] ; cbn ; eauto.
-      intros _ IH ? (?&(?&?&[])&?)%termGen'.
+      intros _ IH ?? (?&(?&?&[])&?)%termGen'.
       eapply algo_infer_unique in Hf ; tea.
       eapply prod_ty_inj in Hf as [].
       eapply IH ; gen_typing.
@@ -664,27 +666,27 @@ Section TypingSoundNeg.
     - split.
       1: eassumption.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
       
       intros ?%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn ; try easy.
-      all: eintros ? (?&[? ?%infer_nat]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[? ?%infer_nat]&?)%termGen' ; tea ; congruence.
 
     - split ; tea.
       intros [|] ; cbn.
 
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; eauto.
 
       intros ?%implem_typing_sound _ ; tea ; cbn in *.
       destruct x ; cbn.
       6: shelve.
-      all: eintros ? (?&[???? ?%infer_nat]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[???? ?%infer_nat]&?)%termGen' ; tea ; congruence.
       Unshelve.
 
       assert [|-[de] Γ0,,tNat] by gen_typing.
       split ; tea.
       intros [|].
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; eauto.
 
       intros HP%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in HP ; tea.
@@ -692,128 +694,128 @@ Section TypingSoundNeg.
       1: now eapply typing_subst1 ; [econstructor|..].
 
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; eauto.
       intros _ _ ; tea ; cbn in *.
       split.
       1: now eapply elimSuccHypTy_ty.
       
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; eauto.
       easy.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; eauto.
 
       intros ?%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn.
       10: shelve.
-      all: eintros ? (?&[?? ?%infer_empty]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[?? ?%infer_empty]&?)%termGen' ; tea ; congruence.
       Unshelve.
 
       assert [|-[de] Γ0,,tEmpty] by gen_typing.
       split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; eauto.
       easy.
     
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
       
       intros Hty%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn.
       2: shelve.
-      all: eintros ? (?&[-> ?%infer_U]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[-> ?%infer_U]&?)%termGen' ; tea ; congruence.
       Unshelve.
       destruct s.
       split.
       1: econstructor ; [..|eapply algo_typing_sound_generic in Hty] ; gen_typing.
 
       intros [|].
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
       intros Hty'%implem_typing_sound _ ; cbn in * ; tea.
       destruct x ; cbn ; try easy.
-      all: eintros ? (?&[-> ? ?%infer_U]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[-> ? ?%infer_U]&?)%termGen' ; tea ; congruence.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
       intros HA%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in HA ; tea.
       split ; [gen_typing|..].
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
       intros HB%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in HB ; tea ; [..|gen_typing].
       split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
       intros Ha%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in Ha ; tea.
       split.
       1: now eapply typing_subst1.
       intros [|] ; cbn ; try easy.
-      intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&(?&?&[])&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&(?&?&[])&?)%termGen' ; now eapply IH.
       intros ?%implem_typing_sound _ ; tea ; cbn in *.
       destruct x ; cbn ; try easy.
-      all: eintros ? (?&(?&?&[? (?&?&?)%infer_sig])&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&(?&?&[? (?&?&?)%infer_sig])&?)%termGen' ; tea ; congruence.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&(?&?&[])&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&(?&?&[])&?)%termGen' ; now eapply IH.
       intros ?%implem_typing_sound _ ; tea ; cbn in *.
       destruct x ; cbn ; try easy.
-      all: eintros ? (?&(?&?&[? (?&?&?)%infer_sig])&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&(?&?&[? (?&?&?)%infer_sig])&?)%termGen' ; tea ; congruence.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
       
       intros HA%implem_typing_sound _ ; tea ; cbn in *.
       destruct x0 ; cbn.
       2: shelve.
-      all: eintros ? (?&[? ?%infer_U]&?)%termGen' ; tea ; congruence.
+      all: eintros ?? (?&[? ?%infer_U]&?)%termGen' ; tea ; congruence.
       Unshelve.
       eapply algo_typing_sound_generic in HA ; tea.
       destruct s.
 
       split ; [now constructor|..].
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
 
       intros _ _.
       split ; [now constructor|..].
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eapply IH.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eapply IH.
       easy.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ ?? (?&[]&?)%termGen' ; eauto.
+      2: intros _ ??? (?&[]&?)%termGen' ; eauto.
       intros HA%implem_typing_sound _; tea ; cbn in *.
       eapply algo_typing_sound_generic in HA ; tea.
       split ; tea.
       intros [|] _ ; cbn ; try easy.
-      intros ?? (?&[]&?)%termGen' ; eauto.
+      intros ??? (?&[]&?)%termGen' ; eauto.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eauto.
 
       intros HA%implem_typing_sound _ ; cbn in * ; tea.
       eapply algo_typing_sound_generic in HA ; tea.
       split ; tea.
       intros [|].
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eauto.
 
       intros Hx%implem_typing_sound _ ; cbn in * ; tea.
       eapply algo_typing_sound_generic in Hx ; tea.
@@ -821,7 +823,7 @@ Section TypingSoundNeg.
         (erewrite <- !wk1_ren_on ; now eapply idElimMotiveCtx).
       split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; eapply IH ; now repeat erewrite <- !wk1_ren_on.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; eapply IH ; now repeat erewrite <- !wk1_ren_on.
 
       intros HP%implem_typing_sound _ ; cbn in * ; tea.
       eapply algo_typing_sound_generic in HP ; tea.
@@ -829,28 +831,28 @@ Section TypingSoundNeg.
       split.
       1: eapply typing_subst2 ; tea ; eapply typing_meta_conv ; [now econstructor|..] ; cbn ; now bsimpl.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eauto.
 
       intros _ _ ; cbn in * ; tea.
       split ; tea.
       intros [|] ; cbn.
-      2: intros _ IH ? (?&[]&?)%termGen' ; now eauto.
+      2: intros _ IH ?? (?&[]&?)%termGen' ; now eauto.
 
       intros Hy%implem_typing_sound _ ; cbn in * ; tea.
       eapply algo_typing_sound_generic in Hy ; tea.
       split.
       1: gen_typing.
       intros [|] ; cbn ; try easy.
-      intros _ IH ? (?&[]&?)%termGen' ; now eauto.
+      intros _ IH ?? (?&[]&?)%termGen' ; now eauto.
 
-    - intros ? (?&(?&[?? i])&?)%termGen' ; subst.
+    - intros ?? (?&(?&[?? i])&?)%termGen' ; subst.
       eapply ctx_access_complete in i.
       congruence.
 
     - split ; [boundary|..].
       intros [] ; cbn ; try easy.
       intros Hinf%implem_typing_sound ? [|] ; cbn in * ; try easy.
-      intros Hconv%implem_neg_sound Hty' ; tea.
+      intros Hconv%implem_neg_sound Hty' ? ; tea.
       2: eapply algo_typing_sound_generic in Hinf ; tea ; boundary.
       eapply Hconv ; tea.
       eapply algo_infer_unique in Hinf ; tea.
@@ -861,49 +863,49 @@ Section TypingSoundNeg.
 
     - split ; tea.
       intros [|] ; cbn.
-      2: intros ?? []%prod_ty_inv ; eauto.
+      2: intros ??? []%prod_ty_inv ; eauto.
       intros HA%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in HA ; tea.
       split.
       1: gen_typing.
       intros [|] ; cbn ; try easy.
-      intros ?? []%prod_ty_inv ; eauto.
+      intros ??? []%prod_ty_inv ; eauto.
   
     - split ; tea.
       intros [|] ; cbn.
-      2: intros ?? []%sig_ty_inv ; eauto.
+      2: intros ??? []%sig_ty_inv ; eauto.
       intros HA%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in HA ; tea.
       split.
       1: gen_typing.
       intros [|] ; cbn ; try easy.
-      intros ?? []%sig_ty_inv ; eauto.
+      intros ??? []%sig_ty_inv ; eauto.
     
     - split ; tea.
       intros [|] ; cbn.
-      2: intros ?? []%id_ty_inv ; eauto.
+      2: intros ??? []%id_ty_inv ; eauto.
       intros HA%implem_typing_sound _ ; tea ; cbn in *.
       eapply algo_typing_sound_generic in HA ; tea.
       split ; tea.
       intros [|] ; cbn.
-      2: intros ?? []%id_ty_inv ; eauto.
+      2: intros ??? []%id_ty_inv ; eauto.
       intros _ _.
       split ; tea.
       intros [|] ; cbn.
-      2: intros ?? []%id_ty_inv ; eauto.
+      2: intros ??? []%id_ty_inv ; eauto.
       easy.
 
     - split ; tea.
       intros [|] ; cbn.
       + intros ?%implem_typing_sound _ ; tea ; cbn in *.
         destruct x ; cbn ; try easy.
-        all: eintros ?%infer_U_ty ; tea ; congruence.
+        all: eintros ? ?%infer_U_ty ; tea ; congruence.
       + destruct n as [|? []] ; cbn.
-        all: intros _ IH Hty.
+        all: intros _ IH ? Hty.
         all: inversion Hty ; subst ; refold.
         all: now eapply IH.
 
-    - intros Hty.
+    - intros ? Hty.
       inversion Hty ; subst ; refold.
       1-6: now inversion He.
       eapply build_ty_view1_anomaly in He as [].
@@ -913,8 +915,8 @@ Section TypingSoundNeg.
 
   Lemma implem_typing_sound_neg x r:
     graph (typing conv) x r ->
-    typing_sound_neg_pre x ->
-    typing_sound_neg_type x r.
+    forall (p : typing_sound_neg_pre x),
+    typing_sound_neg_type x p r.
   Proof.
     intros.
     eapply funrect_graph.
@@ -923,7 +925,7 @@ Section TypingSoundNeg.
   Qed.
 
   Lemma _check_ctx_sound_neg :
-    funrect (check_ctx conv) (fun _ => True) (fun Γ r => if r then True else ~[|-[de] Γ]).
+    funrect (check_ctx conv) (fun _ => True) (fun Γ _ r => if r then True else ~[|-[de] Γ]).
   Proof.
     intros ? _.
     funelim (check_ctx _ _) ; cbn.
@@ -931,13 +933,15 @@ Section TypingSoundNeg.
     - split ; [easy|].
       intros [[]|] ; cbn ; try easy.
       + intros ?%check_ctx_sound%algo_context_sound ? ; eauto.
-        intros [] Hty%implem_typing_sound_neg ;
+        eintros [] Hty%implem_typing_sound_neg ;
           cbn in * ; try easy.
-        intros Hctx ; inversion Hctx ; subst ; refold.
+        intros ? Hctx ; inversion Hctx ; subst ; refold.
         easy.
-      + intros _ ? Hctx.
+      + intros _ ?? Hctx.
         inversion Hctx ; subst ; refold.
         easy.
+    Unshelve.
+    all: easy.
   Qed.
      
   Lemma check_ctx_sound_neg Γ e :
@@ -947,6 +951,8 @@ Section TypingSoundNeg.
     eintros ?%funrect_graph.
     2: eapply _check_ctx_sound_neg ; cbn.
     all: easy.
+    Unshelve.
+    easy.
   Qed.
 
 End TypingSoundNeg.
