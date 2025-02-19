@@ -13,41 +13,6 @@ Import DeclarativeTypingProperties AlgorithmicTypedConvData.
 
 Set Universe Polymorphism.
 
-Section UConvSound.
-  Context `{!TypingSubst de} `{!TypeConstructorsInj de} `{!TypeReductionComplete de}
-    `{!ConvImplies de al} `{!Normalisation de}.
-
-  Lemma uconv_sound_decl :
-    UAlgoConvInductionConcl
-      (fun t u => 
-        (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[de] t ≅ u]) ×
-        (forall Γ A, [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[de] t ≅ u : A]))
-
-      (fun t u =>
-        (forall Γ, [Γ |-[de] t] × [Γ |-[de] u] -> [Γ |-[de] t ≅ u]) ×
-        (forall Γ A, isType A -> [Γ |-[de] t : A] × [Γ |-[de] u : A] -> [Γ |-[de] t ≅ u : A]))
-
-      (fun t u =>
-        forall Γ, well_typed Γ t × well_typed Γ u ->
-        ∑ A'', [Γ |-[de] t ≅ u : A'']).
-  Proof.
-    split ; [..|split].
-    all: intros t u Hconv.
-    1-2: split.
-    - intros * [].
-      eapply uconv_tconv in Hconv as [?%algo_conv_sound _]; eauto.
-    - intros * [].
-      eapply uconv_tconv in Hconv as [_ ?%algo_conv_sound]; eauto.
-    - intros * [].
-      eapply uconv_tconv in Hconv as [?%algo_conv_sound _]; eauto. 
-    - intros * ? [].
-      eapply uconv_tconv in Hconv as [_ ?%algo_conv_sound]; eauto.
-    - intros * [].
-      eapply uconv_tconv in Hconv as [? []%algo_conv_sound] ; eauto.
-  Qed.
-
-End UConvSound.
-
 Section AlgoStr.
 
   Definition dest_entry_rename (ρ : nat -> nat) (d : dest_entry) : dest_entry :=
@@ -630,30 +595,38 @@ Proof.
     eapply fun_isFun in w, w' ; eauto.
     destruct w, w'.
 
-    + eapply LamCongUAlg_prem0 in Hconcl as (?&?&[[= <- <-]%red_whnf]).
-      2: now constructor.
+    + eapply LamCongUAlg_prem0 in Hconcl as (?&[?? []%prod_ty_inj]).
       cbn ; split ; [..|easy].
       eapply uconv_expand ; [..|eapply IH ; split] ; eauto.
-      all: try solve [now eapply typing_eta'].
-      2: reflexivity.
-      now eapply redalg_one_step, eta_expand_beta.
+      * eapply typing_eta'.
+        econstructor ; tea.
+        now boundary.
+      * eapply redalg_one_step, eta_expand_beta.
+      * reflexivity.
+      * now eapply typing_eta'.
+      * econstructor ; tea.
+        now eapply stability1.
 
-    + eapply LamNeUAlg_prem0 in Hconcl as (?&?&[[= <- <-]%red_whnf]).
-      2: now constructor.
+    + eapply LamNeUAlg_prem0 in Hconcl as (?&[?? []%prod_ty_inj]).
       cbn.
       unshelve (erewrite whne_nf_view1) ; tea ; cbn.
       split ; [..|easy].
       eapply uconv_expand ; [..|eapply IH ; split] ; eauto.
       all: try solve [now eapply typing_eta'].
+      * eapply typing_eta'.
+        econstructor ; tea.
+        now boundary.  
       * eapply redalg_one_step, eta_expand_beta.
       * reflexivity.
 
-    + eapply NeLamUAlg_prem0 in Hconcl as (?&?&[[= <- <-]%red_whnf]).
-      2: now constructor.
+    + eapply NeLamUAlg_prem0 in Hconcl as (?&[?? []%prod_ty_inj]).
       cbn.
       unshelve (erewrite whne_nf_view1) ; tea ; cbn.
       split ; [..|easy].
       eapply IH ; split ; eauto.
+      1: now eapply typing_eta'.
+      econstructor ; tea.
+      now eapply stability1.
 
     + unshelve erewrite whne_nf_view1 ; tea ; cbn.
       unshelve erewrite whne_nf_view1 ; tea ; cbn.
@@ -683,7 +656,7 @@ Proof.
     destruct w, w'.
 
     + cbn.
-      eapply PairCongUAlg_prem0 in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
+      eapply PairCongUAlg_prem0_red in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
       2: now constructor.
       cbn.
       split.
@@ -695,14 +668,14 @@ Proof.
 
       intros [] ; cbn ; [|easy].
       intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
-      eapply PairCongUAlg_prem1 in Hpost1 as [] ; eauto.
+      eapply PairCongUAlg_prem1_red in Hpost1 as [] ; eauto.
       split ; [..|easy].
       eapply uconv_expand, IHs ; try reflexivity ; [..|split] ; eauto.
       2: eapply redalg_one_step ; econstructor.
       all: now econstructor.
 
     + cbn.
-      eapply PairNeUAlg_prem0 in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
+      eapply PairNeUAlg_prem0_red in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
       2: now constructor.
       unshelve erewrite whne_nf_view1 ; tea ; cbn.
       split.
@@ -714,14 +687,14 @@ Proof.
 
       intros [] ; cbn ; [|easy].
       intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
-      eapply PairNeUAlg_prem1 in Hpost1 as [] ; eauto.
+      eapply PairNeUAlg_prem1_red in Hpost1 as [] ; eauto.
       split ; [..|easy].
       eapply uconv_expand, IHs ; try reflexivity ; [..|split] ; eauto.
       2: eapply redalg_one_step ; econstructor.
       all: now econstructor.
 
     + cbn.
-      eapply NePairUAlg_prem0 in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
+      eapply NePairUAlg_prem0_red in Hconcl as (?&?&[[=<-<-]%red_whnf [[]]%dup]).
       2: now constructor.
       unshelve erewrite whne_nf_view1 ; tea ; cbn.
       split.
@@ -729,7 +702,7 @@ Proof.
 
       intros [] ; cbn ; [|easy].
       intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
-      eapply NePairUAlg_prem1 in Hpost1 as [] ; eauto.
+      eapply NePairUAlg_prem1_red in Hpost1 as [] ; eauto.
       reflexivity.
 
     + cbn.
