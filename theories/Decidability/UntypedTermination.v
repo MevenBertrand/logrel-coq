@@ -438,7 +438,7 @@ Import DeclarativeTypingProperties.
 Section ConversionTerminates.
 
 Context `{!TypingSubst de} `{!TypeConstructorsInj de} `{!TypeReductionComplete de}
-    `{!ConvImplies de al} `{!Normalisation de}.
+    `{!ConvImplies de al} `{!Normalisation de} `{! DeepNormalisation de}.
 
 
   Lemma uconv_expand_ne_eta n n' :
@@ -528,25 +528,25 @@ Context `{!TypingSubst de} `{!TypeConstructorsInj de} `{!TypeReductionComplete d
     now eexists.
 Qed.
 
-Let PTyEq (Γ : context) (A B : term) :=
+Let PNormTy (Γ : context) (A : term) :=
   forall B',
   [Γ |-[de] A] × [Γ |-[de] B'] ->
   domain _uconv (tm_state,A,B').
-Let PTyRedEq (Γ : context) (A B : term) :=
+Let PNfTy (Γ : context) (A : term) :=
   forall B',
   isType B' ->
   [Γ |-[de] A] × [Γ |-[de] B'] ->
   domain _uconv (tm_red_state,A,B').
-Let PNeEq (Γ : context) (A t u : term) :=
+Let PNeu (Γ : context) (A t : term) :=
   forall u',
   whne u' ->
   well_typed (ta := de) Γ t × well_typed (ta := de) Γ u' ->
   domain _uconv (ne_state,t,u').
-Let PTmEq (Γ : context) (A t u : term) :=
+Let PNormTm (Γ : context) (A t : term) :=
   forall u',
   [Γ |-[de] t : A] × [Γ |-[de] u' : A] ->
   domain _uconv (tm_state,t,u').
-Let PTmRedEq (Γ : context) (A t u : term) :=
+Let PNfTm (Γ : context) (A t : term) :=
   forall u',
   whnf u' ->
   [Γ |-[de] t : A] × [Γ |-[de] u' : A] ->
@@ -559,197 +559,12 @@ Ltac split_tm :=
   |..].
 
 Theorem _uconv_terminates :
-  AlgoConvInductionConcl PTyEq PTyRedEq PNeEq PNeEq PTmEq PTmRedEq.
+  DeepNormInductionConcl PNormTm PNfTm PNeu PNeu PNormTy PNfTy.
 Proof.
-  subst PTyEq PTyRedEq PNeEq PTmEq PTmRedEq.
-  apply AlgoConvInduction.
+  subst PNormTm PNfTm PNeu PNormTy PNfTy.
+  apply DeepNormInduction.
 
-  - intros * ?? HA IHA * [? Hconcl]%dup.
-    apply compute_domain.
-    simp _conv conv_ty.
-    cbn.
-    split.
-    1: eapply wh_red_complete ; [now exists istype|now eapply ty_norm].
-    intros A'' []%red_sound.
-    split.
-    1: eapply wh_red_complete ; [now exists istype|now eapply ty_norm].
-    intros B'' []%red_sound.
-    replace A'' with A'
-      by (eapply whred_det ; tea ; eapply algo_conv_wh in HA as [] ; gen_typing).
-
-    eapply typeConvRed_prem2, IHA in Hconcl as [] ; eauto.
-    2: now eapply type_isType.
-    split ; [now eexists|..].
-    now intros [] ; cbn.
-    
-  - intros * ???? * wB' [Hconcl]%dup.
-    apply compute_domain.
-    simp _uconv uconv_tm_red.
-    destruct wB'.
-    all: simp build_nf_view2 ; cbn ; try easy.
-    2: now unshelve erewrite whne_nf_view1 ; cbn.
-    
-    eapply typePiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [Hpost0 _]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply typePiCongAlg_prem1 in Hpost0 ; eauto.
-
-  - intros * wB' ?.
-    apply compute_domain.
-    simp _uconv uconv_tm_red.
-    destruct wB'.
-    all: simp build_nf_view2 ; cbn ; try easy.
-    now unshelve erewrite whne_nf_view1 ; cbn.
-
-  - intros * wB' ?.
-    apply compute_domain.
-    simp _uconv uconv_tm_red.
-    destruct wB'.
-    all: simp build_nf_view2 ; cbn ; try easy.
-    now unshelve erewrite whne_nf_view1 ; cbn.
-  
-  - intros * wB' ?.
-    apply compute_domain.
-    simp _uconv uconv_tm_red.
-    destruct wB'.
-    all: simp build_nf_view2 ; cbn ; try easy.
-    now unshelve erewrite whne_nf_view1 ; cbn.
-
-  - intros * ? ? ? ? * wB' [Hconcl]%dup.
-    apply compute_domain.
-    simp _uconv uconv_tm_red.
-    destruct wB'.
-    all: simp build_nf_view2 ; cbn ; try easy.
-    2: now unshelve erewrite whne_nf_view1 ; cbn.
-    
-    eapply typeSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [Hpost0 _]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply typeSigCongAlg_prem1 in Hpost0 ; eauto.
-
-  - intros * ? ? ? ? ? ? * wB' [Hconcl]%dup.
-    apply compute_domain.
-    simp _uconv uconv_tm_red.
-    destruct wB'.
-    all: simp build_nf_view2 ; cbn ; try easy.
-    2: now unshelve erewrite whne_nf_view1 ; cbn.
-
-    eapply typeIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [[Hpost0]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply typeIdCongAlg_prem1 in Hpost0 as [[] Hpre1]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply typeIdCongAlg_prem2 in Hpost1 ; eauto.
-    
-  - intros * ?? ?? * wB' [Hconcl]%dup.
-    apply compute_domain.
-    simp _uconv uconv_tm_red build_nf_view2.
-    destruct wB' ; cbn.
-    1-6: now unshelve erewrite whne_nf_view1 ; cbn.
-    do 2 (unshelve erewrite whne_nf_view1 ; tea ; cbn).
-
-    eapply typeNeuConvAlg_prem2 in Hconcl as [Hpre0 []]%dup ; eauto.
-
-  - intros ? n ? ? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu' as [n'| | | | | |].
-    all: simp _uconv uconv_ne ; cbn ; try easy.
-    now destruct (Nat.eqb_spec n n') ; cbn.
-
-  - intros * Hm ? ?? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu'.
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn; try exact I.
-
-    eapply neuAppCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    inversion Hm as [????? Hm'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
-    eapply algo_conv_det in Hm' ; tea ; subst.
-    eapply neuConvRed in Hpost1 ; refold ; tea. 
-    eapply algo_conv_sound, neuAppCongAlg_prem1 in Hpost1 ; eauto.
-
-  - intros * Hn ? ?? ?? ?? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu'.
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn; try exact I.
-
-    eapply neuNatElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    inversion Hn as [????? Hm'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
-    eapply algo_conv_det in Hm' ; tea ; subst.
-    eapply neuConvRed in Hpost1 ; refold ; tea. 
-    eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
-    eapply neuNatElimCong_prem1 in Hpost1 as [[]]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [[Hpost2]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply neuNatElimCong_prem2 in Hpost2 as [[]]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [_ [Hpost3]%dup]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply neuNatElimCong_prem3 in Hpost3 ; eauto.
-
-  - intros * Hn ? ?? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu'.
-    all: simp _uconv uconv_ne to_neutral_diag ; cbn; try exact I.
-
-    eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    inversion Hn as [????? Hm'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
-    eapply algo_conv_det in Hm' ; tea ; subst.
-    eapply neuConvRed in Hpost1 ; refold ; tea. 
-    eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
-    eapply neuEmptyElimCong_prem1 in Hpost1 ; eauto.
-
-  - intros * Hn ? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu'.
-    all: simp _uconv uconv_ne ; cbn; try exact I.
-
-    eapply neuFstCongAlg_prem0 in Hconcl ; eauto.
-    
-  - intros * Hn ? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu'.
-    all: simp _uconv uconv_ne ; cbn; try exact I.
-
-    eapply neuSndCongAlg_prem0 in Hconcl ; eauto.
-
-  - intros * _ * _ * _ * He ?? ?? ?? * wu' [Hconcl]%dup.
-    apply compute_domain.
-    destruct wu'.
-    all: simp _uconv uconv_ne ; cbn; try exact I.
-
-    eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    inversion He as [????? He'] ; refold ; subst.
-    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
-    eapply algo_conv_det in He' ; tea ; subst.
-    eapply neuConvRed in Hpost1 ; refold ; tea. 
-    eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
-    eapply neuIdElimCong_prem1 in Hpost1 as [[]]%dup ; eauto.
-    repeat erewrite <- wk1_ren_on.
-    split ; [eauto | intros [] ; cbn ; [|easy]].
-
-    intros [[Hpost2]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
-    eapply neuIdElimCong_prem2 in Hpost2 ; eauto.
-
-  - eauto.
-
-  - intros * ??? []%algo_conv_wh IH * [Hconcl []]%dup.
+  - intros * ?? []%dnf_whnf IH * [Hconcl []]%dup.
     apply compute_domain.
     simp _uconv uconv_tm ; cbn.
 
@@ -807,7 +622,7 @@ Proof.
     destruct wu' ; cbn ; try exact I.
     now unshelve erewrite whne_nf_view1 ; cbn.
 
-  - intros * w _ ? IH ? w' [Hconcl []]%dup.
+  - intros * w ? IH ? w' [Hconcl []]%dup.
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
     eapply fun_isFun in w, w' ; eauto.
@@ -859,7 +674,7 @@ Proof.
     intros [_ Hpost0]%implem_uconv_graph%uconv_sound_decl ; eauto.
     eapply termSigCongAlg_prem1 in Hpost0 ; eauto.
 
-  - intros ? t u A'' B'' w _ ? IHf ? IHs * w' [Hconcl []]%dup.
+  - intros ? t u A'' w ? IHf ? IHs * w' [Hconcl []]%dup.
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2 ; cbn.
     eapply sig_isPair in w, w' ; tea.
@@ -939,14 +754,14 @@ Proof.
     intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
     eapply termIdCongAlg_prem2 in Hpost1 ; eauto.
 
-  - intros * _ * _ * wu' [Hconcl []]%dup.
+  - intros * wu' [Hconcl []]%dup.
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2.
     eapply id_isId in wu' ; tea.
     destruct wu' as [|] ; cbn ; try exact I.
     now unshelve erewrite whne_nf_view1 ; cbn.
 
-  - intros * []%algo_conv_wh IH Hpos ? wu' [Hconcl [? Hty]]%dup. 
+  - intros * Hpos ?%dnf_whnf IH ? wu' [Hconcl [? Hty]]%dup. 
     apply compute_domain.
     simp _uconv uconv_tm_red build_nf_view2.
     unshelve erewrite whne_nf_view1 ; tea ; cbn.
@@ -966,6 +781,217 @@ Proof.
       eapply IH ; tea.
       split ; now eexists.
 
+  - intros ? n ? ? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu' as [n'| | | | | |].
+    all: simp _uconv uconv_ne ; cbn ; try easy.
+    now destruct (Nat.eqb_spec n n') ; cbn.
+
+  - intros * Hn ? ?? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuAppCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    inversion Hn as [???? Hn'] ; refold ; subst.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
+    eapply dnf_det in Hn'.
+    2:now eapply algo_conv_dnorm in Hpost1.
+    subst.
+    eapply neuConvRed in Hpost1 ; refold ; tea. 
+    eapply algo_conv_sound, neuAppCongAlg_prem1 in Hpost1 ; eauto.
+
+  - intros * Hn ? ?? ?? ?? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuNatElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    inversion Hn as [???? Hn'] ; refold ; subst.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
+    eapply dnf_det in Hn'.
+    2: now eapply algo_conv_dnorm in Hpost1.
+    subst.
+    eapply neuConvRed in Hpost1 ; refold ; tea. 
+    eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
+    eapply neuNatElimCong_prem1 in Hpost1 as [[]]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [[Hpost2]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply neuNatElimCong_prem2 in Hpost2 as [[]]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [_ [Hpost3]%dup]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply neuNatElimCong_prem3 in Hpost3 ; eauto.
+
+  - intros * Hn ? ?? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    inversion Hn as [???? Hn'] ; refold ; subst.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
+    eapply dnf_det in Hn'.
+    2: now eapply algo_conv_dnorm in Hpost1.
+    subst.
+    eapply neuConvRed in Hpost1 ; refold ; tea. 
+    eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
+    eapply neuEmptyElimCong_prem1 in Hpost1 ; eauto.
+
+  - intros * Hn ? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuFstCongAlg_prem0 in Hconcl ; eauto.
+    
+  - intros * Hn ? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuSndCongAlg_prem0 in Hconcl ; eauto.
+
+  - intros * He ?? ?? ?? * wu' [Hconcl]%dup.
+    apply compute_domain.
+    destruct wu'.
+    all: simp _uconv uconv_ne ; cbn; try exact I.
+
+    eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    inversion He as [???? He'] ; refold ; subst.
+    eintros [? Hpost1]%implem_uconv_graph%uconv_tconv ; eauto.
+    eapply dnf_det in He'.
+    2: now eapply algo_conv_dnorm in Hpost1.
+    subst.
+    eapply neuConvRed in Hpost1 ; refold ; tea. 
+    eapply algo_conv_sound in Hpost1 as [[] [Hpost1]%dup]%dup ; eauto.
+    eapply neuIdElimCong_prem1 in Hpost1 as [[]]%dup ; eauto.
+    repeat erewrite <- wk1_ren_on.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [[Hpost2]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply neuIdElimCong_prem2 in Hpost2 ; eauto.
+
+  - eauto.
+
+  - intros * ? HA IHA * [? Hconcl]%dup.
+    apply compute_domain.
+    simp _conv conv_ty.
+    cbn.
+    split.
+    1: eapply wh_red_complete ; [now exists istype|now eapply ty_norm].
+    intros A'' []%red_sound.
+    split.
+    1: eapply wh_red_complete ; [now exists istype|now eapply ty_norm].
+    intros B'' []%red_sound.
+    replace A'' with A'
+      by (eapply whred_det ; tea ; eapply dnf_whnf in HA as [] ; gen_typing).
+
+    eapply typeConvRed_prem2, IHA in Hconcl as [] ; eauto.
+    2: now eapply type_isType.
+    split ; [now eexists|..].
+    now intros [] ; cbn.
+    
+  - intros * wB' ?.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+
+  - intros * ???? * wB' [Hconcl]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    2: now unshelve erewrite whne_nf_view1 ; cbn.
+    
+    eapply typePiCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [Hpost0 _]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply typePiCongAlg_prem1 in Hpost0 ; eauto.
+
+  - intros * wB' ?.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+  
+  - intros * wB' ?.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    now unshelve erewrite whne_nf_view1 ; cbn.
+
+  - intros * ? ? ? ? * wB' [Hconcl]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    2: now unshelve erewrite whne_nf_view1 ; cbn.
+    
+    eapply typeSigCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [Hpost0 _]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply typeSigCongAlg_prem1 in Hpost0 ; eauto.
+
+  - intros * ? ? ? ? ? ? * wB' [Hconcl]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red.
+    destruct wB'.
+    all: simp build_nf_view2 ; cbn ; try easy.
+    2: now unshelve erewrite whne_nf_view1 ; cbn.
+
+    eapply typeIdCongAlg_prem0 in Hconcl as [Hpre0 []]%dup.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [[Hpost0]%dup _]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply typeIdCongAlg_prem1 in Hpost0 as [[] Hpre1]%dup ; eauto.
+    split ; [eauto | intros [] ; cbn ; [|easy]].
+
+    intros [_ Hpost1]%implem_uconv_graph%uconv_sound_decl ; eauto.
+    eapply typeIdCongAlg_prem2 in Hpost1 ; eauto.
+    
+  - intros * ?%dnf_whnf ?? * wB' [Hconcl]%dup.
+    apply compute_domain.
+    simp _uconv uconv_tm_red build_nf_view2.
+    destruct wB' ; cbn.
+    1-6: now unshelve erewrite whne_nf_view1 ; cbn.
+    do 2 (unshelve erewrite whne_nf_view1 ; tea ; cbn).
+
+    eapply typeNeuConvAlg_prem2 in Hconcl as [Hpre0 []]%dup ; eauto.
+
+Qed.
+
+Corollary tconv_terminates Γ A A' :
+  [Γ |-[de] A] ->
+  [Γ |-[de] A'] ->
+  domain uconv (Γ,A,A').
+Proof.
+  intros.
+  assert (domain _uconv (tm_state,A,A')) as [].
+  {
+    eapply _uconv_terminates ; eauto.
+    now eapply ty_dnorm.
+  }
+  eexists.
+  unfold graph.
+  simp uconv.
+  econstructor ; cbn in * ; tea.
+  now constructor.
 Qed.
 
 End ConversionTerminates.
