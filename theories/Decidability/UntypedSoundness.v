@@ -13,7 +13,6 @@ Section ConversionSound.
 
   #[universes(polymorphic)]Definition uconv_sound_type
     (x : uconv_state × term × term)
-    (_ : True)
     (r : exn errors unit) : Type :=
   match x, r with
   | _, (exception _) => True
@@ -24,7 +23,7 @@ Section ConversionSound.
   end.
 
   Lemma _implem_uconv_sound :
-    funrect _uconv (fun _ => True) uconv_sound_type.
+    funrec _uconv (fun _ => True) uconv_sound_type.
   Proof.
     intros x _.
     funelim (_uconv _); 
@@ -32,7 +31,7 @@ Section ConversionSound.
     all: intros ; cbn ; try easy ; cbn.
     all: repeat (
       match goal with
-      | |- { _ : True & _} => split ; [easy|..]
+      | |- True * _ => split ; [easy|..]
       | |- forall x : exn _ _, _ => intros [|] ; [..|easy] ; cbn
       | |- _ -> _ => cbn ; intros ?
       | |- context [match ?t with | _ => _ end] => destruct t ; cbn ; try easy
@@ -51,10 +50,9 @@ Section ConversionSound.
 
   Corollary implem_uconv_graph x r :
     graph _uconv x r ->
-    uconv_sound_type x I r.
+    uconv_sound_type x r.
   Proof.
-    intros.
-    eapply funrect_graph.
+    eapply funrec_graph.
     1: now apply _implem_uconv_sound.
     easy.
   Qed.
@@ -63,21 +61,19 @@ Section ConversionSound.
     graph uconv (Γ,T,V) ok ->
     [T ≅ V].
   Proof.
-    assert (funrect uconv (fun _ => True)
-      (fun '(Γ,T,V) _ r => match r with | success _ => [T ≅ V] | _ => True end)) as Hrect.
+    assert (funrec uconv (fun _ => True)
+      (fun '(Γ,T,V) r => match r with | success _ => [T ≅ V] | _ => True end)) as Hrect.
     {
      intros ? _.
      funelim (uconv _) ; cbn.
      intros [] ; cbn ; [|easy].
-     eintros ?%funrect_graph.
+     eintros ?%funrec_graph.
      2: now apply _implem_uconv_sound.
      all: now cbn in *.
     }
-    eintros ?%funrect_graph.
+    eintros ?%funrec_graph.
     2: eassumption.
     all: now cbn in *.
-    Unshelve.
-    all: easy.
   Qed.
 
 End ConversionSound.

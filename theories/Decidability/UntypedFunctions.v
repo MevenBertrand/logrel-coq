@@ -198,9 +198,9 @@ Equations uconv_ne : (term × term) -> M unit :=
 }.
 
 Equations _uconv : ∇ _ : uconv_state × term × term, [Sing wh_red]⇒[exn errors] unit :=
-  | (tm_state,ts) := uconv_tm ts ;
-  | (tm_red_state,ts) := uconv_tm_red ts;
-  | (ne_state,ts) := uconv_ne ts.
+  | (tm_state,t,u) := uconv_tm (t,u) ;
+  | (tm_red_state,t,u) := uconv_tm_red (t,u);
+  | (ne_state,t,u) := uconv_ne (t,u).
 
   #[local] Instance: PFun _uconv := pfun_gen _ _ _uconv.
 

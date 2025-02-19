@@ -59,8 +59,6 @@ Next Obligation.
   + now intros * ?? ?%algo_conv_sound.
   + eapply implem_tconv_sound.
   + intros ; eapply implem_tconv_sound_neg ; tea.
-  Unshelve.
-  easy.
 Qed.
 
 Print Assumptions check.
