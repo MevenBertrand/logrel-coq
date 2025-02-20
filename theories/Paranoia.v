@@ -216,13 +216,13 @@ Inductive Paranoia : forall (j : judgement) (i : judgement_indices j), Type :=
   | nfSucc {Γ Γ' t t'}
       (termWf : [ Γ ≡ Γ' |- t ≡ t' ▷ tNat ≡whnf tNat ])
     : [ Γ ≡ Γ' |- tSucc t ≡whnf tSucc t' ▷ tNat ≡whnf tNat ]
-  | nfNeNat {Γ Γ' n n'}
-      (neNat : [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ])
-    : [ Γ ≡ Γ' |- n ≡whnf n' ▷ tNat ≡whnf tNat ]
   | nfLambda {Γ Γ' Dom Dom' Cod Cod' t t'}
       (domWf : [ Γ ≡ Γ' |- Dom ≡ Dom' ])
       (bodyWf : [ Γ ,, Dom ≡ Γ' ,, Dom' |- t ≡ t' ▷ Cod ≡whnf Cod' ])
     : [ Γ ≡ Γ' |- tLambda Dom t ≡whnf tLambda Dom' t' ▷ tProd Dom Cod ≡whnf tProd Dom' Cod' ]
+  | nfNeNat {Γ Γ' n n'}
+      (neNat : [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ])
+    : [ Γ ≡ Γ' |- n ≡whnf n' ▷ tNat ≡whnf tNat ]
 
   | neReduces {Γ Γ' n n' A B A' B'}
       (neInfer : [ Γ ≡ Γ' |- n ≡ne n' ▷ A ≡ B ])
@@ -369,11 +369,6 @@ Inductive Paranoiaε (Pred : forall {j : judgement} {i : judgement_indices j}, P
       (termWfε : Paranoiaε (@Pred) termWf)
       (termWfP : Pred termWf)
     : Paranoiaε (@Pred) (nfSucc termWf)
-  | nfNeNatε {Γ Γ' n n'}
-      {neNat : [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ]}
-      (neNatε : Paranoiaε (@Pred) neNat)
-      (neNatP : Pred neNat)
-    : Paranoiaε (@Pred) (nfNeNat neNat)
   | nfLambdaε {Γ Γ' Dom Dom' Cod Cod' t t'}
       {domWf : [ Γ ≡ Γ' |- Dom ≡ Dom' ]}
       (domWfε : Paranoiaε (@Pred) domWf)
@@ -382,6 +377,11 @@ Inductive Paranoiaε (Pred : forall {j : judgement} {i : judgement_indices j}, P
       (bodyWfε : Paranoiaε (@Pred) bodyWf)
       (bodyWfP : Pred bodyWf)
     : Paranoiaε (@Pred) (nfLambda domWf bodyWf)
+  | nfNeNatε {Γ Γ' n n'}
+      {neNat : [ Γ ≡ Γ' |- n ≡ne n' ▷red tNat ≡ tNat ]}
+      (neNatε : Paranoiaε (@Pred) neNat)
+      (neNatP : Pred neNat)
+    : Paranoiaε (@Pred) (nfNeNat neNat)
 
   | neReducesε {Γ Γ' n n' A B A' B'}
       {neInfer : [ Γ ≡ Γ' |- n ≡ne n' ▷ A ≡ B ]}
@@ -580,6 +580,31 @@ Proof.
   repeat (assumption || constructor).
 Defined.
 
+Lemma Conv_ConvContε {P : forall {j i}, Paranoia j i -> Type} {j i}
+  {H : Paranoia j i}
+  (Hε : Paranoiaε (@P) H)
+  (HP : P H)
+  : Paranoiaε (@P) (Conv_ConvCont j H).
+Proof.
+  revert HP.
+  induction Hε.
+  intros HP.
+  1-2: constructor.
+  eauto.
+Defined.
+
+Lemma Conv_ConvContP {P : forall {j i}, Paranoia j i -> Type} {j i}
+  {H : Paranoia j i}
+  (Hε : Paranoiaε (@P) H)
+  (HP : P H)
+  : P (Conv_ConvCont j H).
+Proof.
+  revert HP.
+  induction Hε.
+  intros HP.
+  eauto.
+Defined.
+
 Instance Ren_nat_nat : Ren1 (nat -> nat) nat nat := fun f n => f n.
 
 Lemma substRen {t u ρ} : t[u..]⟨ρ⟩ = t⟨upRen_term_term ρ⟩[u⟨ρ⟩..].
@@ -716,7 +741,8 @@ Proof.
   try (once (repeat (> iter_hypo (fun h => let h := Control.hyp h in eapply $h) || (eapplyI ParanoiaLeft; now (() + eapplyI ParanoiaSymm)) || econstructor || eapply RenWeakenOnce || (ltac1:(change (↑ >> upRen_term_term ?ρ) with (ρ >> ↑)); rewrite <- (renRen_term _ ↑)))); >fail).
   - apply bodyInfersP.
     + econstructor.
-      assert (U : _) by (now eapply (argChecksP _ _ ρ)).
+      (* XXX: Why would I need to manually add three metas here? *)
+      assert (U : _) by (now eapply (argChecksP _ _ _)).
       depelim U.
       now eapplyI ParanoiaLeft.
     + econstructor.
@@ -729,59 +755,269 @@ Proof.
       * rewrite <- (renRen_term _ ↑). econstructor.
 Defined.
 
-Lemma GetVarTyped : ltac2:(
-  let f t :=
-    let (head, args) := decompose_app_list t in
-    match (synt_ind_arity head) with
-    | 2 => let Γ := List.nth args 0 in
-           let Γ' := List.nth args 1 in
-           '(forall n A B, in_ctx $Γ n A -> in_ctx $Γ' n B -> [ $Γ ≡ $Γ' |- A ≡ B ])
-    | 1 => let Γ := List.nth args 0 in
-           constr:(forall n A, in_ctx $Γ n A -> [ $Γ ≡ $Γ |- A ≡ A ])
-    | _ => constr:(unit)
-    end in
-  refine (syntax_ind_concl f)).
+Definition GetVarTypedType (j : judgement) : judgement_indices j -> Type :=
+  match j with
+  | ConvCont => fun '(Γ, Γ') => forall n A B, in_ctx Γ n A -> in_ctx Γ' n B -> [ Γ ≡ Γ' |- A ≡ B ]
+  | _ => fun _ => unit
+  end.
+
+Lemma GetVarTyped j {i} : Paranoia j i -> GetVarTypedType j i .
 Proof.
-  eapply SyntaxInduction; intros *; repeat (first [ intros ? ? * | try (rename H into H'); intros H ]).
-  try (lazy_match! goal with [|- unit] => constructor end).
-  1: depelim H.
-  1: depelim H1; depelim H2.
-  1: eapply RenStable > [eassumption | econstructor; eassumption | | ]; eapply RenWeakenOnce; eapply RenId.
-  1: eapply RenStable > [now eapply H0 | econstructor; eassumption | | ]; eapply RenWeakenOnce; eapply RenId.
-  eauto.
+  induction 1 using ParanoiaElim.
+  depelim X.
+  unfold GetVarTypedType.
+  try (exact tt).
+  1-2: intros ?**.
+  - depelim H.
+  - depelim H; depelim H0.
+    + eapplyI RenStable > [eassumption | econstructor; eassumption | | ]; eapply RenWeakenOnce; eapply RenId.
+    + assert (contP : _) by (now eapply (Conv_ConvContP X)).
+      eapplyI RenStable > [now eapply contP | now econstructor | |].
+      eapply RenWeakenOnce.
+      eapply RenId.
 Defined.
 
-Lemma WellTyped : ltac2:(
-  let f t :=
-    match! t with
-    | [ ?Γ ≡ ?Γ' |- _ ≡ _ ▷ ?a ≡whnf ?b ] => '[ $Γ ≡ $Γ' |- $a ≡whnf $b ]
-    | [ ?Γ ≡ ?Γ' |- _ ≡whnf _ ▷ ?a ≡whnf ?b ] => '[ $Γ ≡ $Γ' |- $a ≡whnf $b ]
-    | [ ?Γ ≡ ?Γ' |- _ ≡ne _ ▷red ?a ≡ ?b ] => '[ $Γ ≡ $Γ' |- $a ≡ $b ]
-    | [ ?Γ ≡ ?Γ' |- _ ≡ne _ ▷ ?a ≡ ?b ] => '[ $Γ ≡ $Γ' |- $a ≡ $b ]
-    | [ ?Γ |- ?a ~* ?b ] => '(forall Γ' B, [ $Γ ≡ Γ' |- $a ≡ B ] -> [ $Γ ≡ Γ' |- $b ≡ B ])
-    | _ => 'unit
-    end in
-  refine (syntax_ind_concl f)).
+(* Definition ReductionPreservesWfType (j : judgement) : judgement_indices j -> Type :=
+ *   match j with
+ *   | RedTy => fun '(Γ , A , B) => [ Γ ≡ Γ |- A ≡ A ] -> [ Γ ≡ Γ |- B ≡ B ]
+ *   | RedTm | RedTmStep | ExpTmStep => fun '(Γ , t , u) =>
+ *     forall A, [ Γ ≡ Γ |- t ≡ t ▷ A ≡whnf A] -> [ Γ ≡ Γ |- u ≡ u ▷ A ≡whnf A]
+ *   | _ => fun _ => unit
+ *   end.
+ * 
+ * Lemma ReductionPreservesWf j {i} : Paranoia j i -> ReductionPreservesWfType j i.
+ * Proof.
+ *   induction 1 using ParanoiaElim.
+ *   depelim X.
+ *   unfold ReductionPreservesWfType.
+ *   try (exact tt). *)
+
+
+Definition WellTypedType (j : judgement) : judgement_indices j -> Type :=
+  match j with
+  | ConvTm | ConvWhnfTm => fun '(Γ, Γ', A, B, _, _) => [ Γ ≡ Γ' |- A ≡whnf B ]
+  | ConvNeTm  => fun '(Γ, Γ', A, B, _, _) => [ Γ ≡ Γ' |- A ≡ B ]
+  | _ => fun _ => unit
+  end.
+
+Lemma WellTyped j {i} : Paranoia j i -> WellTypedType j i.
 Proof.
-  eapply SyntaxInduction; intros *; repeat (first [ intros ? ? * | try (rename H into H'); intros H ]).
-  try (lazy_match! goal with [|- unit] => constructor end).
-  - eassumption.
-  - repeat (eassumption || econstructor).
-  - repeat (eassumption || econstructor).
-  - repeat (eassumption || econstructor || (now (eapplyprod 'Conv_ConvCont; () + eapply Conv_Left; () + eapply Conv_Symm))).
-  - repeat ((now (eapplyprod 'Conv_ConvCont; eapply Conv_Left; () + eapply Conv_Symm)) || eassumption || econstructor).
-  - eapply H2.
-    eapply Conv_Symm.
-    eapply H4.
-    eapply Conv_Symm.
+  induction 1 using ParanoiaElim.
+  depelim X.
+  unfold WellTypedType.
+  try (exact tt).
+  try eauto.
+  - now econstructor.
+  - (econstructor) > [ eassumption | ].
+    (econstructor) > [eapply bodyWfP | | ].
+    econstructor. econstructor. econstructor.
+    + now eapplyI ParanoiaLeft.
+    + eapplyI ParanoiaLeft; now eapplyI ParanoiaSymm.
+  - econstructor.
+    now eapplyI Conv_ConvCont.
+  - now eapplyI GetVarTyped.
+Defined.
+
+Definition DeterminismType (j : judgement) : judgement_indices j -> Type :=
+  match j with
+  | ConvWhnfTy => fun '(Γ , Γ' , A , B) =>
+    forall C, [ Γ |- A ~>tm C ] -> False
+  | ConvTm => fun '(Γ , Γ' , A , B , t , u) =>
+    forall C, [ Γ ≡ Γ |- t ≡ t ▷ C ≡whnf C ] -> A = C
+  | ConvWhnfTm => fun '(Γ , Γ' , A , B , t , u) =>
+    (forall C, [ Γ ≡ Γ |- t ≡whnf t ▷ C ≡whnf C ] -> A = C)
+    × (forall v, [ Γ |- t ~>tm v ] -> False)
+    × (forall v, [ Γ |- t ↗ v ] -> False)
+  | ConvNeTm => fun '(Γ , Γ' , A , B , t , u) =>
+    (forall C, [ Γ ≡ Γ |- t ≡ne t ▷ C ≡ C ] -> A = C)
+    × (forall v, [ Γ |- t ~>tm v ] -> False)
+  | RedTy => fun '(Γ , A , B) =>
+    (forall C,
+    [ Γ ≡ Γ |- B ≡whnf B ] -> [ Γ |- A ~* C ] -> [ Γ |- C ~* B ])
+    × (forall C,
+    [ Γ ≡ Γ |- C ≡whnf C ] -> [ Γ |- A ~* C ] -> [ Γ |- B ~* C ])
+  | RedTmStep => fun '(Γ , t , u) =>
+    forall v, [ Γ |- t ~>tm v ] -> u = v
+  | ExpTmStep => fun '(Γ , t , u) =>
+    forall v, [ Γ |- t ↗ v ] -> u = v
+  | RedTm => fun '(Γ , t , u) =>
+    (forall v A,
+       [ Γ ≡ Γ |- u ≡whnf u ▷ A ≡whnf A ]
+    -> [ Γ |- t ~*tm v ]
+    -> [ Γ |- v ~*tm u ])
+    × (forall v A,
+       [ Γ ≡ Γ |- v ≡whnf v ▷ A ≡whnf A ]
+    -> [ Γ |- t ~*tm v ]
+    -> [ Γ |- u ~*tm v ])
+  | _ => fun _ => unit
+  end.
+
+(* Lemma NoReduceStep {Γ A t u} (H : [ Γ ≡ Γ |- t ≡whnf t ▷ A ≡whnf A ]) :
+ *   Paranoiaε (fun j i _ => DeterminismType j i) H
+ *   -> [ Γ |- t ~>tm u ] -> False.
+ * Proof.
+ *   intros Hε tredu.
+ *   depelim Hε; cbn in H0; noconf H0.
+ *   - depelim tredu.
+ *   - depelim tredu.
+ *   - depelim tredu.
+ *   - depelim Hε; cbn in H; noconf H.
+ *     depelim Hε1. cbn in H. noconf H.
+ *     (). 1: depelim tredu.
+ *     
+ *     
+ * Defined.
+ * 
+ * Lemma NoReduce {Γ A t u} (H : [ Γ ≡ Γ |- t ≡whnf t ▷ A ≡whnf A ]) :
+ *   Paranoiaε (fun j i _ => DeterminismType j i) H
+ *   -> [ Γ |- t ~*tm u ] -> t = u.
+ * Proof.
+ *   intros Hε tredu.
+ *   depelim Hε; cbn in H0; noconf H0.
+ *   - depelim tredu.
+ *     + reflexivity.
+ *     + depelim tredu2.
+ *       depelim tredu2.
+ *       depelim tredu2_1.
+ *     + depelim tredu1.
+ *   - depelim tredu.
+ *     + reflexivity.
+ *     + depelim tredu2.
+ *       depelim tredu2.
+ *       depelim tredu2_1.
+ *     + depelim tredu1.
+ *   - depelim Hε; cbn in H; noconf H.
+ *     depelim tredu.
+ *     + reflexivity.
+ *     + depelim tredu2.
+ *       depelim tredu2.
+ *       erewrite <- (neInferP A0) in * |- * by (now eapplyI ParanoiaLeft).
+ *       assert (AWf : [ Γ ≡ Γ |- A ≡ A ]) by (eapplyI ParanoiaLeft; now eapplyI WellTyped).
+ *       depelim AWf.
+ *       
+ * Defined. *)
+
+Lemma Determinism j {i} : Paranoia j i -> DeterminismType j i.
+Proof.
+  induction 1 using ParanoiaElim.
+  depelim X.
+  ltac1:(simpl DeterminismType in * ).
+  try (exact tt).
+  intros **.
+  - depelim H.
+  - depelim H.
+  - eapply termWhnfInferP.
+    depelim H.
+    assert (tWhnf : _) by (now apply (ParanoiaLeft ConvWhnfTm _ termWhnfInfer)).
+    assert (t0Whnf : _) by (now apply (ParanoiaLeft ConvWhnfTm _ H)).
+    assert (tRedt0 : [ Γ |- t ~*tm t0]) by (now eapply termRedLP).
+    destruct termWhnfInferP as [termWhnfInferP (cantRed & cantExp)].
+    depelim tRedt0 > [ | eapply False_rect; eauto | eapply False_rect; eauto ].
+    now eapplyI ParanoiaLeft.
+  - split > [|split].
+    + intros C H.
+      depelim H > [ reflexivity | ..].
+      depelim H. depelim H.
+    + intros v H.
+      depelim H.
+    + intros v H.
+      depelim H. depelim H. depelim H.
+  - split > [|split].
+    + intros C H.
+      depelim H > [ reflexivity | ..].
+      depelim H. depelim H.
+    + intros v H.
+      depelim H.
+    + intros v H.
+      depelim H. depelim H. depelim H.
+  - split > [|split].
+    + intros C H.
+      depelim H.
+      1: f_equal.
+      1: eapply bodyWfP.
+      1: now eapplyI ParanoiaLeft.
+      depelim H. depelim H.
+    + intros v H.
+      depelim H.
+    + intros v H.
+      depelim H.
+      depelim H. depelim H. depelim H.
+  - split > [|split].
+    + intros C H.
+      depelim H.
+      * depelim neNat. depelim neNat1.
+      * depelim neNat. depelim neNat1.
+      * depelim neNat. depelim neNat1.
+      * depelim X. cbn in H. noconf H.
+        depelim H0.
+        destruct neInferP as [neInferPunique _].
+        rewrite <- (neInferPunique A0) in * |- * by (now eapplyI ParanoiaLeft).
+        cbn in typeRedLP.
+        assert (natRedC : [Γ |- tNat ~* tNat ]) by
+          (eapply typeRedLP > [(econstructor; eapplyI Conv_ConvCont)|]; eassumption).
+        depelim natRedC.
+        depelim natRedC.
+        -- reflexivity.
+        -- depelim natRedC2.
+        -- depelim natRedC1.
+    + intros v H.
+      depelim X. cbn in H. noconf H.
+      destruct neInferP as [_ nored].
+      now eapply nored.
+    + intros v H.
+      depelim H.
+      depelim H.
+      depelim X. cbn in H. noconf H.
+      destruct neInferP as [neInferPunique neInferPnored].
+      erewrite <- (neInferPunique A0) in * |- * by (now eapplyI ParanoiaLeft).
+      destruct typeRedLP as [typeRedLP typeRedLP'].
+      assert (tNatWf : [ Γ ≡ Γ |- tNat ≡whnf tNat ]) by (constructor; now eapplyI Conv_ConvCont).
+      depelim X2. cbn in H. noconf H.
+      assert (ProdRedNat : [ Γ |- tProd Dom Cod ~* tNat ]) by (now eapply typeRedLP).
+      depelim ProdRedNat. depelim ProdRedNat.
+      * depelim ProdRedNat2.
+      * depelim ProdRedNat1.
+  - split.
+    + intros C H.
+      depelim H.
+      now eapply in_ctx_inj.
+    + intros v H.
+      depelim H.
+  - split.
+    + intros C H.
+      depelim H.
+      f_equal.
+      depelim X1. cbn in H. noconf H.
+      depelim H0.
+      destruct neInferP as [neInferPunique noRed].
+      assert ([ Γ ≡ Γ |- t ≡ne t ▷ A0 ≡ A0 ]) by (now eapplyI ParanoiaLeft).
+      rewrite <- (neInferPunique A0) in H0_0 by eauto.
+      
+  - depelim H; reflexivity.
+  - depelim H; reflexivity.
+  - depelim H; try reflexivity.
+    depelim neNat.
+    depelim neNat1.
+  - depelim H > [| f_equal; eauto].
+    depelim H. depelim H.
+  - depelim H1.
+    apply (ParanoiaLeft ConvNeTm) in H1_. unfold ParanoiaLeftType, ProjLIndices in H1_.
+    eapply typeRedLP; try (eassumption).
+    erewrite -> (neInferP A0) by eassumption.
     eassumption.
-  - now eapplyprod 'GetVarTyped.
-  - eassumption.
-  - eassumption.
-  - eassumption.
-Defined.
-
-Ltac2 bing () := iter_hypo (fun h => let h := Control.hyp h in eapply $h) || (now convsymmetries ()) || econstructor.
+  - depelim H.
+    eapply in_ctx_inj; eassumption.
+  - depelim H.
+    f_equal.
+    enough (noconf : tProd Dom Cod = tProd Dom0 Cod0) by (now (noconf noconf)).
+    apply (ParanoiaLeft ConvNeRedTm) in H.
+    apply headNeP > [ .. | eassumption ].
+    depelim X1. cbn in H. noconf H.
+    assert (WfA : [Γ ≡ Γ |- A ≡ A ]) by (eapplyI WellTyped; now eapplyI ParanoiaLeft).
+    depelim WfA.
+    ltac1:(simpl DeterminismType in * ).
+    erewrite <- typeRedLP in * |- * by eauto.
+    econstructor.
 
 Lemma Output : SyntaxInductionConcl
   (fun Γ Γ' => unit)
