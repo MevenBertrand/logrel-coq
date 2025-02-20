@@ -2,7 +2,7 @@
 From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel Require Import Utils Syntax.All GenericTyping AlgorithmicTyping UntypedAlgorithmicConversion.
-From LogRel.Decidability Require Import Functions UntypedFunctions Soundness.
+From LogRel.Decidability Require Import Functions UntypedFunctions Views Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Import AlgorithmicTypingData.

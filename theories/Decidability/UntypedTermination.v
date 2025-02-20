@@ -6,7 +6,7 @@ From LogRel Require Import Utils Syntax.All DeclarativeTyping
 From LogRel Require Import SubstConsequences TypeConstructorsInj NeutralConvProperties AlgorithmicTyping BundledAlgorithmicTyping Normalisation AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import UntypedAlgorithmicConversion.
 
-From LogRel.Decidability Require Import Functions UntypedFunctions Soundness UntypedSoundness Completeness UntypedCompleteness.
+From LogRel.Decidability Require Import Functions Views UntypedFunctions Soundness UntypedSoundness Completeness UntypedCompleteness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Import DeclarativeTypingProperties AlgorithmicTypedConvData.
@@ -210,87 +210,6 @@ Section AlgoStr.
     intros H x y e.
     destruct x,y ; cbn in * ; try congruence.
     easy.
-  Qed.
-
-  Definition ncan_ne_view1 {N} (w : ~ isCanonical N) : ne_view1 N.
-  Proof.
-    destruct N.
-    all: try solve [destruct w ; econstructor].
-    - now constructor.
-    - eapply (ne_view1_dest _ (eApp _)).
-    - eapply (ne_view1_dest _ (eNatElim _ _ _)).
-    - eapply (ne_view1_dest _ (eEmptyElim _)).
-    - eapply (ne_view1_dest _ eFst).
-    - eapply (ne_view1_dest _ eSnd).
-    - eapply (ne_view1_dest _ (eIdElim _ _ _ _ _)).
-  Defined.
-
-  Lemma ncan_nf_view1 {N} (w : ~ isCanonical N) : build_nf_view1 N = nf_view1_ne (ncan_ne_view1 w).
-  Proof.
-    destruct N ; cbn ; try reflexivity.
-    all: destruct w ; econstructor.
-  Qed.
-
-  Lemma nf_view2_neutral_can t t' :
-    build_nf_view2 t t' = neutrals t t' ->
-    ~ isCanonical t /\ ~ isCanonical t'.
-  Proof.
-    intros Heq.
-    simp build_nf_view2 in Heq.
-    destruct (build_nf_view1 t) as [? [] | | ? [] | | | ] eqn:Heqt ; cbn in Heq.
-    all: destruct (build_nf_view1 t') as [? [] | | ? [] | | | ] eqn:Heqt' ; cbn in Heq.
-    all: try solve [congruence].
-    split.
-    all: now eapply tm_view1_neutral_can.
-  Qed.
-
-  Definition nf_view2_rename (ρ : nat -> nat) {t t' : term} (v : nf_view2 t t') : nf_view2 t⟨ρ⟩ t'⟨ρ⟩ :=
-    match v in nf_view2 x x' return nf_view2 x⟨ρ⟩ x'⟨ρ⟩ with
-    | sorts s s' => sorts s s'
-    | prods A A' B B' => prods A⟨ρ⟩ A'⟨ρ⟩ B⟨upRen_term_term ρ⟩ B'⟨upRen_term_term ρ⟩
-    | nats => nats
-    | emptys => emptys
-    | sigs A A' B B' => sigs A⟨ρ⟩ A'⟨ρ⟩ B⟨upRen_term_term ρ⟩ B'⟨upRen_term_term ρ⟩
-    | ids A A' x x' y y' => ids A⟨ρ⟩ A'⟨ρ⟩ x⟨ρ⟩ x'⟨ρ⟩ y⟨ρ⟩ y'⟨ρ⟩
-    | lams A A' t t' => lams A⟨ρ⟩ A'⟨ρ⟩ t⟨upRen_term_term ρ⟩ t'⟨upRen_term_term ρ⟩
-    | lam_ne A t n' => lam_ne A⟨ρ⟩ t⟨upRen_term_term ρ⟩ n'⟨ρ⟩
-    | ne_lam n A' t' => ne_lam n⟨ρ⟩ A'⟨ρ⟩ t'⟨upRen_term_term ρ⟩
-    | zeros => zeros
-    | succs t t' => succs t⟨ρ⟩ t'⟨ρ⟩
-    | pairs A A' B B' t t' u u' => pairs A⟨ρ⟩ A'⟨ρ⟩ B⟨upRen_term_term ρ⟩ B'⟨upRen_term_term ρ⟩ t⟨ρ⟩ t'⟨ρ⟩ u⟨ρ⟩ u'⟨ρ⟩
-    | pair_ne A B t u n' => pair_ne A⟨ρ⟩ B⟨upRen_term_term ρ⟩ t⟨ρ⟩ u⟨ρ⟩ n'⟨ρ⟩
-    | ne_pair n A' B' t' u' => ne_pair n⟨ρ⟩ A'⟨ρ⟩ B'⟨upRen_term_term ρ⟩ t'⟨ρ⟩ u'⟨ρ⟩
-    | refls A A' x x' => refls A⟨ρ⟩ A'⟨ρ⟩ x⟨ρ⟩ x'⟨ρ⟩
-    | neutrals n n' => neutrals n⟨ρ⟩ n'⟨ρ⟩
-    | mismatch t u => mismatch t⟨ρ⟩ u⟨ρ⟩
-    | anomaly t u => anomaly t⟨ρ⟩ u⟨ρ⟩
-    end.
-
-  Lemma build_nf_view2_rename ρ t t' : build_nf_view2 t⟨ρ⟩ t'⟨ρ⟩ = nf_view2_rename ρ (build_nf_view2 t t').
-  Proof.
-    destruct t, t' ; reflexivity.
-  Qed.
-
-  Definition ne_view2_rename (ρ : nat -> nat) {t t' : term} (v : ne_view2 t t') : ne_view2 t⟨ρ⟩ t'⟨ρ⟩ :=
-    match v in ne_view2 x x' return ne_view2 x⟨ρ⟩ x'⟨ρ⟩ with
-    | ne_rels n n' => ne_rels (ρ n) (ρ n')
-    | ne_apps f u f' u' => ne_apps f⟨ρ⟩ u⟨ρ⟩ f'⟨ρ⟩ u'⟨ρ⟩
-    | ne_nats n P hz hs n' P' hz' hs' => ne_nats
-        n⟨ρ⟩ P⟨upRen_term_term ρ⟩ hz⟨ρ⟩ hs⟨ρ⟩
-        n'⟨ρ⟩ P'⟨upRen_term_term ρ⟩ hz'⟨ρ⟩ hs'⟨ρ⟩
-    | ne_emptys n P n' P' => ne_emptys n⟨ρ⟩ P⟨upRen_term_term ρ⟩ n'⟨ρ⟩ P'⟨upRen_term_term ρ⟩
-    | ne_fsts p p' => ne_fsts p⟨ρ⟩ p'⟨ρ⟩
-    | ne_snds p p' => ne_snds p⟨ρ⟩ p'⟨ρ⟩
-    | ne_ids A x P hr y e A' x' P' hr' y' e' => ne_ids
-      A⟨ρ⟩ x⟨ρ⟩ P⟨upRen_term_term (upRen_term_term ρ)⟩ hr⟨ρ⟩ y⟨ρ⟩ e⟨ρ⟩
-      A'⟨ρ⟩ x'⟨ρ⟩ P'⟨upRen_term_term (upRen_term_term ρ)⟩ hr'⟨ρ⟩ y'⟨ρ⟩ e'⟨ρ⟩
-    | ne_mismatch t u => ne_mismatch t⟨ρ⟩ u⟨ρ⟩
-    | ne_anomaly t u => ne_anomaly t⟨ρ⟩ u⟨ρ⟩
-    end.
-
-  Lemma build_ne_view2_rename ρ t t' : build_ne_view2 t⟨ρ⟩ t'⟨ρ⟩ = ne_view2_rename ρ (build_ne_view2 t t').
-  Proof.
-    destruct t, t' ; reflexivity.
   Qed.
 
   #[local] Ltac crush :=

@@ -3,7 +3,7 @@ From Coq Require Import Nat Lia Arith.
 From Equations Require Import Equations.
 From LogRel Require Import Utils Syntax.All GenericTyping AlgorithmicTyping.
 
-From LogRel.Decidability Require Import Functions.
+From LogRel.Decidability Require Import Functions Views.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
@@ -46,24 +46,6 @@ Proof.
   induction π as [|[]] in n, Hne |- * ; cbn.
   1: eassumption.
   all: eapply IHπ ; now econstructor.
-Qed.
-
-Lemma isType_tm_view1 t e :
-  build_tm_view1 t = tm_view1_type e ->
-  isType t × ~ whne t.
-Proof.
-  intros H.
-  destruct e ; cbn.
-  all: split ; [ now econstructor | intros H' ; inversion H'].
-Qed.
-
-Lemma whnf_tm_view1_nat t e :
-  build_tm_view1 t = tm_view1_nat e ->
-  whnf t × ~ whne t.
-Proof.
-  intros H.
-  destruct e ; cbn.
-  all: split ; [ now econstructor | intros H' ; inversion H'].
 Qed.
 
 Lemma red_stack_whnf :
@@ -145,60 +127,6 @@ Ltac funelim_conv :=
     [ funelim (conv_ty _) | funelim (conv_ty_red _) | 
       funelim (conv_tm _) | funelim (conv_tm_red _) | 
       funelim (conv_ne _) | funelim (conv_ne_red _) ].
-
-Lemma ty_view1_small_can T n : build_ty_view1 T = ty_view1_small n -> ~ isCanonical T.
-Proof.
-  destruct T ; cbn.
-  all: inversion 1.
-  all: inversion 1.
-Qed.
-
-Lemma tm_view1_neutral_can t n : build_nf_view1 t = nf_view1_ne n -> ~ isCanonical t.
-Proof.
-  destruct t ; cbn.
-  all: inversion 1.
-  all: inversion 1.
-Qed.
-
-Lemma ty_view2_neutral_can T V : build_nf_ty_view2 T V = ty_neutrals T V -> ~ isCanonical T × ~ isCanonical V.
-Proof.
-  destruct T, V ; cbn.
-  all: inversion 1.
-  all: split ; inversion 1.
-Qed.
-
-
-Lemma whnf_view3_ty_neutral_can s t u : build_nf_view3 (tSort s) t u = types s (ty_neutrals t u) -> ~ isCanonical t × ~ isCanonical u.
-Proof.
-  destruct t, u ; cbn.
-  all: inversion 1.
-  all: split ; inversion 1.
-Qed.
-
-Lemma whnf_view3_neutrals_can A t u :
-  whnf A ->
-  build_nf_view3 A t u = neutrals A t u ->
-  [× isPosType A, ~ isCanonical t & ~ isCanonical u].
-Proof.
-  intros HA.
-  simp build_nf_view3.
-  destruct (build_ty_view1 A) eqn:EA ; cbn.
-  all: try solve [inversion 1].
-  1: match goal with | |- context [match ?t with | _ => _ end] => destruct t eqn:? ; cbn end ;
-    try solve [inversion 1].
-  all: simp build_nf_view3 ; cbn.
-  all: destruct (build_nf_view1 t) eqn:? ; cbn.
-  all: try solve [inversion 1].
-  all: repeat (
-    match goal with | |- context [match ?t with | _ => _ end] => destruct t eqn:? ; cbn end ;
-    try solve [inversion 1]).
-  all: intros _.
-  all: split ; try solve [now eapply tm_view1_neutral_can].
-  all: econstructor.
-  eapply ty_view1_small_can in EA.
-  destruct HA ; try easy.
-  all: exfalso ; apply EA ; now constructor.
-Qed.
 
 Section ConversionSound.
   Import AlgorithmicTypedConvData.

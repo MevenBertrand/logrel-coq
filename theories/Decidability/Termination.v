@@ -6,7 +6,7 @@ From LogRel.TypingProperties Require Import Normalisation DeclarativeProperties 
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import Utils.
 
-From LogRel.Decidability Require Import Functions Soundness Completeness.
+From LogRel.Decidability Require Import Functions Views Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.

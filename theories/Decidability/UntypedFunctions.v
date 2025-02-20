@@ -9,90 +9,90 @@ Import MonadNotations.
 Set Universe Polymorphism.
 
 Inductive nf_view2 : term -> term -> Type :=
-| sorts (s1 s2 : sort) : nf_view2 (tSort s1) (tSort s2)
-| prods (A A' B B' : term) :
+| sorts2 (s1 s2 : sort) : nf_view2 (tSort s1) (tSort s2)
+| prods2 (A A' B B' : term) :
     nf_view2 (tProd A B) (tProd A' B')
-| nats : nf_view2 tNat tNat
-| emptys : nf_view2 tEmpty tEmpty
-| sigs (A A' B B' : term) : nf_view2 (tSig A B) (tSig A' B')
-| ids A A' x x' y y' : nf_view2 (tId A x y) (tId A' x' y')
-| lams A A' t t' : nf_view2 (tLambda A t) (tLambda A' t')
-| lam_ne A t n' : nf_view2 (tLambda A t) n'
-| ne_lam n A' t' : nf_view2 n (tLambda A' t')
-| zeros : nf_view2 tZero tZero
-| succs t t' : nf_view2 (tSucc t) (tSucc t')
-| pairs A A' B B' t t' u u' :
+| nats2 : nf_view2 tNat tNat
+| emptys2 : nf_view2 tEmpty tEmpty
+| sigs2 (A A' B B' : term) : nf_view2 (tSig A B) (tSig A' B')
+| ids2 A A' x x' y y' : nf_view2 (tId A x y) (tId A' x' y')
+| lams2 A A' t t' : nf_view2 (tLambda A t) (tLambda A' t')
+| lam_ne2 A t n' : nf_view2 (tLambda A t) n'
+| ne_lam2 n A' t' : nf_view2 n (tLambda A' t')
+| zeros2 : nf_view2 tZero tZero
+| succs2 t t' : nf_view2 (tSucc t) (tSucc t')
+| pairs2 A A' B B' t t' u u' :
     nf_view2 (tPair A B t u) (tPair A' B' t' u')
-| pair_ne A B t u n' :
+| pair_ne2 A B t u n' :
     nf_view2 (tPair A B t u) n'
-| ne_pair n A' B' t' u' :
+| ne_pair2 n A' B' t' u' :
     nf_view2 n (tPair A' B' t' u')
-| refls A A' x x' : nf_view2 (tRefl A x) (tRefl A' x')
-| neutrals (n n' : term) : nf_view2 n n'
-| mismatch (t u : term) : nf_view2 t u
-| anomaly (t u : term) : nf_view2 t u.
+| refls2 A A' x x' : nf_view2 (tRefl A x) (tRefl A' x')
+| neutrals2 (n n' : term) : nf_view2 n n'
+| mismatch2 (t u : term) : nf_view2 t u
+| anomaly2 (t u : term) : nf_view2 t u.
 
 Equations build_nf_view2 (t t' : term) : nf_view2 t t' :=
   build_nf_view2 t t' with (build_nf_view1 t) := {
   | nf_view1_type (eSort s) with (build_nf_view1 t') := {
-    | nf_view1_type (eSort s') := sorts s s' ;
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ;
-    | _ := anomaly _ _ } ;
+    | nf_view1_type (eSort s') := sorts2 s s' ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ;
+    | _ := anomaly2 _ _ } ;
   | nf_view1_type (eProd A B) with (build_nf_view1 t') := {
-    | nf_view1_type (eProd A' B') := prods A A' B B' ;
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ;
-    | _ := anomaly _ _ } ;
+    | nf_view1_type (eProd A' B') := prods2 A A' B B' ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ;
+    | _ := anomaly2 _ _ } ;
   | nf_view1_type eNat with (build_nf_view1 t') := {
-    | nf_view1_type eNat := nats ;
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ;
-    | _ := anomaly _ _ } ;
+    | nf_view1_type eNat := nats2 ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ;
+    | _ := anomaly2 _ _ } ;
   | nf_view1_type eEmpty with (build_nf_view1 t') := {
-    | nf_view1_type eEmpty := emptys ;
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ; 
-    | _ := anomaly _ _ } ;
+    | nf_view1_type eEmpty := emptys2 ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ; 
+    | _ := anomaly2 _ _ } ;
   | nf_view1_type (eSig A B) with (build_nf_view1 t') := {
-    | nf_view1_type (eSig A' B') := sigs A A' B B' ;
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ;
-    | _ := anomaly _ _ } ;
+    | nf_view1_type (eSig A' B') := sigs2 A A' B B' ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ;
+    | _ := anomaly2 _ _ } ;
   | nf_view1_type (eId A x y) with (build_nf_view1 t') := {
-    | nf_view1_type (eId A' x' y') := ids A A' x x' y y' ;
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ;
-    | _ := anomaly _ _ } ;
+    | nf_view1_type (eId A' x' y') := ids2 A A' x x' y y' ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ;
+    | _ := anomaly2 _ _ } ;
   | nf_view1_fun A t with (build_nf_view1 t') := {
-    | nf_view1_fun A' t' := lams A A' t t' ;
-    | nf_view1_ne _ := lam_ne A t _ ; 
-    | _ := anomaly _ _ } ;
+    | nf_view1_fun A' t' := lams2 A A' t t' ;
+    | nf_view1_ne _ := lam_ne2 A t _ ; 
+    | _ := anomaly2 _ _ } ;
   | nf_view1_nat eZero with (build_nf_view1 t') := {
-    | nf_view1_nat eZero := zeros ;
-    | nf_view1_nat (eSucc _) := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ; 
-    | _ := anomaly _ _ } ;
+    | nf_view1_nat eZero := zeros2 ;
+    | nf_view1_nat (eSucc _) := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ; 
+    | _ := anomaly2 _ _ } ;
   | nf_view1_nat (eSucc u) with (build_nf_view1 t') := {
-    | nf_view1_nat (eSucc u') := succs u u' ;
-    | nf_view1_nat eZero := mismatch _ _ ;
-    | nf_view1_ne _ := mismatch _ _ ; 
-    | _ := anomaly _ _ } ;
+    | nf_view1_nat (eSucc u') := succs2 u u' ;
+    | nf_view1_nat eZero := mismatch2 _ _ ;
+    | nf_view1_ne _ := mismatch2 _ _ ; 
+    | _ := anomaly2 _ _ } ;
   | nf_view1_sig A B t u with (build_nf_view1 t') := {
-    | nf_view1_sig A' B' t' u' := pairs A A' B B' t t' u u' ;
-    | nf_view1_ne _ := pair_ne A B t u _ ; 
-    | _ := anomaly _ _ } ;
+    | nf_view1_sig A' B' t' u' := pairs2 A A' B B' t t' u u' ;
+    | nf_view1_ne _ := pair_ne2 A B t u _ ; 
+    | _ := anomaly2 _ _ } ;
   | nf_view1_id A x with (build_nf_view1 t') := {
-    | nf_view1_id A' x' := refls A A' x x' ;
-    | nf_view1_ne _ := mismatch _ _ ;
-    | _ := anomaly _ _ } ;
+    | nf_view1_id A' x' := refls2 A A' x x' ;
+    | nf_view1_ne _ := mismatch2 _ _ ;
+    | _ := anomaly2 _ _ } ;
   | nf_view1_ne _ with (build_nf_view1 t') := {
-    | nf_view1_type _ := mismatch _ _ ;
-    | nf_view1_fun A' t' := ne_lam _ A' t' ;
-    | nf_view1_nat _ := mismatch _ _ ;
-    | nf_view1_sig A' B' t' u' := ne_pair _ A' B' t' u' ;
-    | nf_view1_id _ _ := mismatch _ _ ;
-    | nf_view1_ne _ := neutrals _ _ ;
+    | nf_view1_type _ := mismatch2 _ _ ;
+    | nf_view1_fun A' t' := ne_lam2 _ A' t' ;
+    | nf_view1_nat _ := mismatch2 _ _ ;
+    | nf_view1_sig A' B' t' u' := ne_pair2 _ A' B' t' u' ;
+    | nf_view1_id _ _ := mismatch2 _ _ ;
+    | nf_view1_ne _ := neutrals2 _ _ ;
   }
 }.
 
@@ -120,44 +120,44 @@ Equations uconv_tm : (term × term) -> M unit :=
 Equations uconv_tm_red : (term × term) -> M unit :=
   | (t,t') with (build_nf_view2 t t') :=
   {
-    | sorts s s' :=
+    | sorts2 s s' :=
         ret (eq_sort s s') ;
-    | prods A A' B B' :=
+    | prods2 A A' B B' :=
         rec (tm_state,A,A') ;;
         rec (tm_state,B,B') ;
-    | nats := ok ;
-    | emptys := ok ;
-    | sigs A A' B B' :=
+    | nats2 := ok ;
+    | emptys2 := ok ;
+    | sigs2 A A' B B' :=
         rec (tm_state,A,A') ;;
         rec (tm_state,B,B') ;
-    | ids A A' x x' y y' :=
+    | ids2 A A' x x' y y' :=
         rec (tm_state,A,A') ;;
         rec (tm_state,x,x') ;;
         rec (tm_state,y,y') ;
-    | lams _ _ t t' :=
+    | lams2 _ _ t t' :=
         rec (tm_state,t,t') ;
-    | lam_ne _ t t' :=
+    | lam_ne2 _ t t' :=
         rec (tm_state,t,eta_expand t') ;
-    | ne_lam t _ t' :=
+    | ne_lam2 t _ t' :=
         rec (tm_state,eta_expand t,t') ;
-    | zeros := ok ;
-    | succs t t' :=
+    | zeros2 := ok ;
+    | succs2 t t' :=
         rec (tm_state,t,t') ;
-    | pairs _ _ _ _ t t' u u' :=
+    | pairs2 _ _ _ _ t t' u u' :=
         rec (tm_state,t,t') ;;
         rec (tm_state,u,u') ;
-    | pair_ne _ _ t u t' :=
+    | pair_ne2 _ _ t u t' :=
         rec (tm_state,t,tFst t') ;;
         rec (tm_state,u,tSnd t') ;
-    | ne_pair t _ _ t' u' :=
+    | ne_pair2 t _ _ t' u' :=
         rec (tm_state,tFst t, t') ;;
         rec (tm_state,tSnd t,u') ;
-    | refls A A' x x' := 
+    | refls2 A A' x x' := 
       ok ;
-    | neutrals _ _ :=
+    | neutrals2 _ _ :=
       rec (ne_state,t,t') ;
-    | mismatch _ _ := raise head_mismatch ;
-    | anomaly _ _ := undefined ;
+    | mismatch2 _ _ := raise head_mismatch ;
+    | anomaly2 _ _ := undefined ;
   }.
 
 Equations uconv_ne : (term × term) -> M unit :=

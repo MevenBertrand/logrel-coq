@@ -6,7 +6,7 @@ From LogRel.TypingProperties Require Import Normalisation DeclarativeProperties 
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
 From LogRel Require Import Utils.
 
-From LogRel.Decidability Require Import Functions Soundness.
+From LogRel.Decidability Require Import Functions Views Soundness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
@@ -285,54 +285,6 @@ Section RedImplemComplete.
   Qed.
 
 End RedImplemComplete.
-
-Definition whne_ne_view1 {N} (w : whne N) : ne_view1 N :=
-  match w with
-  | whne_tRel => ne_view1_rel _
-  | whne_tApp _ => ne_view1_dest _ (eApp _)
-  | whne_tNatElim _ => ne_view1_dest _ (eNatElim _ _ _)
-  | whne_tEmptyElim _ => ne_view1_dest _ (eEmptyElim _)
-  | whne_tFst _ => ne_view1_dest _ eFst
-  | whne_tSnd _ => ne_view1_dest _ eSnd
-  | whne_tIdElim _ => ne_view1_dest _ (eIdElim _ _ _ _ _)
-  end.
-
-Lemma whne_ty_view1 {N} (w : whne N) : build_ty_view1 N = ty_view1_small (whne_ne_view1 w).
-Proof.
-  now destruct w.
-Qed.
-
-Lemma whne_nf_view1 {N} (w : whne N) : build_nf_view1 N = nf_view1_ne (whne_ne_view1 w).
-Proof.
-  now destruct w.
-Qed.
-
-Lemma whne_ty_view2 {M N} (wM : whne M) (wN : whne N) : build_nf_ty_view2 M N = ty_neutrals M N.
-Proof.
-  simp build_nf_ty_view2.
-  unshelve erewrite ! whne_ty_view1 ; tea.
-  now reflexivity.
-Qed.
-
-Lemma whne_nf_view3 P m n (wP : isPosType P) (wm : whne m) (wn : whne n) :
-  build_nf_view3 P m n =
-    (match wP with
-    | UnivPos => types _ (ty_neutrals m n)
-    | _ => neutrals _ m n
-    end).
-Proof.
-  simp build_nf_view3.
-  destruct wP ; cbn.
-  2-4: unshelve erewrite whne_nf_view1 ; tea; cbn; now rewrite (whne_nf_view1 wn).
-  - rewrite whne_ty_view2 ; cbn ; tea.
-    reflexivity.
-  - unshelve erewrite whne_ty_view1 ; tea.
-    cbn.
-    unshelve erewrite whne_nf_view1 ; tea ; cbn.
-    destruct (build_nf_view1 _) eqn:e ; try easy.
-    all: unshelve erewrite whne_nf_view1 in e ; tea.
-    all: inversion e.
-Qed.
 
 (* The combinator rec throws in a return branch with a type 
   necessarily convertible to the exception errors type, but the syntactic 

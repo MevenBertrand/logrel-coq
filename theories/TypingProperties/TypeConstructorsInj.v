@@ -316,6 +316,37 @@ Section TypeConstructors.
 
 End TypeConstructors.
 
+Section TermConstructors.
+  Context `{!TermConstructorsInj de}.
+
+  Lemma prod_tm_inj Γ A B A' B' :
+    [Γ |-[de] tProd A B ≅ tProd A' B' : U] ->
+    [Γ |-[de] A' ≅ A : U] × [Γ,,A' |-[de] B ≅ B' : U].
+  Proof.
+    unshelve eintros ?%univ_conv_inj.
+    1-2: now econstructor.
+    now cbn in *.
+  Qed.
+
+  Lemma sig_tm_inj Γ A B A' B' :
+    [Γ |-[de] tSig A B ≅ tSig A' B' : U] ->
+    [Γ |-[de] A ≅ A' : U] × [Γ,,A |-[de] B ≅ B' : U].
+  Proof.
+    unshelve eintros ?%univ_conv_inj.
+    1-2: now econstructor.
+    now cbn in *.
+  Qed.
+
+  Lemma id_tm_inj Γ A x y A' x' y' :
+    [Γ |-[de] tId A x y ≅ tId A' x' y' : U] ->
+    [× [Γ |-[de] A ≅ A' : U], [Γ |-[de] x ≅ x' : A] & [Γ |-[de] y ≅ y' : A]].
+  Proof.
+    unshelve eintros ?%univ_conv_inj.
+    1-2: now econstructor.
+    now cbn in *.
+  Qed.
+
+End TermConstructors.
 
 (** ** Subject reduction *)
 

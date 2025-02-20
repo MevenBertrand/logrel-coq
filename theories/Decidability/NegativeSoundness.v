@@ -5,7 +5,7 @@ From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping Algo
 From LogRel.TypingProperties Require Import PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj NeutralConvProperties.
 From LogRel.Algorithmic Require Import BundledAlgorithmicTyping AlgorithmicConvProperties AlgorithmicTypingProperties.
 
-From LogRel.Decidability Require Import Functions Soundness Completeness.
+From LogRel.Decidability Require Import Functions Views Soundness Completeness.
 From PartialFun Require Import Monad PartialFun MonadExn.
 
 Set Universe Polymorphism.
@@ -13,99 +13,6 @@ Set Printing Primitive Projection Parameters.
 Set Structural Injection.
 
 Import DeclarativeTypingProperties.
-
-Lemma ty_mismatch_hd_view Γ T V (tT : isType T) (tV : isType V) :
-  build_nf_ty_view2 T V = ty_mismatch T V ->
-  type_hd_view Γ tT tV = False.
-Proof.
-  destruct tT, tV ; cbn ; try reflexivity.
-  all: simp build_nf_ty_view2 ; cbn.
-  1-6: congruence.
-  do 2 (unshelve erewrite whne_ty_view1 ; tea) ; cbn.
-  congruence.
-Qed.
-
-Lemma univ_mismatch_hd_view Γ s T V (tT : isType T) (tV : isType V) :
-  build_nf_view3 (tSort s) T V = types s (ty_mismatch T V) ->
-  univ_hd_view Γ tT tV = False.
-Proof.
-  destruct tT, tV ; cbn ; try reflexivity.
-  all: simp build_nf_view3 build_nf_ty_view2 ; cbn.
-  1-5: intros [=].
-  do 2 (unshelve erewrite whne_ty_view1 ; tea) ; cbn.
-  discriminate.
-Qed.
-
-Lemma zip_can t s : ~ isCanonical (zip1 t s).
-Proof.
-  destruct s ; cbn.
-  all: now intros c ; inversion c.
-Qed.
-
-Lemma mismatch_hd_view Γ A t u (tA : isType A) :
-  whnf t -> whnf u ->
-  build_nf_view3 A t u = mismatch A t u ->
-  (∑ (nft : isNat t) (nfu : isNat u), A = tNat × nat_hd_view Γ nft nfu = False) +
-  (∑ (nft : isId t) (nfu : isId u) A' x y, A = tId A' x y × id_hd_view Γ A' x y nft nfu = False).
-Proof.
-  intros wt wu.
-  destruct tA ; cbn.
-  all: simp build_nf_view3 build_nf_ty_view2 ; cbn.
-  all: try solve [intros [=]].
-  - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
-    all: try solve [intros [=]].
-    all: destruct n ; cbn ; try solve [intros [=]].
-    all: destruct n0 ; cbn ; try solve [intros [=]].
-    all: unshelve (intros _ ; left ; do 2 eexists).
-    all: try solve [constructor].
-    1-8: econstructor ; eapply not_can_whne ; tea ; solve [now apply zip_can | intros c ; inversion c].
-    all: now cbn.
-
-  - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
-    all: solve [intros [=]].
-
-  - destruct (build_nf_view1 t), (build_nf_view1 u) ; cbn.
-    all: try solve [intros [=]]. 
-    all: destruct n ; cbn ; try solve [intros [=]].
-    all: (intros _ ; right ; do 5 eexists).
-    all: split ; [reflexivity|..].
-    Unshelve.
-    all: try solve [constructor].
-    5-8: econstructor ; eapply not_can_whne ; tea ; solve [now apply zip_can | intros c ; inversion c].
-    all: now cbn.
-    
-  - unshelve erewrite whne_ty_view1 ; tea ; cbn.
-    destruct (build_nf_view1 t) ; cbn ; try solve [intros [=]].
-    destruct (build_nf_view1 u) ; cbn ; solve [intros [=]].
-
-Qed.
-
-Lemma prod_tm_inj `{TermConstructorsInj de} Γ A B A' B' :
-  [Γ |-[de] tProd A B ≅ tProd A' B' : U] ->
-  [Γ |-[de] A' ≅ A : U] × [Γ,,A' |-[de] B ≅ B' : U].
-Proof.
-  unshelve eintros ?%univ_conv_inj.
-  1-2: now econstructor.
-  now cbn in *.
-Qed.
-
-Lemma sig_tm_inj `{TermConstructorsInj de} Γ A B A' B' :
-  [Γ |-[de] tSig A B ≅ tSig A' B' : U] ->
-  [Γ |-[de] A ≅ A' : U] × [Γ,,A |-[de] B ≅ B' : U].
-Proof.
-  unshelve eintros ?%univ_conv_inj.
-  1-2: now econstructor.
-  now cbn in *.
-Qed.
-
-Lemma id_tm_inj `{TermConstructorsInj de} Γ A x y A' x' y' :
-  [Γ |-[de] tId A x y ≅ tId A' x' y' : U] ->
-  [× [Γ |-[de] A ≅ A' : U], [Γ |-[de] x ≅ x' : A] & [Γ |-[de] y ≅ y' : A]].
-Proof.
-  unshelve eintros ?%univ_conv_inj.
-  1-2: now econstructor.
-  now cbn in *.
-Qed.
 
 Section ConvSoundNeg.
   Import AlgorithmicTypedConvData.
@@ -311,9 +218,7 @@ Section ConvSoundNeg.
         1: boundary.
         constructor.
         all: now bsimpl.
-      + bsimpl ; refold.
-        rewrite scons_eta'.
-        now bsimpl.
+      + now bsimpl.
     
     - destruct pre as [??? [pre [[]]%termSuccCongAlg_prem0%dup]%dup] ; tea.
       split ; [easy|..].
