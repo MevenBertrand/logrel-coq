@@ -284,9 +284,6 @@ Proof.
   + irrelevance.
 Qed.
 
-Lemma upren_subst_rel0 t : t[(tRel 0)]⇑ = t.
-Proof. bsimpl; rewrite scons_eta'; now bsimpl. Qed.
-
 Lemma etaExpandValid {f} (ρ := @wk1 Γ F)
   (Vf : [Γ ||-v<l> f : tProd F G | VΓ | VΠFG ]) :
   [Γ ,, F ||-v<l> eta_expand f : G | VΓF | VG].
@@ -296,7 +293,7 @@ Proof.
   unshelve epose (wkValidTm ρ _ _ _ Vf); tea.
   eapply irrelevanceTm'.
   2: eapply appValid; erewrite <-wk1_ren_on; irrValid.
-  refold; unfold ρ; bsimpl; apply upren_subst_rel0.
+  refold; unfold ρ; now bsimpl.
   Unshelve. all: refold; tea.
   pose (var0Valid _ VF); irrValid.
 Qed.
@@ -338,7 +335,7 @@ Proof.
     replace f⟨↑⟩⟨upRen_term_term (wk1 F)⟩ with f⟨ρ⟩⟨↑⟩.
     2: clear; unfold ρ; now bsimpl.
     apply x.
-  + rewrite wk_up_wk1_ren_on; bsimpl; apply upren_subst_rel0.
+  + rewrite wk_up_wk1_ren_on; now bsimpl.
 Qed.
 
 End EtaValid.

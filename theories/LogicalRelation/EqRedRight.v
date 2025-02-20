@@ -11,7 +11,7 @@ Context `{GenericTypingProperties}.
 
 Lemma eq_id_subst_scons {Γ A} B : B = B[tRel 0 .: @wk1 Γ A >> tRel].
 Proof.
-  clear; bsimpl; rewrite scons_eta'; now bsimpl.
+  clear; now bsimpl.
 Qed.
 
 Set Printing Primitive Projection Parameters.

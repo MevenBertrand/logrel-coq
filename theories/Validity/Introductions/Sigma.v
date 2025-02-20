@@ -80,7 +80,7 @@ Proof. now bsimpl. Qed.
 
 Lemma split_valid_subst_wk_id {Γ G σ} :
  G[σ] = G[up_term_term (↑ >> σ)][σ var_zero .: (@wk_id Γ) >> tRel].
-Proof.  now rewrite wk_id_shift, up_subst_single, scons_eta'. Qed.
+Proof. now bsimpl. Qed.
 
 Section SigInjValid.
   Context `{GenericTypingProperties}.

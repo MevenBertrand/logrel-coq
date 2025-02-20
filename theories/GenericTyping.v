@@ -1169,7 +1169,7 @@ Section GenericConsequences.
     eapply ty_app; tea.
     2: refine (ty_var _ (in_here _ _)); gen_typing.
     1: eapply typing_meta_conv; [renToWk; eapply ty_wk; tea;gen_typing|now rewrite wk1_ren_on].
-    fold ren_term. bsimpl; rewrite scons_eta'; now asimpl.
+    fold ren_term. now bsimpl.
   Qed.
 
   Lemma lambda_cong {Γ A A' B B' t t'} :
@@ -1208,12 +1208,8 @@ Section GenericConsequences.
         now eapply wft_wk.
       + eapply ty_var ; tea.
         now econstructor.
-      + bsimpl.
-        rewrite scons_eta'.
-        now bsimpl.
-      + bsimpl.
-        rewrite scons_eta'.
-        now bsimpl.
+      + now bsimpl.
+      + now bsimpl.
       + renToWk.
         now eapply wft_wk.
       + renToWk.
@@ -1225,13 +1221,9 @@ Section GenericConsequences.
         renToWk.
         now eapply convty_wk.
       + shelve.
-      + bsimpl.
-        rewrite scons_eta'.
-        now bsimpl.
+      + now bsimpl.
       + symmetry. eassumption.
       Unshelve.
-      bsimpl.
-      rewrite scons_eta'.
       now bsimpl.
   Qed.
 

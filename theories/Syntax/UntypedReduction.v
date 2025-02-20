@@ -294,9 +294,7 @@ Proof.
   replace t with t' at 2 ; subst t'.
   1: econstructor.
   substify.
-  asimpl.
-  rewrite scons_eta'.
-  now asimpl.
+  now bsimpl.
 Qed.
 
 Lemma eta_expand_beta_inv {A t t'} :
@@ -315,8 +313,6 @@ Proof.
     refold.
     replace (_[_]) with t in H0.
     1: now assumption.
-    bsimpl.
-    rewrite scons_eta'.
     now bsimpl.
 Qed.
 

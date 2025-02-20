@@ -104,7 +104,7 @@ Section PolyValidity.
     + unshelve epose proof (posRed _ t t (@wk1 Γ A) _ _).
       - escape; gen_typing.
       - replace t with t[tRel 0 .: @wk1 Γ A >> tRel].
-        2:{ bsimpl; rewrite scons_eta'; now asimpl. }
+        2:now bsimpl.
         eapply Rt.
         eapply var0; tea; now rewrite wk1_ren_on.
       - escape.

@@ -269,6 +269,7 @@ Ltac bsimpl' :=
     | progress setoid_rewrite wk_compose_compose
     | progress setoid_rewrite id_ren
     | progress setoid_rewrite wk1_ren
+    | progress setoid_rewrite scons_eta' (** missing from AutoSubst's database? *)
     | progress unfold
         up_term_term, upRen_term_term, up_ren, wk_well_wk_compose,
         wk_id, wk_step, wk_up, wk_empty (**, _wk_up, _wk_step *)
@@ -281,7 +282,6 @@ Ltac bsimpl := check_no_evars;
                   Up_term_term, Up_term, up_term, Subst_term, Subst1, subst1,
                   Ren1_subst, Ren1_wk, Ren1_well_wk
                   in *; bsimpl'; minimize.
-
 
 (** ** Weakenings play well with context access *)
 
@@ -331,6 +331,10 @@ now bsimpl.
 Qed.
 
 (** Lemmas for easier rewriting *)
+
+(** Note: should be unnecessary since scons_eta' is in bsimpl now… *)
+Lemma upren_subst_rel0 t : t[(tRel 0)]⇑ = t.
+Proof. now bsimpl. Qed.
 
 Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof. now bsimpl. Qed.
@@ -431,4 +435,4 @@ Lemma wk1_irr {Γ Γ' A A' t} : t⟨@wk1 Γ A⟩ = t⟨@wk1 Γ' A'⟩.
 Proof. intros; now rewrite 2!wk1_ren_on. Qed.
 
 Lemma var0_wk1_id {Γ A t} : t[tRel 0 .: @wk1 Γ A >> tRel] = t.
-Proof. bsimpl. rewrite scons_eta'. now asimpl. Qed.
+Proof. now bsimpl. Qed.

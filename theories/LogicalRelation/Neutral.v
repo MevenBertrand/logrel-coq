@@ -165,8 +165,7 @@ Proof.
     + erewrite <- wk1_ren_on.
       eapply convtm_meta_conv.
       1: now escape.
-      1: bsimpl; rewrite scons_eta' ; now bsimpl.
-      now bsimpl.
+      all: now bsimpl.
     + eapply typing_meta_conv ; eauto.
     + eapply typing_meta_conv ; eauto.
     Unshelve. 3: eassumption.

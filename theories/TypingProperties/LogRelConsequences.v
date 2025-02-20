@@ -255,12 +255,7 @@ Section TermConstructors.
         1-2: now econstructor.
         cbn in *.
         replace cod[_] with cod in IHcod'.
-        2:{
-          clear.
-          bsimpl.
-          rewrite scons_eta'.
-          now bsimpl.
-        }
+        2: now bsimpl.
         eapply IHcod' ; eauto.
         1: eapply stability1 ; tea.
         unshelve epose proof (posRed _ _ _ _ _ (Neutral.var0 _ _ _)) as posRed'.
@@ -270,12 +265,7 @@ Section TermConstructors.
         1-2: now econstructor.
         cbn in *.
         replace cod'[_] with cod' in posRed'.
-        2:{
-          clear.
-          bsimpl.
-          rewrite scons_eta'.
-          now bsimpl.
-        }
+        2: now bsimpl.
         Irrelevance.irrelevance.
       }
 
@@ -327,12 +317,7 @@ Section TermConstructors.
         1-2: now econstructor.
         cbn in *.
         replace cod[_] with cod in IHcod'.
-        2:{
-          clear.
-          bsimpl.
-          rewrite scons_eta'.
-          now bsimpl.
-        }
+        2:now bsimpl.
         eapply IHcod' ; eauto.
         1: eapply stability1 ; tea.
         unshelve epose proof (posRed _ _ _ _ _ (Neutral.var0 _ _ _)) as posRed'.
@@ -342,12 +327,7 @@ Section TermConstructors.
         1-2: now econstructor.
         cbn in *.
         replace cod'[_] with cod' in posRed'.
-        2:{
-          clear.
-          bsimpl.
-          rewrite scons_eta'.
-          now bsimpl.
-        }
+        2:now bsimpl.
         Irrelevance.irrelevance.
       }
 

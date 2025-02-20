@@ -67,7 +67,7 @@ Section PiTyDomValidity.
   Qed.
 
   Lemma eq_subst_eta A σ : A[σ] = A[up_term_term (↑ >> σ)][(σ var_zero)..].
-  Proof. bsimpl; now rewrite scons_eta'. Qed.
+  Proof. now bsimpl. Qed.
 
   Lemma PiValidCod : [Γ,, F ||-v< l > G | validSnoc vΓ PiValidDom].
   Proof.
