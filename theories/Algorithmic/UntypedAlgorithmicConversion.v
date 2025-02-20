@@ -154,124 +154,6 @@ Notation "[ A ≅ B ]" := (UConvAlg A B).
 Notation "[ A ≅h B ]" := (UConvRedAlg A B).
 Notation "[ m ~ n ]" := (UConvNeuAlg m n).
 
-
-(** ** Strengthening of untyped conversion *)
-(** This will be useful in the equivalence proof, when we get an induction hypothesis
-  that is weakened because of η-expansions. *)
-
-Section UConvStr.
-  
-  Let PEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
-    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
-    [A' ≅ B'].
-  Let PRedEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
-    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
-    [A' ≅h B'].
-  Let PNeEq (t u : term) := forall Γ Δ (ρ : Γ ≤ Δ) t' u',
-    t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
-    [t' ~ u'].
-
-  #[local] Ltac push_renaming :=
-    repeat match goal with
-    | eq : _ = ?t⟨_⟩ |- _ =>
-        destruct t ; cbn in * ; try solve [congruence] ;
-        inversion eq ; subst ; clear eq
-    end.
-
-  Theorem algo_uconv_str :
-    UAlgoConvInductionConcl PEq PRedEq PNeEq.
-  Proof.
-    subst PEq PRedEq PNeEq.
-    apply UAlgoConvInduction.
-    - intros * Hred Hred' ? IH * -> ->.
-      eapply credalg_str in Hred as [? [->]] , Hred' as [? [->]].
-      now econstructor.
-    - solve [intros ; push_renaming ; now econstructor].
-    - intros * ? IHA ? IHB ? **.
-      push_renaming.
-      econstructor.
-      + now eapply IHA.
-      + now unshelve eapply IHB with(ρ := wk_up _ ρ).
-    - solve [intros ; push_renaming ; now econstructor].
-    - solve [intros ; push_renaming ; now econstructor].
-    - intros * ? IH ** ; push_renaming ; econstructor ; now eapply IH.
-    - solve [intros ; push_renaming ; now econstructor].
-    - intros * ? IH ** ; push_renaming ; econstructor ; now
-        unshelve eapply IH with (ρ := wk_up _ ρ).
-    - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
-      + now eapply whne_ren.
-      + unshelve eapply IH with (ρ := wk_up _ ρ).
-        1: assumption.
-        all: now bsimpl.
-    - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
-      + now eapply whne_ren.
-      + unshelve eapply IH with (ρ := wk_up _ ρ).
-        1: assumption.
-        all: now bsimpl.
-    - intros * ? IHA ? IHB ** ; push_renaming ; econstructor.
-      + now eapply IHA.
-      + unshelve eapply IHB with (ρ := wk_up _ ρ).
-        1: assumption.
-        all: now bsimpl.
-    - intros * ? IHf ? IHs ** ; push_renaming ; econstructor.
-      + now eapply IHf.
-      + now eapply IHs.
-    - intros * ?? IHf ? IHs ** ; subst ; push_renaming ; econstructor.
-      + now eapply whne_ren.
-      + now eapply IHf.
-      + now eapply IHs.
-    - intros * ?? IHf ? IHs ** ; subst ; push_renaming ; econstructor.
-      + now eapply whne_ren.
-      + now eapply IHf.
-      + now eapply IHs.
-    - intros * ? IHA ? IHa ? IHa' ** ; push_renaming ; econstructor.
-      + now eapply IHA.
-      + now eapply IHa.
-      + now eapply IHa'.
-    - solve [intros ; push_renaming ; now econstructor].
-    - intros * ? IH ** ; subst.
-      econstructor.
-      now eapply IH.
-    - intros ; push_renaming.
-      eapply section_inj in H1 as ->.
-      2: eapply section_wk.
-      now econstructor.
-    - intros * ? IH ? IH' ** ; push_renaming.
-      econstructor.
-      + now eapply IH.
-      + now eapply IH'.
-    - intros * ? IHn ? IHP ? IHz ? IHs ** ; push_renaming.
-      econstructor.
-      + now eapply IHn.
-      + unshelve eapply IHP with (ρ := wk_up _ ρ).
-        1: assumption.
-        all: now bsimpl.
-      + now eapply IHz.
-      + now eapply IHs.
-    - intros * ? IHn ? IHP ** ; push_renaming.
-      econstructor.
-      + now eapply IHn.
-      + unshelve eapply IHP with (ρ := wk_up _ ρ).
-        1: assumption.
-        all: now bsimpl.
-    - intros * ? IH ** ; push_renaming.
-      econstructor.
-      now eapply IH.
-    - intros * ? IH ** ; push_renaming.
-      econstructor.
-      now eapply IH.
-    - intros * ? IHn ? IHP ? IHr ** ; push_renaming.
-      econstructor.
-      + now eapply IHn.
-      + unshelve eapply IHP with (ρ := wk_up _ (wk_up _ ρ)).
-        1-2: assumption.
-        all: now bsimpl.
-      + now eapply IHr.
-  Qed.
-
-End UConvStr.
-
-
 (** ** Extra preservation lemmas for untyped conversion *)
 
 Section PremisePreserve.
@@ -1246,6 +1128,123 @@ Section UConvSound.
 
 End UConvSound.
 
+
+(** ** Strengthening of untyped conversion *)
+(** This will be useful in the coming implication, when we get an induction hypothesis
+  that is weakened because of η-expansions. *)
+
+  Section UConvStr.
+  
+  Let PEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
+    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
+    [A' ≅ B'].
+  Let PRedEq (A B : term) := forall Γ Δ (ρ : Γ ≤ Δ) A' B',
+    A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
+    [A' ≅h B'].
+  Let PNeEq (t u : term) := forall Γ Δ (ρ : Γ ≤ Δ) t' u',
+    t = t'⟨ρ⟩ -> u = u'⟨ρ⟩ ->
+    [t' ~ u'].
+
+  #[local] Ltac push_renaming :=
+    repeat match goal with
+    | eq : _ = ?t⟨_⟩ |- _ =>
+        destruct t ; cbn in * ; try solve [congruence] ;
+        inversion eq ; subst ; clear eq
+    end.
+
+  Theorem algo_uconv_str :
+    UAlgoConvInductionConcl PEq PRedEq PNeEq.
+  Proof.
+    subst PEq PRedEq PNeEq.
+    apply UAlgoConvInduction.
+    - intros * Hred Hred' ? IH * -> ->.
+      eapply credalg_str in Hred as [? [->]] , Hred' as [? [->]].
+      now econstructor.
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IHA ? IHB ? **.
+      push_renaming.
+      econstructor.
+      + now eapply IHA.
+      + now unshelve eapply IHB with(ρ := wk_up _ ρ).
+    - solve [intros ; push_renaming ; now econstructor].
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; push_renaming ; econstructor ; now eapply IH.
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; push_renaming ; econstructor ; now
+        unshelve eapply IH with (ρ := wk_up _ ρ).
+    - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + unshelve eapply IH with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ?? IH ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + unshelve eapply IH with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ? IHA ? IHB ** ; push_renaming ; econstructor.
+      + now eapply IHA.
+      + unshelve eapply IHB with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ? IHf ? IHs ** ; push_renaming ; econstructor.
+      + now eapply IHf.
+      + now eapply IHs.
+    - intros * ?? IHf ? IHs ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + now eapply IHf.
+      + now eapply IHs.
+    - intros * ?? IHf ? IHs ** ; subst ; push_renaming ; econstructor.
+      + now eapply whne_ren.
+      + now eapply IHf.
+      + now eapply IHs.
+    - intros * ? IHA ? IHa ? IHa' ** ; push_renaming ; econstructor.
+      + now eapply IHA.
+      + now eapply IHa.
+      + now eapply IHa'.
+    - solve [intros ; push_renaming ; now econstructor].
+    - intros * ? IH ** ; subst.
+      econstructor.
+      now eapply IH.
+    - intros ; push_renaming.
+      eapply section_inj in H1 as ->.
+      2: eapply section_wk.
+      now econstructor.
+    - intros * ? IH ? IH' ** ; push_renaming.
+      econstructor.
+      + now eapply IH.
+      + now eapply IH'.
+    - intros * ? IHn ? IHP ? IHz ? IHs ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+      + now eapply IHz.
+      + now eapply IHs.
+    - intros * ? IHn ? IHP ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ ρ).
+        1: assumption.
+        all: now bsimpl.
+    - intros * ? IH ** ; push_renaming.
+      econstructor.
+      now eapply IH.
+    - intros * ? IH ** ; push_renaming.
+      econstructor.
+      now eapply IH.
+    - intros * ? IHn ? IHP ? IHr ** ; push_renaming.
+      econstructor.
+      + now eapply IHn.
+      + unshelve eapply IHP with (ρ := wk_up _ (wk_up _ ρ)).
+        1-2: assumption.
+        all: now bsimpl.
+      + now eapply IHr.
+  Qed.
+
+End UConvStr.
+
 (** ** Typed algorithmic conversion implies untyped algorithmic conversion *)
 
 Section TypedToUntyped.
@@ -1383,7 +1382,7 @@ Section NeutralConversion.
     `{!TypeReductionComplete de} `{!ConvImplies de al}.
 
   Import AlgorithmicTypingData.
-
+  
   Lemma ne_conv_conv (Γ : context) (A A' m n : term) :
     [Γ |-[de] A] ->
     isType A ->
@@ -1793,13 +1792,12 @@ Section UntypedToTyped.
       now econstructor.
   Qed.
 
+End UntypedToTyped.
 
 (** ** Completeness of neutral conversion at all types *)
 (** The main ideas for this completeness are already part of the proof that untyped and typed
   conversion are equivalent, so we reap the fruits here. Maybe one day we'll attempt a direct
   proof, but it is quite subtle. *)
-
-End UntypedToTyped.
 
 Section ConvPos.
   Context `{!TypingSubst de} `{!ConvImplies de al} `{!TypeConstructorsInj de}.

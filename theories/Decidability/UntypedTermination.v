@@ -870,7 +870,7 @@ Proof.
 
 Qed.
 
-Corollary tconv_terminates Γ A A' :
+Corollary uconv_terminates Γ A A' :
   [Γ |-[de] A] ->
   [Γ |-[de] A'] ->
   domain uconv (Γ,A,A').

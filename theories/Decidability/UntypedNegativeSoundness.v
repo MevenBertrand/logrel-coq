@@ -718,7 +718,7 @@ Qed.
     
   Qed.
 
-  Corollary implem_tconv_sound_neg Γ T V e :
+  Corollary implem_uconv_sound_neg Γ T V e :
     graph tconv (Γ,T,V) (exception e) ->
     [Γ |-[de] T] -> [Γ |-[de] V] ->
     ~ [Γ |-[de] T ≅ V].
