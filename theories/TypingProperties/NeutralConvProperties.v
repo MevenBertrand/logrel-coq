@@ -19,7 +19,7 @@ Section NeuConvProperties.
   Lemma conv_neu_wk Γ Δ (ρ : Δ ≤ Γ) A m n :
     [|- Δ] ->
     [Γ |- m ~ n : A] ->
-    [Δ |- m⟨ρ⟩ ~ n ⟨ρ⟩ : A⟨ρ⟩].
+    [Δ |- m⟨ρ⟩ ~ n⟨ρ⟩ : A⟨ρ⟩].
   Proof.
     intros HΔ.
     induction 1 ; eauto.
@@ -364,6 +364,21 @@ Section NeuConvProperties.
 
   Qed.
 
+  Corollary conv_neu_typing_unique Γ T n n' :
+    [Γ |- n ~ n' : T] ->
+    [× [Γ |-[ de ] n ≅ n' : T],
+      forall T' : term, [Γ |-[ de ] n : T'] -> [Γ |-[ de ] T ≅ T']
+      & forall T' : term, [Γ |-[ de ] n' : T'] -> [Γ |-[ de ] T ≅ T']].
+  Proof.
+    intros Hconv ; split.
+    + now apply conv_neu_sound.
+    + intros.
+      eapply conv_neu_typing.
+      1: now eapply conv_neu_sym.
+      eassumption.
+    + intros.
+      now eapply conv_neu_typing.
+  Qed.
 
   Lemma conv_neu_trans Γ A n1 n2 n3 :
     [Γ |- n1 ~ n2 : A] ->

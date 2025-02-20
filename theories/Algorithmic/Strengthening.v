@@ -185,7 +185,7 @@ Section ConvStr.
       subst.
       push_renaming.
       econstructor.
-      1-2: now eapply isFun_ren.
+      1-2: now eapply whnf_ren.
       eapply IH with (ρ := wk_up _ ρ).
       all: now bsimpl.
     - intros * ? IHA ? IHB **.
@@ -198,7 +198,7 @@ Section ConvStr.
       subst.
       push_renaming.
       econstructor.
-      1-2: now eapply isPair_ren.
+      1-2: now eapply whnf_ren.
       + eapply IHf ; reflexivity.
       + eapply IHs.
         2-3: reflexivity.

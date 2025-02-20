@@ -1793,4 +1793,133 @@ Section UntypedToTyped.
       now econstructor.
   Qed.
 
+
+(** ** Completeness of neutral conversion at all types *)
+(** The main ideas for this completeness are already part of the proof that untyped and typed
+  conversion are equivalent, so we reap the fruits here. Maybe one day we'll attempt a direct
+  proof, but it is quite subtle. *)
+
 End UntypedToTyped.
+
+Section ConvPos.
+  Context `{!TypingSubst de} `{!ConvImplies de al} `{!TypeConstructorsInj de}.
+
+  Lemma neuIdElimCong_concl (Γ : context) (A A' A'' x x' x'' P P' hr hr' y y' y'' e e' : term) :
+    [Γ |-[ de ] e ~ e' : tId A'' x'' y''] ->
+    [(Γ,, A),, tId A⟨wk1 (Γ := Γ) A⟩ x⟨wk1 (Γ := Γ) A⟩ (tRel 0) |-[ de ] P ≅ P'] ->
+    [Γ |-[ de ] hr ≅ hr' : P[tRefl A x .: x..]] ->
+    well_typed (ta := de) Γ (tIdElim A x P hr y e) ×
+      well_typed (ta := de) Γ (tIdElim A' x' P' hr' y' e') ->
+    [Γ |-[ de ] tIdElim A x P hr y e ~ tIdElim A' x' P' hr' y' e' : P[e .: y..]].
+  Proof.
+    intros * He HP Hr [[Hwn Hwn'] [[? (?&[->]&?)%termGen'] [? (?&[->]&?)%termGen']]]%dup.
+    epose proof (idElimConv Hwn Hwn') as (?&?&?&[He']) ; tea.
+    1-2: now eapply conv_neu_typing_unique in He as [].
+    1: eapply TypeRefl ; refold ; boundary.
+    1: constructor.
+    + econstructor ; tea.
+      econstructor ; tea.
+      symmetry.
+      now econstructor.
+  Qed.
+
+  Lemma uconv_sound_ne :
+    UAlgoConvInductionConcl
+      (fun t u => True)
+      (fun t u => True)
+
+      (fun m n =>
+        forall Γ, well_typed Γ m × well_typed Γ n ->
+        ∑ A, [Γ |-[de] m ~ n : A]).
+  Proof.
+    apply UAlgoConvInduction ; try easy.
+    
+    - intros * [[[ ? (?&[? []]&?)%termGen']]]%dup ; subst.
+      now intros ; econstructor ; [econstructor|..].
+
+    - intros * Hconv IHm Ht _ * [Hconcl]%dup.
+
+      eapply neuAppCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IHm in Hpre0 as [? [Hpost0]%dup].
+      eapply conv_neu_typing_unique, AppCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1]%dup]); tea.
+      eapply neuAppCongAlg_prem1 in Hpre1 ; eauto.
+      eapply uconv_sound_decl in Ht as [_ ?]; tea.
+      eexists.
+      econstructor ; eauto.
+      now econstructor.
+
+    - intros * ? IH HP _ Hz _ Hs _ ? [Hconcl]%dup.
+
+      eapply neuNatElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply conv_neu_typing_unique, NatElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuNatElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply uconv_sound_decl in HP as [? _]; eauto.
+      eexists.
+      econstructor ; eauto.
+      + now econstructor.
+      + eapply uconv_sound_decl in Hz as [_ Hz].
+        eapply Hz, neuNatElimCong_prem2 ; eauto.
+      + eapply uconv_sound_decl in Hs as [_ Hs].
+        eapply Hs, neuNatElimCong_prem3 ; eauto.
+        eapply uconv_sound_decl in Hz as [_ Hz].
+        eapply Hz, neuNatElimCong_prem2 ; eauto.
+
+    - intros * ? IH HP _ ? [Hconcl]%dup.
+
+      eapply neuEmptyElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply conv_neu_typing_unique, EmptyElimCongUAlg_bridge in Hpost0 as [? [Hpost0]%dup]; eauto.
+      eapply neuEmptyElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply uconv_sound_decl in HP as [? _]; eauto.
+      eexists.
+      econstructor ; eauto.
+      now econstructor.
+
+    - intros * ? IH ? [Hconcl]%dup.
+
+      eapply neuFstCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply conv_neu_typing_unique, FstCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1 []]%dup]); eauto.
+      eexists.
+      econstructor ; eauto.
+      now econstructor.
+
+    - intros * ? IH ? [Hconcl]%dup.
+
+      eapply neuSndCongAlg_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply conv_neu_typing_unique, SndCongUAlg_bridge in Hpost0 as (?&?&[? [Hpre1 []]%dup]); eauto.
+      eexists.
+      econstructor ; eauto.
+      now econstructor.
+
+    - intros * ? IH HP _ Hr _  ? [Hconcl]%dup.
+
+      eapply neuIdElimCong_prem0 in Hconcl as [Hpre0 []]%dup ; eauto.
+      eapply IH in Hpre0 as [? [Hpost0]%dup].
+      eapply conv_neu_typing_unique, IdElimCongUAlg_bridge in Hpost0 as [? (?&?&?&[Hpost0]%dup)]; eauto.
+      eapply neuIdElimCong_prem1 in Hpost0 as [Hpre1 []]%dup ; eauto.
+      eapply uconv_sound_decl in HP as [? _]; eauto.
+      eexists.
+      eapply neuIdElimCong_concl ; eauto.
+      + econstructor ; eauto.
+      + eapply uconv_sound_decl in Hr as [_ Hr].
+        now eapply Hr, neuIdElimCong_prem2.
+  Qed.
+
+  Lemma conv_pos_all : ConvNeutralConv de.
+  Proof.
+    constructor.
+    intros Γ T n n' w w' [Hconv]%dup.
+    eapply tm_conv_compl, Build_ConvTermBun, bundled_conv_uconv in Hconv as [_ Hconv].
+    2-5: boundary.
+    specialize (Hconv w w').
+    eapply uconv_sound_ne in Hconv as [? Hconv].
+    2: split ; now eexists ; boundary.
+    econstructor ; tea.
+    eapply conv_neu_typing ; tea.
+    boundary.
+  Qed.
+
+End ConvPos.
