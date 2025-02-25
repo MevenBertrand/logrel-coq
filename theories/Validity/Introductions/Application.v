@@ -24,6 +24,21 @@ Proof.
   all: refold; now rewrite <-!singleSubstComm'.
 Qed.
 
+Lemma appcongValid' {Γ Γ' F F' G G' C C' t u a b l}
+  {VΓ : [||-v Γ ≅ Γ']}
+  {VΠFG : [Γ ||-v<l> tProd F G ≅ tProd F' G' | VΓ]}
+  (Vtu : [Γ ||-v<l> t ≅ u : tProd F G | VΓ | VΠFG])
+  (Vab : [Γ ||-v<l> a ≅ b : F | VΓ | validΠdom VΠFG])
+  (VC : [Γ ||-v<l> C ≅ C' | VΓ])
+  (eqC : C = G[a..]):
+  [Γ ||-v<l> tApp t a ≅ tApp u b : C | VΓ | VC].
+Proof.
+  eapply irrValidTm, appcongValid; tea.
+  (* TODO: apply per irrelevance tactics *)
+  rewrite <-eqC; eapply lrefl; eapply irrValidTy; tea; now eapply lrefl.
+  Unshelve. 1: now eapply lrefl. tea.
+Qed.
+
 Lemma appValid {Γ F G t u l}
   {VΓ : [||-v Γ]}
   (* {VF : [Γ ||-v<l> F | VΓ]} *)

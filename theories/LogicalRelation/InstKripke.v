@@ -10,8 +10,8 @@ Set Printing Primitive Projection Parameters.
 Section InstKripke.
 Context `{GenericTypingProperties}.
 
-Lemma instKripkeTm {Γ A t u l} (wfΓ : [|-Γ])
-  {h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩]}
+Lemma instKripkeTm {Γ A A' t u l} (wfΓ : [|-Γ])
+  {h : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (eq : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [h Δ ρ wfΔ | Δ ||- t⟨ρ⟩ ≅ u⟨ρ⟩ : _])
   : [instKripke wfΓ h | Γ ||- t ≅ u : _].
 Proof.

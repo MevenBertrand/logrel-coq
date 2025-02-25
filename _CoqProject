@@ -71,6 +71,8 @@ theories/LogicalRelation/Introductions/Id.v
 theories/Validity/Validity.v
 theories/Validity/Irrelevance.v
 theories/Validity/Properties.v
+theories/Validity/PERTactics.v
+theories/Validity/ValidityTactics.v
 # theories/Validity/Escape.v
 # theories/Validity/Conversion.v
 # theories/Validity/Reflexivity.v

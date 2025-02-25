@@ -1,6 +1,6 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
-From LogRel.Validity Require Import Validity Irrelevance Properties Pi Application Var.
+From LogRel.Validity Require Import Validity Irrelevance Properties Pi Application Var ValidityTactics.
 
 Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.
@@ -88,9 +88,7 @@ Proof.
   + symmetry; rewrite <-2!subst_prod; now eapply validTyExt.
   + now eapply symValidTm.
   + now eapply symSubst.
-  Unshelve.
-  2: now eapply symValidTy'.
-  1: now eapply symValidTy.
+  Unshelve. 1-3: irrValid.
   1: now symmetry.
   tea.
 Defined.

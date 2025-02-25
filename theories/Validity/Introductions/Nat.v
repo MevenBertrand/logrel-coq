@@ -1,6 +1,6 @@
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
-From LogRel.LogicalRelation.Introductions Require Import Universe SimpleArr.
+From LogRel.LogicalRelation.Introductions Require Import Universe SimpleArr Application.
 From LogRel.Validity Require Import Validity Irrelevance Properties Universe Pi SimpleArr Var Application.
 
 Set Universe Polymorphism.
@@ -11,28 +11,20 @@ Context `{GenericTypingProperties}.
 
 Set Printing Primitive Projection Parameters.
 
-
-Lemma natRed {Γ l} : [|- Γ] -> [Γ ||-<l> tNat].
+Lemma natRedTy {Γ} : [|- Γ] -> [Γ ||-Nat tNat ≅ tNat].
 Proof.
-  intros; eapply LRNat_; constructor; eapply redtywf_refl; gen_typing.
-Defined.
-
-Lemma natValid {Γ l} (VΓ : [||-v Γ]) : [Γ ||-v<l> tNat | VΓ].
-Proof.
-  unshelve econstructor; intros.
-  + now eapply natRed.
-  + cbn; constructor; eapply redtywf_refl; gen_typing.
-Defined.
-
-Lemma natconvValid {Γ l} (VΓ : [||-v Γ]) (VNat : [Γ ||-v<l> tNat | VΓ]) :
-  [Γ ||-v<l> tNat ≅ tNat | VΓ | VNat].
-Proof.
-  constructor; intros.
-  enough [Δ ||-<l> tNat ≅ tNat | natRed wfΔ] by irrelevance.
-  constructor; cbn; eapply redtywf_refl; gen_typing.
+  constructor; eapply redtywf_refl; gen_typing.
 Qed.
 
-Lemma natURedTm {Δ} (wfΔ : [|-Δ]) : URedTm (LogRelRec one) Δ tNat U (redUOneCtx wfΔ).
+Definition natRed {Γ l} (wfΓ : [|- Γ]) : [Γ ||-<l> tNat] :=
+  LRNat_ l (natRedTy wfΓ).
+
+Lemma natValid {Γ Γ' l} (VΓ : [||-v Γ ≅ Γ']) : [Γ ||-v<l> tNat | VΓ].
+Proof.
+  unshelve econstructor; intros; now eapply natRed.
+Defined.
+
+Lemma natURedTm {Δ} (wfΔ : [|-Δ]) : URedTm zero Δ tNat.
 Proof.
   exists tNat; [| constructor].
   eapply redtmwf_refl; gen_typing.
@@ -40,10 +32,9 @@ Defined.
 
 Lemma natTermRed {Δ} (wfΔ : [|-Δ]) : [Δ ||-<one> tNat : U | LRU_ (redUOneCtx wfΔ)].
 Proof.
-  unshelve eexists (natURedTm wfΔ) (natURedTm wfΔ) _; cbn.
-  1,3: now eapply (natRed (l:=zero)).
-  1: gen_typing.
-  apply reflLRTyEq.
+  unshelve econstructor; try now eapply natURedTm.
+  1: cbn; gtyping.
+  eapply redTyRecBwd; now eapply natRed.
 Defined.
 
 Lemma natTermValid {Γ} (VΓ : [||-v Γ]):  [Γ ||-v<one> tNat : U | VΓ | UValid VΓ].
@@ -51,23 +42,22 @@ Proof.
   constructor; intros; eapply natTermRed.
 Qed.
 
-Lemma zeroRed {Γ l} {NN : [Γ ||-Nat tNat]} (wfΓ : [|- Γ]): [Γ ||-<l> tZero : _ | LRNat_ l NN].
+Lemma zeroRed {Γ l A B} {NN : [Γ ||-Nat A ≅ B]} : [Γ ||-<l> tZero : _ | LRNat_ l NN].
 Proof.
+  assert [|-Γ] by (pose (LRNat_ l NN); escape; gtyping).
   exists tZero tZero.
-  1-3: gen_typing.
+  1-3: gtyping.
   constructor.
 Defined.
 
-Lemma zeroRedEq {Γ l} {NN : [Γ ||-Nat tNat]} (wfΓ : [|- Γ]): [Γ ||-<l> tZero ≅ tZero : _ | LRNat_ l NN].
-Proof. now apply zeroRed. Defined.
-
-Lemma zeroValid {Γ l} (VΓ : [||-v Γ]):
+Lemma zeroValid {Γ Γ' l} (VΓ : [||-v Γ ≅ Γ']):
   [Γ ||-v<l> tZero : tNat | VΓ | natValid VΓ].
 Proof.
   constructor; intros; cbn; unshelve eapply zeroRed; tea.
+  3: now eapply natRedTy.
 Qed.
 
-Lemma succRedEq {Γ l n n'} {NN : [Γ ||-Nat tNat]} :
+Lemma succRed {Γ l A A' n n'} {NN : [Γ ||-Nat A ≅ A']} :
   [Γ ||-<l> n ≅ n' : _ | LRNat_ l NN] ->
   [Γ ||-<l> tSucc n ≅ tSucc n' : _ | LRNat_ l NN].
 Proof.
@@ -78,13 +68,13 @@ Proof.
   + now constructor.
 Defined.
 
-Lemma succRed {Γ l n} {NN : [Γ ||-Nat tNat]} :
+(* Lemma succRed {Γ A A' l n} {NN : [Γ ||-Nat A ≅ A']} :
   [Γ ||-<l> n : _ | LRNat_ l NN] ->
   [Γ ||-<l> tSucc n : _ | LRNat_ l NN].
-Proof. eapply succRedEq. Defined.
+Proof. eapply succRedEq. Defined. *)
 
 
-Lemma succRedInv {Γ l n m } {NN : [Γ ||-Nat tNat]} :
+(* Lemma succRedInv {Γ l n m } {NN : [Γ ||-Nat tNat]} :
   [Γ ||-<l> tSucc n ≅ tSucc m : _ | LRNat_ l NN] ->
   [Γ ||-<l> n ≅ m : _ | LRNat_ l NN].
 Proof.
@@ -94,28 +84,38 @@ Proof.
   subst. inversion prop; subst; tea.
   match goal with H : [ _ ||-NeNf _ ≅ _ : _] |- _ => destruct H as [?? refl] end.
   apply convneu_whne in refl; inv_whne.
+Qed. *)
+
+
+Lemma succValid' {Γ Γ' A A' l n n'} (VΓ : [||-v Γ ≅ Γ'])
+  (VN : [Γ ||-v<l> A ≅ A' | VΓ])
+  (eqA : A = tNat)
+  (Veqn : [Γ ||-v<l> n ≅ n' : A | VΓ | VN]) :
+  [Γ ||-v<l> tSucc n ≅ tSucc n' : A | VΓ | VN].
+Proof.
+  subst.
+  constructor; intros; cbn; instValid Vσσ'; eapply irrLR.
+  unshelve eapply succRed, irrLR; cycle 4; tea; cbn; eapply natRedTy; tea.
+  Unshelve. tea.
 Qed.
 
-
-Lemma succcongValid {Γ l n n'} (VΓ : [||-v Γ])
+Lemma succValid {Γ Γ' l n n'} (VΓ : [||-v Γ ≅ Γ'])
   (Veqn : [Γ ||-v<l> n ≅ n' : tNat | VΓ | natValid VΓ]) :
   [Γ ||-v<l> tSucc n ≅ tSucc n' : tNat | VΓ | natValid VΓ].
 Proof.
-  constructor; intros; cbn; instValid Vσσ'; now unshelve eapply succRedEq.
+  constructor; intros; cbn; instValid Vσσ'.
+  unshelve eapply succRed; cycle 3; first [eapply natRedTy| tea].
 Qed.
-
-Lemma succValid {Γ l n} (VΓ : [||-v Γ])
-  (Vn : [Γ ||-v<l> n : tNat | VΓ | natValid VΓ]) :
-  [Γ ||-v<l> tSucc n : tNat | VΓ | natValid VΓ].
-Proof. now eapply lreflValidTm, succcongValid, reflValidTm. Qed.
 
 Lemma elimSuccHypTy_subst {P} σ :
   elimSuccHypTy P[up_term_term σ] = (elimSuccHypTy P)[σ].
 Proof.
   unfold elimSuccHypTy.
   cbn. rewrite shift_up_eq.
-  rewrite liftSubstComm. cbn.
-  now rewrite up_liftSubst_eq.
+  erewrite liftSubstComm.
+  rewrite up_liftSubst_eq.
+  now rewrite wk1_ren.
+  Unshelve. all: tea; constructor.
 Qed.
 
 Lemma liftSubst_singleSubst_eq {t u v: term} : t[u]⇑[v..] = t[u[v..]..].
@@ -123,186 +123,121 @@ Proof. now bsimpl. Qed.
 
 Section NatElimRedEq.
   Context {Γ l P Q hs hs' hz hz'}
-    (wfΓ : [|- Γ])
-    (NN : [Γ ||-Nat tNat])
+    (* (wfΓ : [|- Γ]) *)
+    (NN : [Γ ||-Nat tNat ≅ tNat])
     (RN := LRNat_ _ NN)
-    (RP : [Γ,, tNat ||-<l> P])
-    (RQ : [Γ,, tNat ||-<l> Q])
+    (* (RP : [Γ,, tNat ||-<l> P])
+    (RQ : [Γ,, tNat ||-<l> Q]) *)
+    (WtP : [Γ ,, tNat |- P])
+    (WtQ : [Γ ,, tNat |- Q])
     (eqPQ : [Γ,, tNat |- P ≅ Q])
-    (RPpt : forall n n', [Γ ||-<l> n ≅ n' : _ | RN] -> [Γ ||-<l> P[n..]])
-    (* (RQpt : forall n n', [Γ ||-<l> n ≅ n': _ | RN] -> [Γ ||-<l> Q[n..]]) *)
     (RPQext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> P[n..] ≅ Q[n'..] | RPpt _ _ Rn])
-    (RPz := RPpt _ _ (zeroRed wfΓ))
-    (RPQz := RPQext _ _ (zeroRedEq wfΓ))
-    (Rhz : [Γ ||-<l> hz ≅ hz' : _ | RPz])
-    (RPs : [Γ ||-<l> elimSuccHypTy P])
-    (RQs : [Γ ||-<l> elimSuccHypTy Q])
-    (RPQs : [Γ ||-<l> elimSuccHypTy P ≅ elimSuccHypTy Q | RPs])
-    (Rhs : [Γ ||-<l> hs ≅ hs' : _ | RPs ])
-    .
-
-  #[local]
-  Lemma RQpt : forall n n', [Γ ||-<l> n ≅ n': _ | RN] -> [Γ ||-<l> Q[n..]].
-  Proof. intros; now unshelve eapply LRTyEqRedRight, RPQext. Qed.
-
-  Let RQz := RQpt _ _ (zeroRed wfΓ).
+      [Γ ||-<l> P[n..] ≅ Q[n'..]])
+    (RPQz := RPQext _ _ zeroRed)
+    (Rhz : [Γ ||-<l> hz ≅ hz' : _ | RPQz])
+    (RPQs : [Γ ||-<l> elimSuccHypTy P ≅ elimSuccHypTy Q])
+    (Rhs : [Γ ||-<l> hs ≅ hs' : _ | RPQs ]) .
 
   #[local]
   Lemma RPext : forall n n' (Rn : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> P[n..] ≅ P[n'..] | RPpt _ _ Rn].
+      [Γ ||-<l> P[n..] ≅ P[n'..]].
   Proof.
-    intros; eapply transEq; [| eapply LRTyEqSym ].
-    all: unshelve (eapply RPQext; cycle 1; tea); now eapply urefl.
-    Unshelve. 2: eapply RQpt; now symmetry.
+    intros; etransitivity; [|symmetry];  eapply RPQext; tea; now eapply urefl.
   Qed.
 
   Lemma natElimRedEqAux :
-    (forall n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]), [Γ ||-<l> n ≅ n' : _ | RN] ->
-      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RPpt _ _ Rnn' ]) ×
-    (forall n n' (Rnn' : NatPropEq NN n n') (RP : [Γ ||-<l> P[n..]]),
-    (* (Rn : [Γ ||-<l> n ≅ n' : _ | RN]), *)
-      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RP (*RPpt _ _ Rn*) ]).
+    (forall n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]),
+      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RPQext _ _ Rnn' ]) ×
+    (forall n n' (Rnn' : NatPropEq Γ n n') (RP : [Γ ||-<l> P[n..] ≅ Q[n'..]]),
+      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RP ]).
   Proof.
     apply NatRedEqInduction.
-    - intros ?? nfL nfR redL redR ? prop ih Rtu ; destruct (NatPropEq_whnf prop).
-      eapply redSubstTmEq.
-      + eapply LRTmEqConv, ih; unshelve eapply RPext.
-        eapply redTmEqFwd; tea; now eapply lrefl.
+    - intros t u  nfL nfR redL redR ? prop ih.
+      set (Rtu := Build_NatRedTmEq _ _ _ _ _ _ : [Γ ||-<l> t ≅ u : _ | RN]).
+      pose proof (redTmFwd' Rtu) as []; eapply redSubstTmEq.
+      + unshelve eapply irrLRConv, ih;
+        first [eapply RPQext| eapply RPext]; tea; now symmetry.
       + escape; eapply redtm_natelim; tea; gen_typing.
-      + escape; eapply redtm_natelim; tea; [..| gen_typing].
+      + escape; eapply redtm_natelim; tea; [..| gtyping].
         1,2: now eapply ty_conv.
-      + now unshelve eapply escapeEq, RPQext.
-    - intros. eapply redSubstTmEq.
-      + irrelevanceRefl; eapply Rhz.
+    - intros; eapply redSubstTmEq.
+      + eapply irrLR, Rhz.
       + escape; eapply redtm_natElimZero; tea.
       + escape; eapply redtm_natElimZero; tea.
         1,2: now eapply ty_conv.
-      + now escape.
     - intros n n' Rn ih ?; change [Γ ||-<l> n ≅ n' : _ | RN] in Rn.
       eapply redSubstTmEq; cycle 1.
       + escape; eapply redtm_natElimSucc; tea.
       + escape; eapply redtm_natElimSucc; tea.
         1,2: now eapply ty_conv.
-      + unshelve eapply escapeEq, RPQext.
-        now eapply succRedEq.
-      + assert [Γ ||-<l> arr P[n..] P[(tSucc n)..]].
-        1: now (eapply ArrRedTy; eapply RPpt; [| eapply succRedEq]).
+      + assert [Γ ||-<l> arr P[n..] P[(tSucc n)..] ≅ arr Q[n'..] Q[(tSucc n')..]].
+        1: now eapply ArrRedTy; eapply RPQext;[|eapply succRed].
         unshelve eapply simple_appcongTerm; [..| eauto]; tea.
-        unshelve (irrelevance0; [| eapply appcongTerm; tea]).
-        all: now rewrite subst_arr, liftSubst_singleSubst_eq.
+        unshelve (eapply irrLREq, appcongTerm; tea; now rewrite subst_arr, liftSubst_singleSubst_eq).
+        now rewrite 2!subst_arr, 2!liftSubst_singleSubst_eq.
     - intros n n' Rn RP0.
       pose proof (neNfTermEq RN Rn).
-      eapply neuTermEq. 2: eapply ty_conv ; [| eapply escapeEq; eapply LRTyEqSym].
+      eapply reflectLR.
       + escape; now eapply ty_natElim.
-      + escape; eapply ty_natElim; tea.
+      + eapply ty_conv ; [| eapply escapeEq; now symmetry].
+        escape; eapply ty_natElim; tea.
         all: now eapply ty_conv.
-      + now unshelve eapply RPQext.
       + escape ; destruct Rn; now eapply convneu_natElim.
-      Unshelve. 2: eapply RQpt; now eapply urefl.
   Qed.
 
   Lemma natElimRedEq :
     (forall n n' (Rnn' : [Γ ||-<l> n ≅ n' : _ | RN]),
-      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RPpt _ _ Rnn' ]).
+      [Γ ||-<l> tNatElim P hz hs n ≅ tNatElim Q hz' hs' n' : _ | RPQext _ _ Rnn' ]).
   Proof. intros; now apply (fst natElimRedEqAux). Qed.
 End NatElimRedEq.
 
 
 Section NatElimValid.
-  Context {Γ l}
-    (VΓ : [||-v Γ])
+  Context {Γ Γ' l}
+    (VΓ : [||-v Γ ≅ Γ'])
     (VN := natValid (l:=l) VΓ)
     (VΓN := validSnoc VΓ VN).
 
-  Lemma elimSuccHypTyValid {P}
-    (VP : [Γ ,, tNat ||-v<l> P | VΓN]) :
-    [Γ ||-v<l> elimSuccHypTy P | VΓ].
+  Lemma elimSuccHypTyValid {P Q}
+    (VP : [Γ ,, tNat ||-v<l> P ≅ Q| VΓN]) :
+    [Γ ||-v<l> elimSuccHypTy P  ≅ elimSuccHypTy Q | VΓ].
   Proof.
     unfold elimSuccHypTy.
     unshelve eapply PiValid.
     1: exact VN.
     eapply simpleArrValid; tea.
     eapply substLiftS; tea.
-    eapply irrelevanceTm.
-    eapply succValid.
-    eapply irrelevanceTm.
-    change tNat with tNat⟨@wk1 Γ tNat⟩ at 2.
+    eapply succValid'; [now rewrite wk1_ren_on|].
     eapply var0Valid.
-    Unshelve. all: tea.
-  Defined.
-
-  Lemma elimSuccHypTyCongValid {P P'}
-      (VP : [Γ ,, tNat ||-v<l> P | VΓN])
-      (VeqP : [Γ ,, tNat ||-v<l> P ≅ P' | VΓN | VP ]) :
-      [Γ ||-v<l> elimSuccHypTy P ≅ elimSuccHypTy P' | VΓ | elimSuccHypTyValid VP].
-  Proof.
-    unfold elimSuccHypTy.  pose proof (ureflValidTy VeqP).
-    eapply irrelevanceTyEq.
-    assert [Γ,, tNat ||-v< l > P'[tSucc (tRel 0)]⇑ | validSnoc VΓ VN]. 1:{
-      eapply substLiftS; tea.
-      eapply irrelevanceTm.
-      eapply succValid.
-      eapply irrelevanceTm.
-      change tNat with tNat⟨@wk1 Γ tNat⟩ at 2.
-      eapply var0Valid.
-    }
-    eapply PiCong.
-    - eapply simpleArrValid; tea.
-    - eapply reflValidTy.
-    - eapply simpleArrCongValid; tea.
-      eapply substLiftSEq; tea.
-    Unshelve. all: tea.
-    unshelve eapply irrelevanceTm; tea.
-    2: eapply succValid.
-    unshelve eapply irrelevanceTm'; cycle -1.
-    1: unshelve eapply var0Valid.
-    1,2 : tea.
-    now bsimpl.
   Qed.
 
-
-
-  Context { P P' hz hz' hs hs'}
-    (VP : [Γ ,, tNat ||-v<l> P | VΓN])
-    (VPP' : [Γ ,, tNat ||-v<l> P ≅ P' | VΓN | VP ])
-    (VP' := ureflValidTy VPP')
+  Lemma natElimCongValid {P P' hz hz' hs hs'}
+    (VP : [Γ ,, tNat ||-v<l> P ≅ P' | VΓN ])
     (VPz := substS VP (zeroValid VΓ))
     (Vhz : [Γ ||-v<l> hz ≅ hz' : P[tZero..] | VΓ | VPz])
-    (Vhs : [Γ ||-v<l> hs ≅ hs' : _ | VΓ | elimSuccHypTyValid VP]).
-
-  (* Lemma elimSuccHypTyCongValid ? *)
-
-  Lemma natElimCongValid {n n'}
+    (Vhs : [Γ ||-v<l> hs ≅ hs' : _ | VΓ | elimSuccHypTyValid VP])
+    {n n'}
     (Vn : [Γ ||-v<l> n ≅ n' : tNat | VΓ | VN])
     (VPn := substS VP Vn)
     : [Γ ||-v<l> tNatElim P hz hs n ≅ tNatElim P' hz' hs' n' : _ | VΓ | VPn].
   Proof.
     pose proof (elimSuccHypTyValid VP).
-    pose proof (elimSuccHypTyValid VP').
-    pose proof (elimSuccHypTyCongValid VP VPP').
-    constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubstEq' VN Vσσ').
-    instValid Vuσ; cbn -[elimSuccHypTy elimSuccHypTyValid] in *; escape.
-    irrelevance0. 1: now rewrite singleSubstComm'.
-    eapply natElimRedEq; rewrite ?elimSuccHypTy_subst; tea.
-    + intros; irrelevance0; rewrite up_single_subst; [reflexivity|].
-      unshelve eapply validTyEq; cycle 1 ; tea.
-      now unshelve eapply consSubstEq.
-    + irrelevance0; [exact (singleSubstComm' _ tZero σ)|]; tea.
-    + irrelevance0; [now rewrite elimSuccHypTy_subst|]; tea.
-    + irrelevance0; [now rewrite elimSuccHypTy_subst|]; tea.
-    Unshelve.
-      2,3: tea.
-      2: now rewrite elimSuccHypTy_subst.
-      intros ?? Rn; rewrite up_single_subst.
-      unshelve eapply validTy.
-      5: tea.
-      3: unshelve eapply consSubstEq; tea.
+    constructor; intros; instValid Vσσ'; epose proof (Vuσ := liftSubst' VN Vσσ').
+    instValid Vuσ; cbn -[elimSuccHypTy elimSuccHypTyValid] in *.
+    eapply irrLREq. 1: now rewrite singleSubstComm'.
+    unshelve eapply natElimRedEq; tea.
+    4-6: now escape.
+    + now eapply natRedTy.
+    + intros ?? Rn; rewrite 2!up_single_subst; unshelve eapply validTyExt; cycle 3; tea.
+      now unshelve econstructor.
+    + now rewrite 2!elimSuccHypTy_subst.
+    + eapply irrLREq; tea; now rewrite singleSubstComm'.
+    + eapply irrLREq; tea; now rewrite elimSuccHypTy_subst.
   Qed.
 End NatElimValid.
 
-Lemma natElimValid {Γ l P hz hz' hs hs' n n'}
-    (VΓ : [||-v Γ])
+Lemma natElimValid {Γ Γ' l P hz hz' hs hs' n n'}
+    (VΓ : [||-v Γ ≅ Γ'])
     (VN := natValid (l:=l) VΓ)
     (VΓN := validSnoc VΓ VN)
     (VP : [Γ ,, tNat ||-v<l> P | VΓN])
@@ -312,20 +247,17 @@ Lemma natElimValid {Γ l P hz hz' hs hs' n n'}
     (Vn : [Γ ||-v<l> n ≅ n' : _ | VΓ | VN])
     (VPn := substS VP Vn):
     [Γ ||-v<l> tNatElim P hz hs n : _ | VΓ | VPn].
-Proof.
-  eapply lreflValidTm , natElimCongValid; tea.
-  now eapply reflValidTy.
-Qed.
+Proof. now eapply lrefl, natElimCongValid. Qed.
 
 Section NatElimRedValid.
-  Context {Γ l}
-    (VΓ : [||-v Γ])
+  Context {Γ Γ' l}
+    (VΓ : [||-v Γ ≅ Γ'])
     (VN := natValid (l:=l) VΓ)
     (VΓN := validSnoc VΓ VN)
     { P P' hz hz' hs hs'}
-    (VP : [Γ ,, tNat ||-v<l> P | VΓN])
-    (VPP' : [Γ ,, tNat ||-v<l> P ≅ P' | VΓN | VP ])
-    (VP' := ureflValidTy VPP')
+    (* (VP : [Γ ,, tNat ||-v<l> P | VΓN]) *)
+    (VP : [Γ ,, tNat ||-v<l> P ≅ P' | VΓN ])
+    (* (VP' := ureflValidTy VPP') *)
     (VPz := substS VP (zeroValid VΓ))
     (Vhz : [Γ ||-v<l> hz ≅ hz' : P[tZero..] | VΓ | VPz])
     (Vhs : [Γ ||-v<l> hs ≅ hs' : _ | VΓ | elimSuccHypTyValid VΓ VP]).
@@ -333,9 +265,9 @@ Section NatElimRedValid.
   Lemma natElimZeroValid  :
     [Γ ||-v<l> tNatElim P hz hs tZero ≅ hz : _ | VΓ | VPz].
   Proof.
-    eapply redSubstValid. 2: now eapply lreflValidTm.
+    eapply redSubstValid. 2: now eapply lrefl.
     constructor; intros; cbn; rewrite singleSubstComm'.
-    instValid Vσσ'; instValid (liftSubstEq' VN Vσσ'); escape.
+    instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
     eapply redtm_natElimZero; tea.
     + now rewrite <- (singleSubstComm' _ tZero σ).
     + now rewrite elimSuccHypTy_subst.
@@ -348,17 +280,17 @@ Section NatElimRedValid.
   Proof.
     eapply redSubstValid.
     * constructor; intros; rewrite singleSubstComm'.
-      instValid Vσσ'; instValid (liftSubstEq' VN Vσσ'); escape.
+      instValid Vσσ'; instValid (liftSubst' VN Vσσ'); escape.
       eapply redtm_natElimSucc; tea; refold.
       + now rewrite <- (singleSubstComm' _ tZero σ).
       + now rewrite elimSuccHypTy_subst.
-    * eapply simple_appValid.
-      2: now unshelve (eapply natElimValid; tea).
-      eapply irrelevanceTm'; [| exact (appValid (lreflValidTm _ Vhs) Vn)].
-      clear; now bsimpl.
-      Unshelve.
-        eapply simpleArrValid; eapply substS; tea.
-        now eapply succValid.
+    * eapply lrefl, simple_appValid.
+      2: now eapply natElimCongValid.
+      eapply appcongValid'; tea.
+      1: eapply irrValidTm; tea; now eapply natValid.
+      now rewrite subst_arr, liftSubst_singleSubst_eq.
+      Unshelve. 2,4: tea. 2: now eapply lrefl.
+        eapply simpleArrValid; tea; now eapply substS.
   Qed.
 
 End NatElimRedValid.

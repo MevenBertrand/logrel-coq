@@ -2,7 +2,7 @@ From Coq Require Import ssrbool.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation.
 From LogRel.LogicalRelation Require Import Properties.
 From LogRel.LogicalRelation.Introductions Require Import Poly Pi.
-From LogRel.Validity Require Import Validity Irrelevance Properties Universe Poly.
+From LogRel.Validity Require Import Validity Irrelevance Properties Universe Poly ValidityTactics.
 
 Set Universe Polymorphism.
 Set Printing Primitive Projection Parameters.
@@ -64,7 +64,9 @@ Section PiValidity.
     constructor; intros ? wfΔ0 ?? Vσ.
     pose proof (univValid zero VFU) as VF0.
     pose proof (univValid zero VGU) as VG0.
-    unshelve epose proof (irrValidTm (VΓ1:=validSnoc VΓ (urefl VF)) (validSnoc (lrefl VΓ) (irrValidTy (lrefl VΓ) VF)) _ (UValid _) (UValid _) VGU).
+    pose (v := validSnoc VΓ (urefl VF)).
+    assert [_ ||-v<one> G ≅ G' : _ | _ | UValid v] by irrValid.
+    (* unshelve epose proof (irrValidTm (VΓ1:=validSnoc VΓ (urefl VF)) (validSnoc (lrefl VΓ) (irrValidTy (lrefl VΓ) VF)) _ (UValid _) (UValid _) VGU). *)
     pose proof (Vuσ := liftSubst' VF Vσ).
     pose proof (Vuσ' := liftSubst' (urefl VF) (urefl Vσ)).
     instValid Vuσ'.

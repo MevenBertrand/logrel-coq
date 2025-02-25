@@ -309,6 +309,20 @@ Lemma symValidTm' {Γ Γ' l A A' t t'}
   [_ ||-v<l> t ≅ t' : _ | _ | VA] -> [_ ||-v<l> t' ≅ t : _ | _ | symValidTy' VA ].
 Proof. now apply symValidTm. Qed.
 
+Lemma transValidTm {Γ Γ' Γ'' l A A' A'' t t' t''}
+  {VΓ : [||-v Γ ≅ Γ']} (VΓ' : [||-v Γ' ≅ Γ'']) (VΓ'' : [||-v Γ ≅ Γ''])
+  {VA : [Γ ||-v<l> A ≅ A' | VΓ]} (VA' : [_ ||-v<l> A' ≅ A'' | VΓ']) (VA'' : [_ ||-v<l> A ≅ A'' | VΓ'']) :
+  [_ ||-v<l> t ≅ t' : _ | _ | VA] ->
+  [_ ||-v<l> t' ≅ t'' : _ | _ | VA'] ->
+  [_ ||-v<l> t ≅ t'' : _ | _ | VA''].
+Proof.
+  intros; etransitivity; eapply irrValidTm.
+  2,4: tea.
+  1: eapply irrValidTy, lrefl; tea; now eapply lrefl.
+  symmetry; eapply irrValidTy; tea.
+  Unshelve. 1: now eapply lrefl. now symmetry.
+Qed.
+
 
 Lemma irrelevanceSubstEqExt {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) {σ1 σ1' σ2 σ2' Δ}
   (wfΔ : [|- Δ]) (eq1 : σ1 =1 σ1') (eq2 : σ2 =1 σ2') :
