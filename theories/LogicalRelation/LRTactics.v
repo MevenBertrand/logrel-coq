@@ -1,46 +1,25 @@
 From Ltac2 Require Import Ltac2 Printf.
 From Coq Require Import CRelationClasses.
 From LogRel Require Import Utils Syntax.All GenericTyping LogicalRelation PERTactics.
-From LogRel.Validity Require Import Validity Irrelevance Properties.
-
-Set Universe Polymorphism.
-Set Printing Primitive Projection Parameters.
-
-Definition packed_valid_ty `{GenericTypingProperties} l :=
-  packed_ciper (VAdequate VR) (fun Γ Γ' VΓ => typeValidity Γ Γ' VΓ l).
-
-Instance packed_valid_tyPER `{GenericTypingProperties} l : PER (packed_valid_ty l) :=
-  packed_ciper_per.
-
-Definition mkVty `{GenericTypingProperties} {l Γ Γ' A A'} {VΓ : [||-v Γ ≅ Γ']} (VA : [_ ||-v<l> A ≅ A' | VΓ]) :
-  packed_valid_ty l ⟪Γ, A⟫  ⟪Γ', A'⟫ := ⦇ VΓ ; VA ⦈.
+From LogRel.LogicalRelation Require Import Induction Escape Irrelevance Symmetry Transitivity Weakening Neutral Reduction InstKripke NormalRed.
 
 
-Definition packed_valid_tm `{GenericTypingProperties} l :=
-  packed_ciper (packed_valid_ty l) (fun _ _ VΓA t u => [_ ||-v<l> t ≅ u : _ | dfst VΓA | dsnd VΓA]).
+Definition packed_TmLR `{GenericTypingProperties} Γ l :=
+  packed_iper (LRAdequate Γ (LogRel l)) (fun _ _ RA => RA.(LRPack.eqTm)).
 
-Instance iperValidTm `{GenericTypingProperties} l :
-  IPER (packed_valid_ty l) (fun _ => term) (fun _ _ VΓA t u => [_ ||-v<l> t ≅ u : _ | dfst VΓA | dsnd VΓA]).
-Proof.
-  constructor.
-  - intros; now eapply symValidTm.
-  - intros; now eapply transValidTm.
-Defined.
+Instance packed_TmLR_PER `{GenericTypingProperties} Γ l : PER (packed_TmLR Γ l) :=
+  packed_iper_per.
 
-Instance packed_valid_tmPER `{GenericTypingProperties} l : PER (packed_valid_tm l) :=
-  packed_ciper_per.
+Definition mkPTmLR  `{GenericTypingProperties} {Γ l A B} {RA : [Γ ||-<l> A ≅ B]} {t u}
+  : [Γ ||-<l> t ≅ u : _ | RA] -> packed_TmLR Γ l ⦇ A ; t ⦈ ⦇ B ; u ⦈ :=
+  mk_packed_iper ⦇ A ; t ⦈ ⦇ B ; u ⦈ RA.
+
+Ltac2 mkPTm c := constr:(mkPTmLR $c).
 
 
-Definition mkVtm `{GenericTypingProperties} {l Γ Γ' A A' t t'} {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-v<l> A ≅ A' | VΓ]} (Vt : [_ ||-v<l> t ≅ t' : _ | VΓ | VA]) :
-  packed_valid_tm l ⟪⟪ Γ, A⟫, t⟫ ⟪⟪ Γ', A'⟫, t'⟫ := ⦇ mkVty VA; Vt ⦈.
-
-Ltac2 mkvty c := constr:(mkVty $c).
-Ltac2 mkvtm c := constr:(mkVtm $c).
-Ltac2 pair a b := constr:(⟪$a, $b⟫).
-
-Ltac2 valid_ctx_matcher ty pfopt :=
+Ltac2 tyLR_matcher ty pfopt :=
   lazy_match! ty with
-  | VAdequate VR ?g ?g' => Some (g, g'), pfopt
+  | LRAdequate ?g ?rec ?a ?a' => Some (g, g'), pfopt
   | typeValidity ?g ?g' (VAd.pack ?vg) _ _ _ => Some (g, g'), Some vg
   | termEqValidity ?g ?g' _ _ _ ?vg _ _ _ => Some (g, g'), Some vg
   | _ => None, None
@@ -136,70 +115,4 @@ Ltac2 irrValid () := let st := init 42 in solve_any st (Control.goal ()).
 Ltac irrValid := ltac2:(Control.enter irrValid).
 
 
-Module Examples.
-Section Examples.
-Context `{GenericTypingProperties}.
 
-Context {Γ0 Γ1 Γ2} (VΓ01 : [||-v Γ0 ≅ Γ1]) (VΓ02 : [||-v Γ0 ≅ Γ2]).
-
-Lemma VΓ12 : [||-v Γ1 ≅ Γ2].
-Proof.
-  irrValid ().
-Qed.
-
-Context {l A B C D} (VAB : [_ ||-v<l> A ≅ B | VΓ01]) (VDC : [_ ||-v<l> C ≅ D | VΓ12]).
-
-Lemma VBB2 (VΓ22 := urefl VΓ02) : [_ ||-v<l> B |VΓ22].
-Proof.
-  irrValid ().
-Qed.
-
-Lemma VAD10 (VΓ10 := symmetry VΓ01) (VCB : [_ ||-v<l> C ≅ B | VΓ12]) :
-  [_ ||-v<l> A ≅ D | VΓ10].
-Proof.
-  irrValid ().
-Qed.
-
-Context {t u v} (Vtu : [_ ||-v<l> t ≅ u : _ | _ | VAB]) (Vvu : [_ ||-v<l> v ≅ u : _ | _ | VBB2]).
-
-Lemma Vtt :  [_ ||-v<l> t ≅ t : _ | _ | VAB].
-Proof.
-  irrValid ().
-Qed.
-
-Lemma Vvt (VCB : [_ ||-v<l> C ≅ B | VΓ12]) : [_ ||-v<l> v ≅ t : _ | _ | VAD10 VCB].
-Proof.
-  irrValid ().
-Qed.
-
-End Examples.
-End Examples.
-
-
-(** Hoisting the let-in in the type of an hypothesis to the global context *)
-(* Nothing to do with the rest of the file,
-   to be moved to another place using Ltac2 when reasonable *)
-Module HoistLetIn.
-
-  Ltac2 rec hoist_let_in_aux cl t :=
-    (* printf "Analysing %t" t ; *)
-    lazy_match! t with
-    | let x := ?b in @?t' x =>
-      (* printf "Match: %t/ continuation %t" b t'; *)
-      let h := Fresh.in_goal @hli in
-      Std.set true (fun _ =>  Some h, b) cl ;
-      let x := Control.hyp h in
-      let k := Std.eval_cbn RedFlags.beta constr:($t' $x) in
-      hoist_let_in_aux cl k
-    | _ => ()
-    end.
-
-  Ltac2 hoist_let_in h :=
-    hoist_let_in_aux {
-      Std.on_hyps := Some [h, Std.AllOccurrences, Std.InHypTypeOnly] ;
-      Std.on_concl := Std.NoOccurrences }
-      (Constr.type (Control.hyp h)).
-
-  (* Ltac hoist_let_in := ltac2:(h |- hoist_let_in (Option.get (Ltac1.to_ident h))). *)
-
-End HoistLetIn.

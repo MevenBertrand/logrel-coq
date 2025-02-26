@@ -1331,6 +1331,9 @@ Section GenericConsequences.
     all: now eapply redty_sound.
   Qed.
 
+  Lemma whredtm_ty_det {Γ t A} (whrty : [Γ |- t ↘ ]) (whrtm : [Γ |- t ↘  A]) : whrty.(tyred_whnf) = whrtm.(tmred_whnf).
+  Proof. eapply whred_det; gtyping. Qed.
+
 
   Lemma isWfFun_isFun : forall Γ A B t, isWfFun Γ A B t -> isFun t.
   Proof.

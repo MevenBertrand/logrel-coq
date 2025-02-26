@@ -83,12 +83,13 @@ Proof.
   intros; unshelve eapply irrLR, eq; tea; now eapply irrLRSym.
 Qed.
 
-Lemma instKripkeSubst {Γ A A' B B' t t' l}
+Lemma instKripkeSubst {Γ A A' B B' l}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [Δ ||-<l> B[a .: ρ >> tRel] ≅ B'[b .: ρ >> tRel]])
   (RA : [Γ ||-<l> A ≅ A'])
+  [t t']
   (ht : [_ ||-<l> t ≅ t' : _ | RA])
   : [ Γ ||-<l> B[t..] ≅ B'[t'..]].
 Proof.
@@ -97,7 +98,7 @@ Proof.
   escape; gtyping.
 Qed.
 
-Lemma instKripkeSubstTm {Γ A A' B B' t t' u u' l}
+Lemma instKripkeSubstTm {Γ A A' B B' u u' l}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   {hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
@@ -106,6 +107,7 @@ Lemma instKripkeSubstTm {Γ A A' B B' t t' u u' l}
     (hab : [hA Δ ρ wfΔ | Δ ||- a ≅ b : _]),
     [hB Δ a b ρ wfΔ hab | Δ ||- u[a .: ρ >> tRel] ≅ u'[b .: ρ >> tRel] : _])
   (RA : [Γ ||-<l> A ≅ A'])
+  [t t' ]
   (ht : [_ ||-<l> t ≅ t' : _ | RA])
   : [ _ ||-<l> u[t..] ≅ u'[t'..] : _ | instKripkeSubst hB RA ht].
 Proof.

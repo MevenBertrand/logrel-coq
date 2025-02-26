@@ -137,6 +137,18 @@ Proof.
   eapply redSubstLeftTmEq; tea; now symmetry.
 Qed.
 
+Lemma redSubstTmEq' {Γ A A' tl tr ul ur l} (RA : [Γ ||-<l> A ≅ A']) :
+  [Γ ||-<l> ul ≅ ur : A | RA] ->
+  [Γ |- tl ⤳* ul : A ] ->
+  [Γ |- tr ⤳* ur : A' ] ->
+  [Γ ||-<l> tl ≅ tr : A | RA] × [Γ ||-<l> tl ≅ ul : _ | lrefl RA] × [Γ ||-<l> tr ≅ ur : _ | urefl RA].
+Proof.
+  intros; split; [|split].
+  + now eapply redSubstTmEq.
+  + eapply redSubstLeftTmEq; tea; now eapply lrefl, irrLR.
+  + eapply redSubstLeftTmEq; tea; now eapply urefl, irrLRConv.
+Qed.
+
 Lemma redwfSubstTmEq {Γ A t u v l} (RA : [Γ ||-<l> A]) :
   [Γ ||-<l> u ≅ v : A | RA] ->
   [Γ |- t :⤳*: u : A ] ->
@@ -206,9 +218,6 @@ Proof.
   destruct Rt; econstructor; cbn; tea.
   cbn in *; eapply redtmwf_refl; gtyping.
 Defined.
-
-Lemma whredtm_ty_det {Γ t A} (whrty : [Γ |- t ↘ ]) (whrtm : [Γ |- t ↘  A]) : whrty.(tyred_whnf) = whrtm.(tmred_whnf).
-Proof. eapply whred_det; gtyping. Qed.
 
 Lemma redTmFwd {Γ l A B t u} {RA : [Γ ||-<l> A ≅ B]}
   (Rtu : [Γ ||-<l> t ≅ u : A | RA]) :

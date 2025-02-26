@@ -500,6 +500,14 @@ Proof.
     Unshelve. 2: now symmetry.
 Qed.
 
+Instance iperLRTm `{GenericTypingProperties} {Γ l} :
+  IPER (LRAdequate Γ (LogRel l)) (fun _ => term) (fun _ _ RA => RA.(LRPack.eqTm)).
+Proof.
+  constructor.
+  - intros; now eapply symLR.
+  - intros; now eapply transLR.
+Qed.
+
 Lemma kripkeLRlrefl `{GenericTypingProperties} {Γ l A A' B B'}
   {hA : forall Δ (ρ : Δ ≤ Γ) (wfΔ : [|-Δ]), [Δ ||-<l> A⟨ρ⟩ ≅ A'⟨ρ⟩]}
   (hB : forall Δ a b (ρ : Δ ≤ Γ) (wfΔ : [|-Δ])

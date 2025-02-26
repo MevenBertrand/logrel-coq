@@ -3,9 +3,11 @@ From LogRel Require Import Utils Syntax.All GenericTyping DeclarativeTyping.
 From LogRel.TypingProperties Require Import PropertiesDefinition DeclarativeProperties SubstConsequences TypeConstructorsInj NeutralConvProperties NormalisationConsequences.
 
 From LogRel Require Import LogicalRelation Fundamental.
-From LogRel.LogicalRelation Require Import Escape Irrelevance Transitivity Neutral Induction NormalRed.
-From LogRel.LogicalRelation.Introductions Require Import Poly.
-From LogRel.Validity Require Import Validity Escape Poly Irrelevance.
+From LogRel.LogicalRelation Require Import Properties.
+From LogRel.LogicalRelation.Introductions Require Import Universe. (* Poly. *)
+From LogRel.Validity Require Import Validity Irrelevance Properties ValidityTactics. (*Poly*)
+
+Set Printing Primitive Projection Parameters.
 
 (** ** Stability of typing under substitution *)
 
@@ -28,7 +30,7 @@ Import WeakDeclarativeTypingProperties WeakDeclarativeTypingData.
     - intros Γ ? Ht * HΔ Hσ.
       unshelve eapply Fundamental_subst in Hσ as [].
       1,3: boundary.
-      apply Fundamental in Ht as [VΓ [VA _]].
+      apply Fundamental in Ht as [VΓ VA].
       unshelve eapply escape, VA ; tea.
       unshelve eapply irrelevanceSubst ; eassumption.
     - intros * Ht * HΔ Hσ.
@@ -40,21 +42,14 @@ Import WeakDeclarativeTypingProperties WeakDeclarativeTypingData.
     - intros * Ht * HΔ Hσ.
       unshelve eapply Fundamental_subst_conv in Hσ as [].
       1,3: boundary.
-      apply Fundamental in Ht as [VΓ VA ? Vconv] ; cbn in *.
+      apply Fundamental in Ht as [VΓ VA] ; cbn in *.
       unshelve eapply LogicalRelation.Escape.escapeEq.
-      2: unshelve eapply VA ; tea ; irrValid.
-      cbn.
-      eapply irrelevanceTyEq.
-      eassumption.
+      2: unshelve eapply VA ; tea; now eapply irrelevanceSubst.
     - intros * Ht * HΔ Hσ.
-      unshelve eapply Fundamental_subst_conv in Hσ as [].
+      unshelve eapply Fundamental_subst_conv in Hσ as [? Vσ].
       1,3: boundary.
       apply Fundamental in Ht as [VΓ VA Vtu] ; cbn in *.
-      unshelve eapply escapeEqTerm.
-      2: now unshelve eapply VA ; tea ; irrValid.
-      cbn.
-      eapply irrelevanceTmEq.
-      eassumption.
+      eapply (irrelevanceSubst _ VΓ _ HΔ) in Vσ; instValid Vσ; now escape.
   Qed.
 
 End Subst.
@@ -76,15 +71,9 @@ Section TypeConstructors.
     ∑ T'', [Γ |- T' ⤳* T''] × isType T''.
   Proof.
     intros * tyT Hconv.
-    eapply Fundamental in Hconv as [HΓ HT HT' Hconv].
-    eapply reducibleTyEq in Hconv.
-    set (HTred := reducibleTy _ HT) in *.
-    clearbody HTred.
-    clear HT.
-    destruct HTred as [[] lr] ; cbn in *.
-    destruct lr.
-    all: destruct Hconv; eexists; split; [lazymatch goal with H : [_ |- _ :⤳*: _] |- _ => apply H end|]; constructor.
-    eapply convneu_whne; now symmetry.
+    eapply Fundamental in Hconv as [HΓ Hconv].
+    pose proof (whredR (redValidTy Hconv)) as [].
+    eexists; split; [gtyping| tea].
   Qed.
 
   Lemma _red_ty_complete_r (Γ : context) (T T' : term) :
@@ -103,21 +92,16 @@ Section TypeConstructors.
     type_hd_view Γ nfT nfT'.
   Proof.
     intros * Hconv.
-    eapply Fundamental in Hconv as [HΓ HT HT' Hconv].
-    eapply reducibleTyEq in Hconv.
-    set (HTred := reducibleTy _ HT) in *.
-    clearbody HTred.
-    clear HT.
-    eapply reducibleTy in HT'.
-    revert nfT T' nfT' HΓ HT' Hconv. 
-    revert HTred. 
+    eapply Fundamental in Hconv as [HΓ Hconv].
+    eapply redValidTy in Hconv.
+
+    revert Hconv nfT nfT' HΓ.
     generalize (eq_refl : one = one).
-    generalize one at 1 3; intros l eql HTred; revert eql.
-    pattern l, Γ, T, HTred; apply LR_rect_TyUr; clear l Γ T HTred.
-    all: intros ? Γ T.
-    - intros [] -> nfT T' nfT' HΓ HT' [].
+    generalize one at 1 3; intros l eql Hconv ; revert eql; indLR Hconv.
+    all: destruct fixme.
+    (* - intros [] -> nfT. T' nfT' HΓ HT' [].
       assert (T' = U) as HeqT' by (eapply redtywf_whnf ; gen_typing); subst.
-      assert (T = U) as HeqU by (eapply redtywf_whnf ; gen_typing). 
+      assert (T = U) as HeqU by (eapply redtywf_whnf ; gen_typing).
       destruct nfT ; inversion HeqU ; subst.
       2: now exfalso ; gen_typing.
       clear HeqU.
@@ -136,7 +120,7 @@ Section TypeConstructors.
       1-6: symmetry in ne'; apply convneu_whne in ne'; inversion ne'.
       cbn. gen_typing.
     - intros [dom cod red] _ _ -> nfT T' nfT' HΓ HT'[dom' cod' red']; cbn in *.
-      assert (T = tProd dom cod) as HeqT by (apply red_whnf ; gen_typing). 
+      assert (T = tProd dom cod) as HeqT by (apply red_whnf ; gen_typing).
       assert (T' = tProd dom' cod') as HeqT' by (apply red_whnf ; gen_typing).
       destruct nfT; cycle -1.
       1: subst ; exfalso ; gen_typing.
@@ -180,7 +164,7 @@ Section TypeConstructors.
       assert (T' = ty') as HeqT' by (apply red_whnf; gen_typing).
       destruct nfT; cycle -1; [subst; inv_whne|..]; unfold ty in *; try congruence.
       destruct nfT'; cycle -1; [subst; inv_whne|..]; unfold ty' in *; try congruence.
-      cbn; inversion HeqT; inversion HeqT'; subst; escape; now split.
+      cbn; inversion HeqT; inversion HeqT'; subst; escape; now split. *)
   Qed.
 
 End TypeConstructors.
@@ -202,25 +186,22 @@ Section TermConstructors.
 
   Import DeclarativeTypingProperties DeclarativeTypingData.
 
-  Lemma escapeEqzero {Γ A B} (lr : [Γ ||-< zero > A]) :
+  Lemma escapeEqzero {Γ A B} (lr : [Γ ||-< zero > A ≅ B]) :
     [Γ |- A : U] ->
     [Γ |- B : U] ->
-    [ Γ ||-< zero > A ≅ B | lr ] ->
     [Γ |- A ≅ B : U].
   Proof.
-    remember zero as l eqn:e.
-    revert e B.
-    pattern l, Γ, A, lr ; eapply Induction.LR_rect_TyUr.
-    all: clear.
-    + intros ??? [? lt] -> **.
+    remember zero as l eqn:e; revert e; indLR lr.
+    all: destruct fixme.
+    (*+ intros [? lt] -> **.
       inversion lt.
-    + intros ??? [] -> ??? [].
+    + intros [] -> ??.
       cbn in *.
       eapply convtm_exp.
       1-2: eapply subject_reduction ; gen_typing.
       all: try solve [boundary|gen_typing].
 
-    + intros ??? [dom cod] * IHdom IHcod -> ??? [dom' cod' ??? [shpRed posRed]] ; cbn in *.
+     + intros [dom cod] IHdom IHcod -> ??; cbn in *.
       assert [Γ |- A ⤳* tProd dom cod : U].
       {
         eapply subject_reduction ; gen_typing.
@@ -315,7 +296,7 @@ Section TermConstructors.
         - boundary.
         - now rewrite wk_id_ren_on.
         - erewrite <- (wk_id_ren_on Γ dom').
-          eapply shpRed. 
+          eapply shpRed.
       }
 
       assert [Γ,, dom |-[ de ] cod ≅ cod' : U].
@@ -373,7 +354,7 @@ Section TermConstructors.
       econstructor ; tea.
       * now eapply IH.
       * now Escape.escape.
-      * now Escape.escape.
+      * now Escape.escape. *)
 
   Qed.
 
@@ -385,20 +366,20 @@ Section TermConstructors.
     assert [Γ |- T : U] as HT by boundary.
     assert [Γ |- T' : U] as HT' by boundary.
     eapply Fundamental in Hconv as [HΓ HU Hconv].
-    eapply reducibleTmEq in Hconv.
-    set (HUred := reducibleTy _ HU) in *.
+    eapply redValidTm in Hconv.
+    set (HUred := redValidTy HU) in *.
     clearbody HUred.
     clear HU.
-    assert (HTred : [Γ ||-< zero > T]) by now eapply Universe.UnivEq.
-    unshelve eapply Universe.UnivEqEq in Hconv ; tea.
-    clear HUred HΓ.
+    assert (HTred : [Γ ||-< zero > T ≅ T']) by now eapply Universe.UnivEq.
+    destruct fixme.
+    (* clear HUred HΓ.
     revert HTred nfT T' nfT' Hconv HT HT'.
     generalize (eq_refl : zero = zero).
     generalize zero at 1 3 ; intros l eql HT; revert eql.
 
     pattern l, Γ, T, HT ; apply Induction.LR_rect_TyUr; clear l Γ T HT.
     all: intros ? Γ T.
-    
+
     - intros [? lt] -> **.
       now inversion lt.
 
@@ -415,7 +396,7 @@ Section TermConstructors.
       split ; gen_typing.
 
     - intros [dom cod red] _ _ -> nfT T' nfT' [dom' cod' red'] HT HT' ; cbn in *.
-      assert (T = tProd dom cod) as HeqT by (apply red_whnf ; gen_typing). 
+      assert (T = tProd dom cod) as HeqT by (apply red_whnf ; gen_typing).
       assert (T' = tProd dom' cod') as HeqT' by (apply red_whnf ; gen_typing).
       destruct nfT; cycle -1.
       1: subst ; exfalso ; gen_typing.
@@ -485,14 +466,15 @@ Section TermConstructors.
       split ; [..|intros Hne ; now inversion Hne].
       split.
       2-3: now Escape.escape.
-      now eapply escapeEqzero.
+      now eapply escapeEqzero. *)
   Qed.
 
   Lemma _nat_conv_inj : forall (Γ : context) (t t' : term) (nft : isNat t) (nft' : isNat t'),
     [Γ |-[de] t ≅ t' : tNat] ->
     nat_hd_view Γ nft nft' × (whne t -> [Γ |-[de] t ~ t' : tNat]).
   Proof.
-    intros * Hconv.
+    destruct fixme.
+    (* intros * Hconv.
     eapply Fundamental in Hconv as [HΓ Hnat Hconv].
     eapply Escape.reducibleTmEq in Hconv.
     unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
@@ -506,10 +488,10 @@ Section TermConstructors.
     revert nft nft'.
     pattern t, t', Hconv.
     unshelve eapply NatRedTmEq.NatRedTmEq_mut_rect ; clear t t' Hconv.
-    
+
     - exact (fun n n' _ => forall (nft : isNat n) (nft' : isNat n'),
       nat_hd_view Γ nft nft' × (whne n -> [Γ |-[de] n ~ n' : tNat])).
-    
+
     - cbn.
       intros t u t' u' [_ redt%redtm_sound] [_ redu%redtm_sound] ? _ IH Ht Hu.
       eapply red_whnf in redt as ->, redu as ->.
@@ -535,7 +517,7 @@ Section TermConstructors.
       epose proof (isNat_ne _ nft') as [? ->].
       1: now eapply conv_neu_ne in conv.
       cbn.
-      split ; gen_typing.
+      split ; gen_typing. *)
 
   Qed.
 
@@ -544,7 +526,8 @@ Section TermConstructors.
     [Γ |-[de] t ≅ t' : tId A x y] ->
     id_hd_view Γ A x y nft nft' × (whne t -> [Γ |-[de] t ~ t' : tId A x y]).
   Proof.
-  intros * Hconv.
+  destruct fixme.
+  (* intros * Hconv.
   eapply Fundamental in Hconv as [HΓ Hid Hconv].
   eapply Escape.reducibleTmEq in Hconv.
   set (HTred := Escape.reducibleTy _ Hid) in *.
@@ -577,7 +560,7 @@ Section TermConstructors.
     unfold IdRedTyPack.outTy in conv ; cbn in *.
     destruct (Id.IdRedTy_inv (Induction.invLRId HTred)) as [eA ex ey].
     rewrite <- eA, <- ex, <- ey in conv.
-    split ; gen_typing.
+    split ; gen_typing. *)
 
   Qed.
 
@@ -603,8 +586,9 @@ Section NeutralConv.
   Proof.
     intros * wt wt' Hconv.
     eapply Fundamental in Hconv as [HΓ Hemp Hconv].
-    eapply Escape.reducibleTmEq in Hconv.
-    unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
+    eapply redValidTm in Hconv.
+    destruct fixme.
+    (* unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
     2: now eapply Empty.emptyRed, Properties.soundCtx.
     1: exact one.
     clear Hemp.
@@ -621,7 +605,7 @@ Section NeutralConv.
     2: eapply redtm_sound, redL.
     2: now econstructor.
 
-    assumption.
+    assumption. *)
 
   Qed.
 
@@ -632,26 +616,13 @@ Section NeutralConv.
   Proof.
     intros * wA wt wt' Hconv.
     eapply Fundamental in Hconv as [HΓ Hne Hconv].
-    eapply Escape.reducibleTmEq in Hconv.
-    unshelve eapply Irrelevance.LRTmEqIrrelevant' in Hconv ; try reflexivity.
-    1: exact one.
-    1:{
-      eapply Neutral.neu.
-      2: eapply conv_neu_refl, neutral_ty_inv ; tea.
-      all: now eapply Escape.escapeTy.
-    }
-    cbn in *.
-
-    destruct Hconv as [?? redL redR ?] ; cbn in *.
-    erewrite red_whnf.
-    2: eapply redtm_sound, redR.
-    2: now econstructor.
-    erewrite (red_whnf t).
-    2: eapply redtm_sound, redL.
-    2: now econstructor.
-
-    assumption.
-
+    pose (RA := LRne_ one (invLRne wA (redValidTy Hne))).
+    destruct (redValidTm' RA Hconv) as [?? redL redR].
+    pose proof (redtmwf_whnf redL (whnf_whne wt)).
+    pose proof (redtmwf_whnf redR (whnf_whne wt')).
+    subst.
+    eapply convneu_conv; tea; symmetry.
+    exact (whredL_conv RA).
   Qed.
 
 End NeutralConv.
@@ -675,18 +646,18 @@ Section Completeness.
   `{!WfContext ta} `{!WfType ta} `{!Typing ta}
   `{!ConvType ta} `{!ConvTerm ta} `{!ConvNeuConv ta}
   `{!RedType ta} `{!RedTerm ta}
-  `{!GenericTypingProperties ta _ _ _ _ _ _ _ _ _ _}.
+  `{!GenericTypingProperties ta _ _ _ _ _ _ _ _}.
 
   #[local, refine] Instance ConvCompleteLogRel : ConvComplete (ta := de) (ta' := ta) := {}.
   Proof.
-    - now intros * [HΓ ? _ ?%(escapeEq (ta := ta))]%Fundamental.
-    - now intros * [HΓ ? ?%(escapeTmEq (ta := ta)) ]%Fundamental.
+    - now intros * [HΓ ?%redValidTy%(escapeEq (ta := ta))]%Fundamental.
+    - now intros * [HΓ ? ?%redValidTm%(escapeTm (ta := ta)) ]%Fundamental.
   Qed.
 
   #[local, refine] Instance TypingCompleteLogRel : TypingComplete (ta := de) (ta' := ta) := {}.
   Proof.
-    - now intros * [HΓ ?%(escapeTy (ta := ta))]%Fundamental.
-    - now intros * [_ _ ?%escapeTm]%(Fundamental (ta := ta)).
+    - now intros * [HΓ ?%redValidTy%(escapeTy (ta := ta))]%Fundamental.
+    - now intros * [_ _ ?%redValidTm%escapeTm]%(Fundamental (ta := ta)).
   Qed.
 
 End Completeness.
@@ -822,18 +793,18 @@ Section Normalisation.
   + intros; reflexivity.
   Qed.
 
-  #[local] Instance DeclarativeTypingProperties : GenericTypingProperties nf _ _ _ _ _ _ _ _ _ _ := {}.
+  #[local] Instance DeclarativeTypingProperties : GenericTypingProperties nf _ _ _ _ _ _ _ _ := {}.
 
   Corollary _tm_norm {Γ A t} : [Γ |-[de] t : A] -> normalising t.
-  Proof. 
-    intros [?? H]%TermRefl%Fundamental.
-    eapply (escapeTmEq (ta := nf)) in H as [].
+  Proof.
+    intros [?? H%redValidTm]%TermRefl%Fundamental.
+    eapply (escapeTm (ta := nf)) in H as (?&?&[]).
     assumption.
   Qed.
 
   Corollary _ty_norm {Γ A} : [Γ |-[de] A] -> normalising A.
   Proof.
-    intros [??? H]%TypeRefl%Fundamental.
+    intros [? H%redValidTy]%TypeRefl%Fundamental.
     eapply (escapeEq (ta := nf)) in H as [].
     assumption.
   Qed.
@@ -857,15 +828,17 @@ Section NatCanonicityInduction.
 
   #[local] Coercion numeral : nat >-> term.
 
-  #[local] Lemma red_nat_empty : [ε ||-Nat tNat].
+  #[local] Lemma red_nat_empty : [ε ||-Nat tNat ≅ tNat].
   Proof.
     repeat econstructor.
   Qed.
 
   Lemma nat_red_empty_ind :
-  (forall t u, [ε ||-Nat t ≅ u : tNat | red_nat_empty] ->
+  (forall t u,
+  (* NatRedTmEq ε t u -> *)
+  [ε ||-Nat t ≅ u :Nat] ->
   ∑ n : nat, [ε |- t ≅ n : tNat]) ×
-  (forall t u, NatPropEq red_nat_empty t u -> ∑ n : nat, [ε |- t ≅ n : tNat]).
+  (forall t u, NatPropEq ε t u -> ∑ n : nat, [ε |- t ≅ n : tNat]).
   Proof.
     apply NatRedEqInduction.
     - intros * [? []] ? ? _ [n] ; refold.
@@ -887,8 +860,8 @@ Section NatCanonicityInduction.
     intros Ht.
     assert [LRNat_ one red_nat_empty | ε ||- t : tNat] as ?%nat_red_empty_ind.
     {
-      apply Fundamental in Ht as [?? Vt%reducibleTmEq].
-      irrelevance.
+      apply Fundamental in Ht as [?? Vt%redValidTm].
+      now eapply irrLR.
     }
     now assumption.
   Qed.

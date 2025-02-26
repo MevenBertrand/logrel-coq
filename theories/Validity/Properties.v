@@ -177,6 +177,18 @@ Definition soundCtx {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) : [|-Γ] := (soundCtxId V
 
 Definition idSubst {Γ Γ'} (VΓ : [||-v Γ ≅ Γ']) : [Γ ||-v tRel : Γ | VΓ | _] := (soundCtxId VΓ).π2.
 
+Lemma redValidTy {Γ Γ' A A' l} {VΓ : [||-v Γ ≅ Γ']} (vA : [_ ||-v<l> A ≅ A' | VΓ ]) : [Γ ||-<l> A ≅ A'].
+Proof. intros; instValid (idSubst VΓ); now rewrite !subst_rel in *. Qed.
+
+Lemma redValidTm {Γ Γ' A A' l t t'} {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-v<l> A ≅ A' | VΓ ]}
+  (Vt : [Γ ||-v<l> t ≅ t' : _ | _ | VA]) :  [Γ ||-<l> t ≅ t' : _ | redValidTy VA ].
+Proof. intros; instValid (idSubst VΓ); rewrite !subst_rel in *; eapply irrLREq; tea; now rewrite subst_rel. Qed.
+
+Lemma redValidTm' {Γ Γ' A A' l t t'} {VΓ : [||-v Γ ≅ Γ']} {VA : [_ ||-v<l> A ≅ A' | VΓ ]}
+  (RA : [Γ ||-<l> A ≅ A']) (Vt : [Γ ||-v<l> t ≅ t' : _ | _ | VA]) :  [Γ ||-<l> t ≅ t' : _ | RA].
+Proof. now eapply irrLR, redValidTm. Qed.
+
+
 Lemma wkrenSubst {Γ Δ} (ρ : Δ ≤ Γ) :
   forall {Γ' Δ'} (VΓ : [||-v Γ ≅ Γ']) (VΔ : [||-v Δ ≅ Δ'])  {Ξ σ σ'} (wfΞ : [|- Ξ]),
   [VΔ | Ξ ||-v σ ≅ σ' : _ | wfΞ] -> [VΓ | Ξ ||-v ρ >> σ ≅ ρ >> σ' : _ | wfΞ].
@@ -228,12 +240,15 @@ Proof.
   intros VA;  generalize (validTyExt VA _ (idSubst VΓ)); rewrite 2!subst_rel; intros; now escape.
 Qed.
 
-Lemma validTyWf {Γ Γ' A A' l} (VΓ : [||-v Γ ≅ Γ']) : [_ ||-v<l> A ≅ A' | VΓ ] -> [Γ |- A].
-Proof. apply escapeValidTy. Qed.
+Lemma escapeValidTm {Γ Γ' A A' l t t'} (VΓ : [||-v Γ ≅ Γ'])
+  (VA : [_ ||-v<l> A ≅ A' | VΓ ]) :
+  [_ ||-v<l> t ≅ t' : _ | _ | VA] -> [Γ |- t : A] × [Γ |- t' : A] × [Γ |- t ≅ t' : A].
+Proof.
+  intros Vt; pose proof (validTmExt Vt _ (idSubst VΓ)); escape.
+  rewrite !subst_rel in *. now repeat split.
+Qed.
 
-#[deprecated(note="use escapeValid")]
-Lemma validWf {Γ} (VΓ: [||-v Γ]) :  [|- Γ].
-Proof. now eapply escapeValid. Qed.
+
 
 (* Lemma compSubstS {Γ} (VΓ : [||-v Γ])  :
   forall Δ (VΔ : [||-v Δ])

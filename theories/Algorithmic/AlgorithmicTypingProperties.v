@@ -38,7 +38,7 @@ Proof.
     econstructor |
     intros; econstructor; [intros Hcan; inversion Hcan| econstructor;[now econstructor|now eapply redty_red, red_compl_univ_r]]|
     intros; match goal with H : [_ |- _ ≅ _] |- _ => unshelve eapply ty_conv_inj in H; try now econstructor; now cbn in H end ].
-  
+
   - intros * ? [IH] **; subst.
     eapply IH.
     eapply subject_reduction_type ; tea.
@@ -248,7 +248,7 @@ Module AlgorithmicTypingProperties.
           eapply ty_conv_compl ; now etransitivity.
         * eapply typing_subst1 ; tea.
           econstructor.
-          now eapply inf_conv_decl.  
+          now eapply inf_conv_decl.
       + now apply redalg_app.
     - intros * [] [] [] [? []].
       assert [Γ |-[al] n ▹h tNat].
@@ -384,14 +384,14 @@ Module AlgorithmicTypingProperties.
     - intros * [?[]%algo_typing_small_large].
       now econstructor.
     - intros_bn.
-      now econstructor. 
+      now econstructor.
     - red. intros_bn.
       now etransitivity.
   Qed.
 
   #[export] Instance AlgorithmicTypingProperties
     `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} `{!ConvComplete (ta := de) (ta' := al)}:
-    GenericTypingProperties bn _ _ _ _ _ _ _ _ _ _ := {}.
+    GenericTypingProperties bn _ _ _ _ _ _ _ _ := {}.
 
 End AlgorithmicTypingProperties.
 

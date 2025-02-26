@@ -214,6 +214,13 @@ Proof.
     now eapply urefl.
 Qed.
 
+Instance iperValidTy l : IPER (VAdequate VR) (fun _ => term) (fun _ _ VΓ => typeValidity _ _ VΓ l).
+Proof.
+  constructor.
+  - intros; now eapply symValidTy.
+  - intros; now eapply transValidTy.
+Defined.
+
 Lemma irrSubst {Γ0 Γ0' Γ1 Γ1'} {VΓ0 : [||-v Γ0 ≅ Γ0']} {VΓ1 : [||-v Γ1 ≅ Γ1']} :
   [||-v Γ0 ≅ Γ1] ->
   forall {Δ} (wfΔ : [|- Δ]) {σ σ'},
@@ -354,4 +361,5 @@ End Irrelevances.
 #[global] Existing Instance perValid.
 #[global] Existing Instance perSubst.
 #[global] Existing Instance perValidTy.
+#[global] Existing Instance iperValidTy.
 #[global] Existing Instance perValidTm.

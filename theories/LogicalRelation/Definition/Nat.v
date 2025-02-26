@@ -134,7 +134,7 @@ End NatRedTmEq.
 
 Export NatRedTmEq(NatRedTmEq,Build_NatRedTmEq, NatPropEq, NatRedEqInduction).
 
-Notation "[ Γ ||-Nat t ≅ u :Nat]" := (@NatRedTmEq _ _ _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
+Notation "[ Γ ||-Nat t ≅ u :Nat]" := (@NatRedTmEq _ _ _ _ _ Γ t u).  (* (at level 0, Γ, t, u, A, RA at level 50). *)
 
 #[program]
 Instance NatRedTmEqWhRed `{GenericTypingProperties} {Γ} : WhRedTmRel Γ tNat (NatRedTmEq Γ) :=
