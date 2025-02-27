@@ -27,6 +27,52 @@ Ltac2 Notation "[>" tacs(list0(thunk(self),"|")) "]" := Control.dispatch tacs.
 Ltac2 Notation "only" startgoal(tactic) endgoal(opt(seq("-", tactic))) ":" tac(thunk(tactic)) :=
   Control.focus startgoal (Option.default startgoal endgoal) tac.
 
+Set Equations With UIP.
+
+Derive NoConfusion EqDec for sort term.
+Derive NoConfusion for prod.
+
+Instance prodEqDec A B : EqDec A -> EqDec B -> EqDec (A × B).
+Proof.
+  intros eqA eqB.
+  intros p1 p2.
+  destruct p1 as (a & b).
+  destruct p2 as (a' & b').
+  assert (deca : ({a = a'} + {a <> a'})) by (now apply eqA).
+  assert (decb : ({b = b'} + {b <> b'})) by (now apply eqB).
+  destruct deca as [aeq|anoteq].
+  destruct decb as [beq|bnoteq].
+  - left. now f_equal.
+  - right. intro eq. noconf eq. apply bnoteq. reflexivity.
+  - right. intro eq. noconf eq. apply anoteq. reflexivity.
+  - right. intro eq. noconf eq. apply anoteq. reflexivity.
+Defined.
+
+Derive Signature NoConfusion for in_ctx.
+
+Class HProp A := hProp : forall (a b : A), a = b.
+
+Instance HProp_EqDec A (isHProp : HProp A) : EqDec A.
+Proof.
+  intros a b.
+  left.
+  apply isHProp.
+Defined.
+
+Instance in_ctx_HProp Γ n d : HProp (in_ctx Γ n d).
+Proof.
+  intros ctx.
+  induction ctx.
+  intros y.
+  depelim y.
+  - reflexivity.
+  - assert (d0 = d) by (now eapply in_ctx_inj).
+    subst.
+    noconf e.
+    cbn in H. noconf H.
+    f_equal. now eapply IHctx.
+Defined.
+
 Inductive renames (Γ : context) : forall (ρ : nat -> nat) (Δ : context), Type :=
   | ren_empty {ρ} :
       renames Γ ρ ε
@@ -36,7 +82,7 @@ Inductive renames (Γ : context) : forall (ρ : nat -> nat) (Δ : context), Type
    -> renames Γ ρ (Δ ,, A).
 
 Scheme renames_rect_nodep := Minimality for renames Sort Type.
-Derive Signature for in_ctx renames.
+Derive Signature for renames.
 
 Lemma VarRen {Γ A n}
   (H : in_ctx Γ n A)
@@ -174,26 +220,6 @@ Definition judgement_indices (j : judgement) : Type :=
   | RedTy | RedTmStep | ExpTmStep | RedTm
     => context × term × term
   end.
-
-
-Derive NoConfusion EqDec for sort term.
-Derive NoConfusion for prod.
-
-Instance prodEqDec A B : EqDec A -> EqDec B -> EqDec (A × B).
-Proof.
-  intros eqA eqB.
-  intros p1 p2.
-  destruct p1 as (a & b).
-  destruct p2 as (a' & b').
-  assert (deca : ({a = a'} + {a <> a'})) by (now apply eqA).
-  assert (decb : ({b = b'} + {b <> b'})) by (now apply eqB).
-  destruct deca as [aeq|anoteq].
-  destruct decb as [beq|bnoteq].
-  - left. now f_equal.
-  - right. intro eq. noconf eq. apply bnoteq. reflexivity.
-  - right. intro eq. noconf eq. apply anoteq. reflexivity.
-  - right. intro eq. noconf eq. apply anoteq. reflexivity.
-Defined.
 
 Instance judgement_indices_EqDec j : EqDec (judgement_indices j).
 Proof.
@@ -1234,14 +1260,48 @@ Proof.
     * right. assumption.
 Defined.
 
+Definition CannotRed Γ t := forall u, ([ Γ |- t ~>tm u ] -> False) × ([ Γ |- t ↗ u ] -> False).
+
 Lemma whnfTyNoRed {Γ Γ' A B} :
     [ Γ ≡ Γ' |- A ≡whnf B ]
- -> forall C, [ Γ |- A ~* C ]
- -> C = A.
+ -> CannotRed Γ A.
 Proof.
-  intros H1 H2.
-  assert (H1ε : Paranoiaε DeterminismP H1) by (apply ParanoiaToε; apply Determinism).
-  now eapply whnfTyNoRed_pre.
+  intros H1 u.
+  split.
+  - intro H2.
+    depelim H2.
+    depelim H1.
+  - intro H2.
+    depelim H2.
+    depelim H1.
+    depelim H2. depelim H2_.
+Defined.
+
+Lemma introTyNoRed {Γ A} :
+    introTypeb A = true
+ -> CannotRed Γ A.
+Proof.
+  intros Aintro B.
+  split.
+  intros H.
+  depelim A.
+  noconf Aintro.
+  depelim H.
+  depelim H.
+  depelim H.
+Defined.
+
+Lemma cannotRedTyEq {Γ A B} :
+    CannotRed Γ A
+ -> [ Γ |- A ~* B ]
+ -> B = A.
+Proof.
+  intros cannot H.
+  depelim H.
+  depelim H.
+  - reflexivity.
+  - apply cannot in H0. destruct H0.
+  - apply cannot in H. destruct H.
 Defined.
 
 Lemma redTyFactor {Γ A B C} :
@@ -1257,28 +1317,66 @@ Proof.
   - right. exact res.
 Defined.
 
-Lemma redTyDet {Γ Γ' Γ'' A B' C'} B C :
+Lemma redTyDet {Γ A} B C :
      [Γ |- A ~* B ]
   -> [Γ |- A ~* C ]
-  -> [ Γ ≡ Γ' |- B ≡whnf B' ]
-  -> [ Γ ≡ Γ'' |- C ≡whnf C' ]
+  -> CannotRed Γ B
+  -> CannotRed Γ C
   -> C = B.
 Proof.
   intros H1 H2 Bwhnf Cwhnf.
   assert (factor : [ Γ |- B ~* C ] + _) by (now eapply redTyFactor).
   destruct factor as [BredC|CredB] > [|symmetry].
-  now eapply whnfTyNoRed.
+  now eapply cannotRedTyEq.
 Defined.
 
 
 Lemma whnfTmNoRed {Γ Γ' A B t u} :
     [ Γ ≡ Γ' |- t ≡whnf u ▷ A ≡whnf B]
- -> forall v, [ Γ |- t ~*tm v ]
- -> v = t.
+ -> CannotRed Γ t.
 Proof.
-  intros H1 H2.
-  assert (H1ε : Paranoiaε DeterminismP H1) by (apply ParanoiaToε; apply Determinism).
-  now eapply whnfTmNoRed_pre.
+  intros H1 v.
+  split.
+  intros H2.
+  - depelim H1.
+    try (depelim H2; >fail).
+    depelim H1.
+    apply ParanoiaLeft in H1_.
+    now eapply NoConfRed.
+  - depelim H1.
+    depelim H2.
+    try (depelim H2; depelim H2_; >fail).
+    depelim H1.
+    depelim H2.
+    clear H1_1 H2_1.
+    apply ParanoiaLeft in H2_.
+    eapply (Determinism _ H1_) in H2_.
+    noconf H2_.
+    assert (eq : tProd Dom Cod = tNat) by (eapply redTyDet > [ eassumption | eassumption | ..]; eapply introTyNoRed; reflexivity).
+    noconf eq.
+Defined.
+
+Lemma introTmNoRed {Γ t} :
+    introTermb t = true
+ -> CannotRed Γ t.
+Proof.
+  intros introt v.
+  split.
+  intros H.
+  - depelim H. noconf introt.
+  - depelim H. depelim H. depelim H. noconf introt.
+Defined.
+
+Lemma cannotRedTmEq {Γ t u} :
+    CannotRed Γ t
+ -> [ Γ |- t ~*tm u ]
+ -> u = t.
+Proof.
+  intros cannot H.
+  depelim H.
+  - reflexivity.
+  - apply cannot in H0. destruct H0.
+  - apply cannot in H. destruct H.
 Defined.
 
 Lemma redTmFactor {Γ t u v} :
@@ -1294,17 +1392,17 @@ Proof.
   - right. exact res.
 Defined.
 
-Lemma redTmDet {Γ Γ' Γ'' B' C' B C t u' v'} u v:
+Lemma redTmDet {Γ t} u v:
      [Γ |- t ~*tm u ]
   -> [Γ |- t ~*tm v ]
-  -> [ Γ ≡ Γ' |- u ≡whnf u' ▷ B ≡whnf B' ]
-  -> [ Γ ≡ Γ'' |- v ≡whnf v' ▷ C ≡whnf C' ]
+  -> CannotRed Γ u
+  -> CannotRed Γ v
   -> v = u.
 Proof.
   intros H1 H2 uwhnf vwhnf.
   assert (factor : [ Γ |- u ~*tm v ] + _) by (now eapply redTmFactor).
   destruct factor as [uredv|vredu] > [|symmetry].
-  now eapply whnfTmNoRed.
+  now eapply cannotRedTmEq.
 Defined.
 End Determinism.
 
@@ -1330,7 +1428,10 @@ Proof.
   intros * H.
   try (depelim H; econstructor; eauto; > fail).
   - depelim H.
-    assert (B'whnf : [ _ ≡ _ |- B' ≡whnf B' ]) by (eapplyI ParanoiaLeft; now eapplyI ParanoiaSymm).
+    assert (B'nored : CannotRed Γ' B').
+    { eapply whnfTyNoRed. now eapply ParanoiaSymm in p1. }
+    assert (A'0nored : CannotRed Γ' A'0).
+    { now eapply whnfTyNoRed. }
     assert (eq : A'0 = B') by (now eapply redTyDet).
     noconf eq.
     now econstructor.
@@ -1339,7 +1440,11 @@ Proof.
     noconf eq.
     econstructor. eauto.
   - depelim H.
-    assert (eq : t0 = t') by (eapply (redTmDet t' t0) > [| |eapplyI ParanoiaSymm|]; eassumption).
+    assert (t'nored : CannotRed Γ' t').
+    { eapply whnfTmNoRed. now eapply ParanoiaSymm in p1. }
+    assert (t0nored : CannotRed Γ' t0).
+    { now eapply whnfTmNoRed. }
+    assert (eq : t0 = t') by (now eapply redTmDet).
     noconf eq.
     econstructor. eauto.
   - depelim H > [|depelim H; eapply introTmNoNe in H > [|reflexivity]; destruct H].
@@ -1368,17 +1473,15 @@ Defined.
 
 Definition ParanoiaHPropP j : forall i (p : Paranoia j i), Type :=
   match j as j return (forall i (p : Paranoia j i), Type) with
-  | RedTy => fun '(Γ , A , B) p => forall (p2 : [ Γ |- A ~* B ]), (forall C, [ Γ |- B ~* C ] -> C = B) -> p2 = p
-  | RedTm => fun '(Γ , t , u) p => forall (p2 : [ Γ |- t ~*tm u ]), (forall v, [ Γ |- u ~*tm v ] -> v = u) -> p2 = p
+  | RedTy => fun '(Γ , A , B) p => forall (p2 : [ Γ |- A ~* B ]), CannotRed Γ B -> p2 = p
+  | RedTm => fun '(Γ , t , u) p => forall (p2 : [ Γ |- t ~*tm u ]), CannotRed Γ u -> p2 = p
   | ConvNeRedTm => fun '(Γ , Γ' , A , B , t , u) p =>
     forall (p2 : [ Γ ≡ Γ' |- t ≡ne u ▷red A ≡ B ]),
-    introTypeb A = true -> introTypeb B = true -> p2 = p
+    CannotRed Γ A -> CannotRed Γ' B -> p2 = p
   | j => fun i p => forall (p2 : Paranoia j i), p2 = p
   end.
 
-Set Equations With UIP.
-
-Lemma HProp j i (p : Paranoia j i) : ParanoiaHPropP j i p.
+Lemma ParanoiaHProp j i (p : Paranoia j i) : ParanoiaHPropP j i p.
 Proof.
   induction p using ParanoiaElim.
   depelim X.
@@ -1387,13 +1490,16 @@ Proof.
   depelim p2.
   try f_equal.
   try (eauto; > fail).
-  - assert (eq : A'0 = A') by (now eapply redTyDet).
-    noconf eq.
-    assert (eq : B'0 = B') by (now eapply redTyDet; > (now (() + eapplyI ParanoiaSymm))).
-    noconf eq.
-    assert (A'nored : forall C, [ Γ |- A' ~* C ] -> C = A') by (eapply whnfTyNoRed; eapply (ParanoiaLeft _ _ typeWhnf)).
-    assert (B'nored : forall C, [ Γ' |- B' ~* C ] -> C = B') by (eapply whnfTyNoRed; eapply (ParanoiaLeft _ _ (ParanoiaSymm _ _ typeWhnf))).
-    f_equal. eauto.
+  - 1: enough (CannotRed Γ A').
+    1: enough (CannotRed Γ A'0).
+    1: enough (CannotRed Γ' B').
+    1: enough (CannotRed Γ' B'0).
+    1: assert (eq : A'0 = A') by (now eapply redTyDet).
+    1: assert (eq2 : B'0 = B') by (now eapply redTyDet).
+    1: subst.
+    1: f_equal; eauto.
+    eapply whnfTyNoRed.
+    > (() + (once (eapplyI ParanoiaSymm)); eassumption).
   - assert (termInferL : [ Γ ≡ Γ |- t ≡ t ▷ A0 ≡whnf A0 ]) by (eapply (ParanoiaLeft _ _ p2_1)).
     assert (termInferR : _) by (eapply (ParanoiaLeft _ _ (ParanoiaSymm _ _ p2_1))).
     assert (eq : A0 = A) by (now eapplyI Determinism).
@@ -1401,29 +1507,140 @@ Proof.
     assert (eq : B0 = B) by (now eapply (Determinism _ (ParanoiaSymm _ _ termInfer))).
     noconf eq.
     f_equal. eauto.
-  - assert (eq : t0 = t) by (now eapply redTmDet).
-    noconf eq.
-    assert (eq : t'0 = t') by (eapply redTmDet; > (now (() + eapplyI ParanoiaSymm))).
-    noconf eq.
-    assert (tnored : forall v, [ Γ |- t ~*tm v ] -> v = t) by (eapply whnfTmNoRed; eapply (ParanoiaLeft _ _ termWhnfInfer)).
-    assert (t'nored : forall v, [ Γ' |- t' ~*tm v ] -> v = t') by (eapply whnfTmNoRed; eapply (ParanoiaLeft _ _ (ParanoiaSymm _ _ termWhnfInfer))).
+  - 1: enough (CannotRed Γ t).
+    1: enough (CannotRed Γ t0).
+    1: enough (CannotRed Γ' t').
+    1: enough (CannotRed Γ' t'0).
+    1: assert (t0 = t) by (now eapply redTmDet).
+    1: assert (t'0 = t') by (now eapply redTmDet).
+    1: subst.
+    1: f_equal; eauto.
+    eapply whnfTmNoRed.
+    > (() + (once (eapplyI ParanoiaSymm)); eassumption).
+  - depelim p2. depelim p2_1.
+  - depelim p2. depelim p2_1.
+  - depelim neNat. depelim neNat1.
+  - depelim neNat. depelim neNat1.
+  - apply neNatP.
+    eapply introTyNoRed; reflexivity.
+  - intros A'noRed B'noRed.
+    assert (A0 = A) by (eapplyI Determinism; > (now eapplyI ParanoiaLeft)).
+    assert (B0 = B) by (eapplyI Determinism; > (eapplyI ParanoiaLeft ; now eapplyI ParanoiaSymm)).
+    subst.
     f_equal. eauto.
-  - depelim p2. depelim p2_1.
-  - depelim p2. depelim p2_1.
-  - depelim neNat. depelim neNat1.
-  - depelim neNat. depelim neNat1.
-  - intros aintro bintro.
-    assert (termInferL : _) by (eapply (ParanoiaLeft _ _ p2_1)).
-    assert (termInferR : _) by (eapply (ParanoiaLeft _ _ (ParanoiaSymm _ _ p2_1))).
-    assert (eq : A0 = A) by (now eapplyI Determinism).
+  - eapply hProp.
+  - eapply hProp.
+  - depelim headNe.
+    depelim p2_1.
+    assert (A0 = A) by (eapplyI Determinism; > (now eapplyI ParanoiaLeft)).
+    assert (B0 = B) by (eapplyI Determinism; > (eapplyI ParanoiaLeft ; now eapplyI ParanoiaSymm)).
+    subst.
+    1: enough (CannotRed Γ (tProd Dom Cod)).
+    1: enough (CannotRed Γ (tProd Dom0 Cod0)).
+    1: enough (CannotRed Γ' (tProd Dom' Cod')).
+    1: enough (CannotRed Γ' (tProd Dom'0 Cod'0)).
+    1: assert (eq1 : tProd Dom Cod = tProd Dom0 Cod0) by (now eapply redTyDet).
+    1: assert (eq2 : tProd Dom' Cod' = tProd Dom'0 Cod'0) by (now eapply redTyDet).
+    1: noconf eq1; noconf eq2; noconf e'; noconf e'0.
+    1: cbn in H; noconf H.
+    1: f_equal; eauto.
+    apply introTyNoRed; reflexivity.
+  - noconf e'. noconf e'0. cbn in H. noconf H.
+    f_equal. eauto.
+    apply scrutNeP.
+    apply introTyNoRed; reflexivity.
+  - intro cantredB.
+    f_equal. eauto.
+  - assert (eq : B0 = B) by (now eapplyI Determinism).
     noconf eq.
-    assert (eq : B0 = B) by (now eapply (Determinism _ (ParanoiaSymm _ _ neInfer))).
-    noconf eq.
-    assert (A'nored : forall C, [ Γ |- A' ~* C ] -> C = A').
+    f_equal. eauto.
+  - depelim p2.
+  - depelim p2.
+  - depelim headReds.
+  - depelim scrutReds.
+  - depelim neuExp.
+    depelim p2.
+    assert (A0 = A) by (eapplyI Determinism; > (now eapplyI ParanoiaLeft)).
+    subst.
+    1: enough (CannotRed Γ (tProd Dom Cod)).
+    1: enough (CannotRed Γ (tProd Dom Cod0)).
+    1: assert (eq1 : tProd Dom Cod0 = tProd Dom Cod).
+       { (eapply (@redTyDet Γ A)). eassumption. }
+    1: noconf eq1.
+    1: f_equal; eauto.
+    apply introTyNoRed; reflexivity.
+  - intros ?.
+    f_equal; eauto.
+  - intros cantRed.
+    apply cantRed in p2_2 as oops.
+    destruct oops.
+  - intro cantRed.
+    apply cantRed in p2_1 as oops.
+    destruct oops.
+  - intros cantRed.
+    apply cantRed in etaStep as oops.
+    destruct oops.
+  - intros ?.
+    f_equal. eauto.
+  - intros cantRed.
+    depelim etaStep.
+    depelim etaStep.
+    eapply NoConfRed in p2_1 as oops > [| now (eapplyI ParanoiaLeft)].
+    destruct oops.
+  - intros cantRed.
+    apply cantRed in redStep as oops.
+    destruct oops.
+  - intros _.
+    depelim p2_2.
+    depelim p2_2.
+    eapply NoConfRed in redStep as oops > [| now (eapplyI ParanoiaLeft)].
+    destruct oops.
+  - intros ?.
+    assert (t'0 = t').
+    { now eapply RedStepDet. }
+    subst.
     f_equal. eauto.
 Defined.
 
-Goal [ ε ≡ ε |- tApp (tLambda tNat (tRel 0)) tZero ≡ tZero ◁ tNat ≡ tNat ].
+Definition normalizeP j : forall i, Paranoia j i -> Type :=
+  match j with
+  | ConvCont => fun '(Γ , Γ') _ => forall n A B, in_ctx Γ n A -> in_ctx Γ' n B -> term
+  | ConvTy | ConvWhnfTy | ConvCheckTm | ConvTm | ConvWhnfTm | ConvNeTm | ConvNeRedTm => fun _ _ => term
+  | _ => fun _ _ => unit
+  end.
+
+Definition normalize j i (p : Paranoia j i) : normalizeP j i p.
+Proof.
+  set (p_rem := p).
+  induction p using ParanoiaElim.
+  depelim X.
+  ltac1:(simpl normalizeP in * ).
+  try (exact tt).
+  - intros ??? oop.
+    depelim oop.
+  - intros n A' B' whereA' whereB'.
+    depelim whereA'.
+    depelim whereB'.
+    + exact (typeWfP⟨↑⟩).
+    + assert (contP : _) by (exact (Conv_ConvContP X typeWfP)).
+      specialize (contP _ _ _ whereA' whereB').
+      exact (contP⟨↑⟩).
+  - exact typeWhnfP.
+  - exact tNat.
+  - exact (tProd DomWfP CodWfP).
+  - exact termInferP.
+  - exact termWhnfInferP.
+  - exact tZero.
+  - exact (tSucc termWfP).
+  - exact (tLambda domWfP bodyWfP).
+  - exact neNatP.
+  - exact neInferP.
+  - exact (contWfP _ _ _ in_ctxL in_ctxR).
+  - exact (tApp headNeP argChecksP).
+  - exact (tNatElim predWfP hzChecksP hsChecksP scrutNeP).
+Defined.
+
+Lemma test : [ ε ≡ ε |- tApp (tLambda tNat (tRel 0)) tZero ≡ tZero ◁ tNat ≡ tNat ].
 Proof.
   econstructor.
   1: econstructor.
@@ -1445,6 +1662,8 @@ Proof.
   econstructor.
   econstructor.
 Defined.
+
+Compute (normalize _ _ test).
 
 Goal forall {Γ}, [ Γ ≡ Γ |- tZero ≡ tSucc tZero ▷ tNat ≡whnf tNat ] -> False.
 Proof.
