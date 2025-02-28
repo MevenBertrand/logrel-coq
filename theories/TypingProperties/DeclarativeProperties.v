@@ -10,7 +10,7 @@ Lemma shift_up_ren {Γ Δ t} (ρ : Δ ≤ Γ) : t⟨ρ⟩⟨↑⟩ = t⟨↑ >> 
 Proof. now asimpl. Qed.
 
 Section TypingWk.
-  
+
   Let PCon (Γ : context) := True.
   Let PTy (Γ : context) (A : term) := forall Δ (ρ : Δ ≤ Γ), [|- Δ ] -> [Δ |- A⟨ρ⟩].
   Let PTm (Γ : context) (A t : term) := forall Δ (ρ : Δ ≤ Γ), [|- Δ ] ->
@@ -97,7 +97,7 @@ Section TypingWk.
       rewrite <- wk_sig; rewrite <- wk_pair.
       constructor; eauto.
       1: eapply ihB; constructor; eauto.
-      rewrite <- subst_ren_wk_up. 
+      rewrite <- subst_ren_wk_up.
       now eapply ihb.
     - intros; cbn; econstructor; eauto.
     - intros ????? ih **.
@@ -158,7 +158,7 @@ Section TypingWk.
         now eapply IHA.
       + now eapply IHu.
       + now asimpl.
-      + now asimpl. 
+      + now asimpl.
     - intros Γ A A' B B' _ IHA _ IHAA' _ IHBB' ? ρ ?.
       cbn.
       econstructor.
@@ -194,7 +194,7 @@ Section TypingWk.
         1: now eapply ihhz.
         2: reflexivity.
         now bsimpl.
-      * rewrite wk_elimSuccHypTy. 
+      * rewrite wk_elimSuccHypTy.
         now eapply ihhs.
       * now eapply ihn.
     - intros * ? ihP ? ihhz ? ihhs **.
@@ -239,7 +239,7 @@ Section TypingWk.
     - intros * ? ih **.
       unshelve erewrite subst_ren_wk_up; tea; cbn.
       econstructor; now eapply ih.
-    - intros * ??? ihB **. 
+    - intros * ??? ihB **.
       rewrite <- wk_snd; rewrite <- wk_pair.
       unshelve erewrite subst_ren_wk_up.
       2:constructor; eauto.
@@ -306,49 +306,49 @@ Section Boundaries.
   Qed.
 
   Definition boundary_tm_ctx {Γ} {t A} :
-      [ Γ |- t : A ] -> 
+      [ Γ |- t : A ] ->
       [ |- Γ ].
   Proof.
     induction 1 ; now eauto using boundary_ctx_ctx.
   Qed.
 
   Definition boundary_ty_ctx {Γ} {A} :
-      [ Γ |- A ] -> 
+      [ Γ |- A ] ->
       [ |- Γ ].
   Proof.
     induction 1; now eauto using boundary_tm_ctx.
   Qed.
 
   Definition boundary_tm_conv_ctx {Γ} {t u A} :
-      [ Γ |- t ≅ u : A ] -> 
+      [ Γ |- t ≅ u : A ] ->
       [ |- Γ ].
   Proof.
       induction 1 ; now eauto using boundary_tm_ctx, boundary_ty_ctx.
   Qed.
 
   Definition boundary_ty_conv_ctx {Γ} {A B} :
-      [ Γ |- A ≅ B ] -> 
+      [ Γ |- A ≅ B ] ->
       [ |- Γ ].
   Proof.
     induction 1 ; now eauto using boundary_ty_ctx, boundary_tm_conv_ctx.
   Qed.
 
 
-  Definition boundary_red_l {Γ t u K} : 
+  Definition boundary_red_l {Γ t u K} :
     [ Γ |- t ⤳* u ∈ K] ->
     match K with istype => [ Γ |- t ] | isterm A => [ Γ |- t : A ] end.
   Proof.
     destruct 1; assumption.
   Qed.
 
-  Definition boundary_red_tm_l {Γ t u A} : 
+  Definition boundary_red_tm_l {Γ t u A} :
     [ Γ |- t ⤳* u : A] ->
     [ Γ |- t : A ].
   Proof.
     apply @boundary_red_l with (K := isterm A).
   Qed.
 
-  Definition boundary_red_ty_l {Γ A B} : 
+  Definition boundary_red_ty_l {Γ A B} :
     [ Γ |- A ⤳* B ] ->
     [ Γ |- A ].
   Proof.
@@ -369,14 +369,14 @@ End Boundaries.
 Section TypeErasure.
   Import DeclarativeTypingData.
 
-Lemma redtmdecl_red Γ t u A : 
+Lemma redtmdecl_red Γ t u A :
   [Γ |- t ⤳* u : A] ->
   [t ⤳* u].
 Proof.
 apply reddecl_red.
 Qed.
 
-Lemma redtydecl_red Γ A B : 
+Lemma redtydecl_red Γ A B :
   [Γ |- A ⤳* B] ->
   [A ⤳* B].
 Proof.
@@ -388,21 +388,21 @@ End TypeErasure.
 (** ** Inclusion of the various reductions in conversion *)
 
 Definition RedConvC {Γ} {t u : term} {K} :
-    [Γ |- t ⤳* u ∈ K] -> 
+    [Γ |- t ⤳* u ∈ K] ->
     match K with istype => [Γ |- t ≅ u] | isterm A => [Γ |- t ≅ u : A] end.
 Proof.
 apply reddecl_conv.
 Qed.
 
 Definition RedConvTeC {Γ} {t u A : term} :
-    [Γ |- t ⤳* u : A] -> 
+    [Γ |- t ⤳* u : A] ->
     [Γ |- t ≅ u : A].
 Proof.
 apply @RedConvC with (K := isterm A).
 Qed.
 
 Definition RedConvTyC {Γ} {A B : term} :
-    [Γ |- A ⤳* B] -> 
+    [Γ |- A ⤳* B] ->
     [Γ |- A ≅ B].
 Proof.
 apply @RedConvC with (K := istype).
@@ -441,7 +441,7 @@ Proof.
   + econstructor; [tea|now apply TermRefl].
 Qed.
 
-Lemma redtmdecl_conv Γ t u A A' : 
+Lemma redtmdecl_conv Γ t u A A' :
   [Γ |- t ⤳* u : A] ->
   [Γ |- A ≅ A'] ->
   [Γ |- t ⤳* u : A'].
@@ -487,7 +487,7 @@ Module WeakDeclarativeTypingProperties.
   #[export, refine] Instance WfCtxDeclProperties : WfContextProperties (ta := de) := {}.
   Proof.
     1-2: now constructor.
-    all: boundary. 
+    all: boundary.
   Qed.
 
   #[export, refine] Instance WfTypeDeclProperties : WfTypeProperties (ta := de) := {}.
@@ -630,7 +630,7 @@ Module WeakDeclarativeTypingProperties.
     + now econstructor.
   - intros **; split; refold.
     + econstructor; tea.
-      econstructor. 
+      econstructor.
       1: econstructor; tea; now econstructor.
       econstructor.
       1: now econstructor.
@@ -664,6 +664,6 @@ Module WeakDeclarativeTypingProperties.
     + now constructor.
   Qed.
 
-  #[export] Instance DeclarativeTypingProperties : GenericTypingProperties de _ _ _ _ _ _ _ _ _ _ := {}.
+  #[export] Instance DeclarativeTypingProperties : GenericTypingProperties de _ _ _ _ _ _ _ _ := {}.
 
 End WeakDeclarativeTypingProperties.

@@ -38,7 +38,7 @@ Definition tr@{u v} {A : Type@{u}} (P : A -> Type@{v}) {x y : A} (e: x = y) : P 
 Lemma lrefl {A R} `{!PER R} {a b : A} : R a b -> R a a.
 Proof.
   intros; etransitivity;[|symmetry]; eassumption.
-Qed.  
+Qed.
 
 #[universes(polymorphic)]
 Lemma urefl {A R} `{!PER R} {a b : A} : R a b -> R b b.
@@ -95,7 +95,7 @@ Notation "[ × P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 , P9 & P10 ]" := (and10 P1 
 
 #[global] Hint Constructors prod and3 and3 and5 and6 and7 and8 and9 : core.
 
-Inductive sigT {A : Type} (P : A -> Type) : Type := 
+Inductive sigT {A : Type} (P : A -> Type) : Type :=
   | existT (projT1 : A) (projT2 : P projT1) : sigT P.
 
 Definition projT1 {A P} (x : @sigT A P) : A := let '(existT _ a _) := x in a.
@@ -118,10 +118,10 @@ Section ReflexiveTransitiveClosure.
   Universe u v.
   Context {A : Type@{u}} (R : A -> A -> Type@{v}).
 
-  Inductive reflTransClos : A -> A -> Type@{v} := 
+  Inductive reflTransClos : A -> A -> Type@{v} :=
   | rtc_refl {x} : reflTransClos x x
   | rtc_step {x y z} : R x y -> reflTransClos y z -> reflTransClos x z.
-  
+
   #[global] Instance rtc_reflexive : Reflexive reflTransClos.
   Proof. constructor; apply rtc_refl. Defined.
 
@@ -156,8 +156,8 @@ Ltac prod_splitter :=
 Ltac prod_hyp_splitter :=
   repeat match goal with
     | H : ∑ _, _ |- _ => destruct H
-    | H : [× _ & _] |- _ => destruct H 
-    | H : [× _, _ & _] |- _ => destruct H 
+    | H : [× _ & _] |- _ => destruct H
+    | H : [× _, _ & _] |- _ => destruct H
     | H : [× _, _, _ & _] |- _ => destruct H
     | H : [× _, _, _, _ & _] |- _ => destruct H
     | H : [× _, _, _, _, _ & _] |- _ => destruct H
@@ -175,6 +175,7 @@ Create HintDb gen_typing.
 #[global] Hint Variables Transparent : gen_typing.
 
 Ltac gen_typing := typeclasses eauto bfs 6 with gen_typing typeclass_instances.
+Ltac gtyping := timeout 2 gen_typing.
 
 (** A general refolding tactic to recover lost typeclasses
   (due for instance to the cbn or constructor tactics).
@@ -248,7 +249,7 @@ Ltac opector :=
     | |- Shelved ?g => change g; gen_shelved_evar_rec
   end; revgoals.
 
-(** To block and unblock hypotheses from the context 
+(** To block and unblock hypotheses from the context
   (see the tactic escape in LogicalRelations/Escape.v for example)*)
 Definition Block (A : Type) := A.
 
@@ -260,3 +261,84 @@ Ltac unblock := unfold Block in *.
 (** To get warnings whenever needed *)
 
 #[deprecated(note="Fix me!")]Axiom fixme : False.
+
+
+
+(** Pairs and dependent pairs with primitive projections *)
+
+#[projections(primitive)]
+Record nprod {A B : Type} := npair { nfst : A ; nsnd : B }.
+Arguments nprod : clear implicits.
+Arguments npair {_ _} _ _.
+Notation "x <&> y" := (nprod x y) (at level 80, right associativity).
+Notation "'(&' x , .. , y , z )" := (npair x .. (npair y z) ..) : core_scope.
+
+#[projections(primitive)]
+Record sum {A : Type} {B : A -> Type} :=
+  dpair { dfst : A ; dsnd : B dfst }.
+Arguments sum : clear implicits.
+Arguments dpair {_ _} _ _.
+
+Notation "'∑&' x .. y , p" := (sum _ (fun x => .. (sum _ (fun y => p%type)) ..))
+  (at level 200, x binder, right associativity,
+   format "'[' '∑&'  '/  ' x  ..  y ,  '/  ' p ']'")
+  : type_scope.
+Notation "'(&' x ; .. ; y ; z )" := (dpair x .. (dpair y z) ..) : core_scope.
+
+
+(** Indexed partial-equivalence relation (IPER) over a PER *)
+
+Class IPER {A : Type} {R} `{PER A R} {B : A -> Type}
+  {S : forall {a1 a2} (a12 : R a1 a2), B a1 -> B a2 -> Type} := {
+  isym : forall {a1 a2 : A} {a12 : R a1 a2} {b1 b2}, S a12 b1 b2 -> S (symmetry a12) b2 b1 ;
+  itrans : forall {a1 a2 a3 : A} {a12 : R a1 a2} {a23: R a2 a3}
+      {b1 b2 b3} (b12 : S a12 b1 b2) (b23 : S a23 b2 b3),
+      S (transitivity a12 a23) b1 b3 ;
+}.
+Arguments IPER {_} _ {_}.
+
+Section PackedIPER.
+  Context {A : Type} {R} `{PER A R} {B S} `{IPER A R B S}.
+  Arguments S {_ _}.
+
+  Definition packed_iper : crelation (∑& a : A, B a) :=
+    fun p q => ∑& (w : R (dfst p) (dfst q)), S w (dsnd p) (dsnd q).
+
+  Definition mk_packed_iper p q (w : R (dfst p) (dfst q)) :
+    S w (dsnd p) (dsnd q) -> packed_iper p q :=
+    dpair w.
+
+  Definition packed_iper_per : PER packed_iper.
+  Proof.
+    constructor; red.
+    - intros ?? w; exists (symmetry w.(dfst)); apply isym; exact (w.(dsnd)).
+    - intros ??? w w' ; exists (transitivity w.(dfst) w'.(dfst)).
+      eapply itrans ; [exact w.(dsnd) | exact w'.(dsnd)].
+  Defined.
+End PackedIPER.
+
+(* Special case where the family B is constant
+  CIPER := Constant Indexed PER*)
+Section PackedCIPER.
+  Context {A : Type} {R} `{PER A R} {B S} `{IPER A R (fun _ => B) S}.
+  Arguments S {_ _}.
+
+  Definition packed_ciper : crelation (A <&> B) :=
+    fun p q => ∑& (w : R (nfst p) (nfst q)), S w (nsnd p) (nsnd q).
+
+  Definition mk_packed_ciper p q (w : R (nfst p) (nfst q)) :
+    S w (nsnd p) (nsnd q) -> packed_ciper p q :=
+    dpair w.
+
+  Definition packed_ciper_per : PER packed_ciper.
+  Proof.
+    constructor; red.
+    - intros ?? w; exists (symmetry w.(dfst)); apply isym; exact (w.(dsnd)).
+    - intros ??? w w' ; exists (transitivity w.(dfst) w'.(dfst)).
+      eapply itrans ; [exact w.(dsnd) | exact w'.(dsnd)].
+  Defined.
+End PackedCIPER.
+
+
+Arguments packed_ciper {_} _ {_} _.
+

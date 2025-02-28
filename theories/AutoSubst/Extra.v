@@ -39,7 +39,7 @@ Notation "'eta_expand' f" := (tApp f⟨↑⟩ (tRel 0)) (at level 40, only parsi
 #[global] Instance Ren1_subst {Y Z : Type} `{Ren1 (nat -> nat) Y Z} :
   (Ren1 (nat -> nat) (nat -> Y) (nat -> Z)) :=
   fun ρ σ i => (σ i)⟨ρ⟩.
-    
+
 Ltac fold_autosubst :=
     fold ren_term ;
     fold subst_term.
@@ -73,6 +73,9 @@ Proof. now asimpl. Qed.
 Lemma subst_prod X Y σ : (tProd X Y)[σ] = tProd X[σ] Y[up_term_term σ].
 Proof. now asimpl. Qed.
 
+Lemma subst_sig X Y σ : (tSig X Y)[σ] = tSig X[σ] Y[up_term_term σ].
+Proof. now asimpl. Qed.
+
 Lemma shift_up_eq {t σ} : t⟨↑⟩[up_term_term σ] = t[σ]⟨↑⟩.
 Proof. now asimpl. Qed.
 
@@ -81,6 +84,19 @@ Proof. now asimpl. Qed.
 
 Lemma up_single_subst {t σ u} : t[up_term_term σ][u..] = t[u .:  σ].
 Proof.  now asimpl. Qed.
+
+Lemma eta_up_single_subst A σ : A[up_term_term (↑ >> σ)][(σ var_zero)..] = A[σ].
+Proof. now rewrite up_single_subst, (scons_eta' σ). Qed.
+
+Lemma subst_rel t : t[tRel] = t.
+Proof. now asimpl. Qed.
+
+Lemma singleSubstComm G t σ : G[t..][σ] = G[t[σ] .: σ].
+Proof. now asimpl. Qed.
+
+Lemma singleSubstComm' G t σ : G[t..][σ] = G[up_term_term σ][t[σ]..].
+Proof. now asimpl. Qed.
+
 
 Lemma up_liftSubst_eq {σ t u} : t[up_term_term σ][u]⇑ = t[u .: ↑ >> up_term_term σ].
 Proof.
@@ -95,4 +111,6 @@ Proof. now asimpl. Qed.
 Definition elimSuccHypTy P :=
   tProd tNat (arr P P[tSucc (tRel 0)]⇑).
 
-Equations Derive NoConfusion Subterm for term.
+
+Equations Derive NoConfusion EqDec for sort.
+Equations Derive NoConfusion Subterm EqDec for term.
