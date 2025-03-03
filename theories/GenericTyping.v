@@ -34,18 +34,6 @@ Section RedDefinitions.
 
   (** *** Bundling of a predicate with side-conditions *)
 
-  Record TypeRedWhnf (Γ : context) (A B : term) : Type :=
-    {
-      tyred_whnf_red :> [ Γ |- A ⤳* B ] ;
-      tyred_whnf_whnf :> whnf B
-    }.
-
-  Record TermRedWhnf (Γ : context) (A t u : term) : Type :=
-    {
-      tmred_whnf_red :> [ Γ |- t ⤳* u : A ] ;
-      tmred_whnf_whnf :> whnf u
-    }.
-
   Record TypeConvWf (Γ : context) (A B : term) : Type :=
     {
       tyc_wf_l : [Γ |- A] ;
@@ -60,15 +48,30 @@ Section RedDefinitions.
       tmc_wf_conv :> [Γ |- t ≅ u : A]
     }.
 
-  Record TypeRedWf (Γ : context) (A B : term) : Type := {
+  Record TypeRedWf {Γ : context} {A B : term} : Type := {
     tyr_wf_r : [Γ |- B];
     tyr_wf_red :> [Γ |- A ⤳* B]
   }.
 
-  Record TermRedWf (Γ : context) (A t u : term) : Type := {
+  Record TermRedWf {Γ : context} {A t u : term} : Type := {
     tmr_wf_r : [Γ |- u : A];
     tmr_wf_red :> [Γ |- t ⤳* u : A]
   }.
+
+  Record TypeRedWhnf {Γ : context} {A : term} : Type :=
+    {
+      tyred_whnf : term ;
+      tyred_whnf_red :> @TypeRedWf Γ A tyred_whnf ;
+      tyred_whnf_isType :> isType tyred_whnf
+    }.
+
+
+  Record TermRedWhnf {Γ : context} {A t : term} : Type :=
+    {
+      tmred_whnf : term ;
+      tmred_whnf_red :> @TermRedWf Γ A t tmred_whnf ;
+      tmred_whnf_whnf :> whnf tmred_whnf
+    }.
 
   (** *** Lifting of typing and conversion to contexts and substitutions *)
 
@@ -125,17 +128,13 @@ Section RedDefinitions.
 
   Inductive isWfFun (Γ : context) (A B : term) : term -> Set :=
     LamWfFun : forall A' t : term,
-      [Γ |- A'] -> [Γ |- A ≅ A'] -> [Γ,, A |- t : B] -> [Γ,, A' |- t : B] -> isWfFun Γ A B (tLambda A' t)
+      [Γ |- A'] -> [Γ |- A ≅ A'] -> [Γ,, A |- t : B] (*-> [Γ,, A' |- t : B] *) -> isWfFun Γ A B (tLambda A' t)
   | NeWfFun : forall f : term, [Γ |- f ~ f : tProd A B] -> isWfFun Γ A B f.
 
   Inductive isWfPair (Γ : context) (A B : term) : term -> Set :=
     PairWfPair : forall A' B' a b : term,
-      [Γ |- A'] -> [Γ |- A ≅ A'] ->
-      [Γ,, A' |- B] ->
-      [Γ,, A' |- B'] ->
-      [Γ,, A |- B'] ->
-      [Γ,, A |- B ≅ B'] ->
-      [Γ,, A' |- B ≅ B'] ->
+      [Γ |- A'] ->
+      [Γ |- A ≅ A'] ->
       [Γ |- a : A] ->
       [Γ |- B[a..]] ->
       [Γ |- B'[a..]] ->
@@ -146,10 +145,20 @@ Section RedDefinitions.
 
 End RedDefinitions.
 
-Notation "[ Γ |- A ↘ B ]" := (TypeRedWhnf Γ A B) (only parsing) : typing_scope.
-Notation "[ Γ |-[ ta  ] A ↘ B ]" := (TypeRedWhnf (ta := ta) Γ A B) : typing_scope.
-Notation "[ Γ |- t ↘ u : A ]" := (TermRedWhnf Γ A t u) (only parsing ): typing_scope.
-Notation "[ Γ |-[ ta  ] t ↘ u : A ]" := (TermRedWhnf (ta := ta) Γ A t u) : typing_scope.
+Arguments TypeRedWf : clear implicits.
+Arguments TypeRedWf {_ _ _}.
+Arguments TermRedWf : clear implicits.
+Arguments TermRedWf {_ _ _}.
+Arguments TypeRedWhnf : clear implicits.
+Arguments TypeRedWhnf {_ _ _}.
+Arguments TermRedWhnf : clear implicits.
+Arguments TermRedWhnf {_ _ _}.
+
+
+Notation "[ Γ |- A ↘ ]" := (TypeRedWhnf Γ A) (only parsing) : typing_scope.
+Notation "[ Γ |-[ ta  ] A ↘ ]" := (TypeRedWhnf (ta := ta) Γ A) : typing_scope.
+Notation "[ Γ |- t ↘ A ]" := (TermRedWhnf Γ A t) (only parsing ): typing_scope.
+Notation "[ Γ |-[ ta  ] t ↘ A ]" := (TermRedWhnf (ta := ta) Γ A t) : typing_scope.
 Notation "[ Γ |- A :≅: B ]" := (TypeConvWf Γ A B) (only parsing) : typing_scope.
 Notation "[ Γ |-[ ta  ] A :≅: B ]" := (TypeConvWf (ta := ta) Γ A B) : typing_scope.
 Notation "[ Γ |- t :≅: u : A ]" := (TermConvWf Γ A t u) (only parsing) : typing_scope.
@@ -172,17 +181,9 @@ Notation "[ |-[ ta  ] Γ ≅ Δ ]" := (ConvCtx (ta := ta) Γ Δ) : typing_scope.
   tyr_wf_r tyr_wf_red tmr_wf_r tmr_wf_red
   : gen_typing.
 
-(* #[export] Hint Extern 1 =>
-  match goal with
-    | H : [ _ |- _ ▹h _ ] |- _ => destruct H
-    |  H : [ _ |- _ ↘ _ ] |- _ => destruct H
-    |  H : [ _ |- _ ↘ _ : _ ] |- _ => destruct H
-    |  H : [ _ |- _ :≅: _ ] |- _ => destruct H
-    |  H : [ _ |- _ :≅: _ : _] |- _ => destruct H
-    |  H : [ _ |- _ :⤳*: _ ] |- _ => destruct H
-    |  H : [ _ |- _ :⤳*: _ : _ ] |- _ => destruct H
-  end
-  : gen_typing. *)
+#[export] Hint Extern 1 =>
+  now unshelve first [ eapply tyred_whnf_red|eapply tmred_whnf_red
+    | eapply tyred_whnf_isType| eapply tmred_whnf_whnf] : gen_typing.
 
 (** ** Properties of the abstract interface *)
 
@@ -548,7 +549,6 @@ Class GenericTypingProperties `(ta : tag)
   `(WfContext ta) `(WfType ta) `(Typing ta)
   `(ConvType ta) `(ConvTerm ta) `(ConvNeuConv ta)
   `(RedType ta) `(RedTerm ta)
-  `(RedType ta) `(RedTerm ta)
 :=
 {
   wfc_prop :: WfContextProperties ;
@@ -819,6 +819,30 @@ Section GenericConsequences.
     intros ??? [] []; unshelve econstructor; try etransitivity; tea.
   Qed.
 
+  Definition convty_wfexp {Γ A A' B B'} :
+    [Γ |- A :⤳*: A'] ->
+    [Γ |- B :⤳*: B'] ->
+    [Γ |- A' ≅ B'] ->
+    [Γ |- A ≅ B].
+  Proof.
+    intros; eapply convty_exp; gtyping.
+  Qed.
+
+  Definition convtm_wfexp {Γ A A' t t' u u'} :
+    [Γ |- A :⤳*: A'] ->
+    [Γ |- t :⤳*: t' : A'] ->
+    [Γ |- u :⤳*: u' : A'] ->
+    [Γ |- t' ≅ u' : A'] ->
+    [Γ |- A' ≅ A'] ->
+    [Γ |- t ≅ u : A].
+  Proof.
+    intros.
+    assert [Γ |- A' ≅ A] by (eapply convty_wfexp; tea; gtyping).
+    eapply convtm_conv; tea.
+    eapply convtm_exp; tea; gtyping.
+  Qed.
+
+
   Lemma redtmwf_app {Γ A B f f' t} :
     [ Γ |- f :⤳*: f' : tProd A B ] ->
     [ Γ |- t : A ] ->
@@ -978,10 +1002,7 @@ Section GenericConsequences.
     eapply convtm_eta; tea.
     { renToWk; apply wft_wk; [apply wfc_cons|]; tea. }
     2:{ constructor; first [now eapply lrefl|now apply ty_var0|tea]. }
-    3:{ constructor; first [now eapply lrefl|now apply ty_var0|tea].
-        eapply ty_conv; [now apply ty_var0|].
-        do 2 rewrite <- (@wk1_ren_on Γ A'); apply convty_wk; [|now symmetry].
-        now apply wfc_cons. }
+    3:{ constructor; first [now eapply lrefl|now apply ty_var0|tea]. }
     1,2: eapply ty_id; tea; now symmetry.
     assert [|- Γ,, A] by gen_typing.
     assert [Γ,, A |-[ ta ] A⟨@wk1 Γ A⟩] by now eapply wft_wk.
@@ -1177,7 +1198,6 @@ Section GenericConsequences.
       symmetry.
       now eapply convty_prod.
     - constructor; tea.
-      now eapply ty_conv.
     - eapply @convtm_exp with (t' := t) (u' := t'); tea.
       3: now eapply lrefl.
       2: eapply redtm_conv ; cbn ; [eapply redtm_meta_conv |..] ; [eapply redtm_beta |..].
@@ -1216,6 +1236,26 @@ Section GenericConsequences.
       rewrite scons_eta'.
       now bsimpl.
   Qed.
+
+  Lemma ty_app_ren {Γ Δ A f a dom cod} (ρ : Δ ≤ Γ) :
+    [Γ |- f : A] -> [Γ |- A ≅ tProd dom cod] -> [Δ |- a : dom⟨ρ⟩] -> [Δ |- tApp f⟨ρ⟩ a : cod[a .: ρ >> tRel]].
+  Proof.
+    intros; erewrite subst1_ren_wk_up.
+    unshelve eapply ty_app. 3: eassumption.
+    rewrite wk_prod; gtyping.
+  Qed.
+
+  Lemma convneu_app_ren {Γ Δ A f g a b dom cod} (ρ : Δ ≤ Γ) :
+    [Γ |- f ~ g : A] ->
+    [Γ |- A ≅ tProd dom cod] ->
+    [Δ |- a ≅ b : dom⟨ρ⟩] ->
+    [Δ |- tApp f⟨ρ⟩ a ~ tApp g⟨ρ⟩ b : cod[a .: ρ >> tRel]].
+  Proof.
+    intros; erewrite subst1_ren_wk_up.
+    unshelve eapply convneu_app. 3: eassumption.
+    rewrite wk_prod; gtyping.
+  Qed.
+
 
 
   (** *** Lifting determinism properties from untyped reduction to typed reduction. *)
@@ -1274,26 +1314,34 @@ Section GenericConsequences.
     all: now eapply redty_sound.
   Qed.
 
-  (* Unused, consider removing*)
-  Lemma whredtm_det Γ t u u' A A' :
-    [Γ |- t ↘ u : A] -> [Γ |- t ↘ u' : A'] ->
-    u = u'.
+  Lemma whredtm_det {Γ t A A'} (red1 : [Γ |- t ↘ A]) (red2 : [Γ |- t ↘ A']) :
+    red1.(tmred_whnf) = red2.(tmred_whnf).
   Proof.
-    intros [] [].
+    destruct red1 as [? []], red2 as [? []]; cbn.
     eapply whred_det; tea.
     all: now eapply redtm_sound.
   Qed.
 
-  (* Unused, consider removing*)
-  Lemma whredty_det Γ A B B' :
-    [Γ |- A ↘ B] -> [Γ |- A ↘ B'] ->
-    B = B'.
+  Lemma whredty_det {Γ A} (red1 : [Γ |- A ↘]) (red2 : [Γ |- A ↘]) :
+   red1.(tyred_whnf) = red2.(tyred_whnf).
   Proof.
-    intros [] [].
-    eapply whred_det; tea.
+    destruct red1 as [? []], red2 as [? []]; cbn.
+    eapply whred_det; try eapply isType_whnf; tea.
     all: now eapply redty_sound.
   Qed.
 
+  Lemma whredtm_ty_det {Γ t A} (whrty : [Γ |- t ↘ ]) (whrtm : [Γ |- t ↘  A]) : whrty.(tyred_whnf) = whrtm.(tmred_whnf).
+  Proof. eapply whred_det; gtyping. Qed.
+
+  Lemma whredty_whnf {Γ A} (whA : [Γ |- A ↘ ]) : whnf A -> A = whA.(tyred_whnf).
+  Proof.
+    destruct whA; cbn; now eapply redtywf_whnf.
+  Qed.
+
+  Lemma whredtm_whnf {Γ A t} (wht : [Γ |- t ↘ A ]) : whnf t -> t = wht.(tmred_whnf).
+  Proof.
+    destruct wht; cbn; now eapply redtmwf_whnf.
+  Qed.
 
   Lemma isWfFun_isFun : forall Γ A B t, isWfFun Γ A B t -> isFun t.
   Proof.

@@ -29,7 +29,7 @@ Section NeuConvProperties.
       1: econstructor ; eauto.
       2: now bsimpl.
       now eapply typing_wk.
-      
+
     - erewrite (subst_ren_wk_up (A := tNat)).
       econstructor ; eauto.
       + erewrite <- !(wk_up_ren_on _ _ _ tNat).
@@ -42,7 +42,7 @@ Section NeuConvProperties.
       + eapply convtm_meta_conv.
         1: eapply typing_wk ; eauto.
         all: unfold elimSuccHypTy ; now bsimpl.
-    
+
     - erewrite subst_ren_wk_up.
       econstructor ; eauto.
       erewrite <- !(wk_up_ren_on _ _ _ tEmpty).
@@ -74,7 +74,7 @@ Section NeuConvProperties.
         now bsimpl.
       + now bsimpl.
       + now bsimpl.
-    
+
     - econstructor ; eauto.
       now eapply typing_wk.
 
@@ -162,7 +162,7 @@ Section NeuConvProperties.
       all: eauto using conv_neu_sound with boundary.
     - econstructor.
       eapply sig_ty_inv.
-      eauto using conv_neu_sound with boundary. 
+      eauto using conv_neu_sound with boundary.
     - econstructor.
       eapply typing_subst1.
       1: econstructor.
@@ -201,7 +201,7 @@ Section NeuConvProperties.
     [Γ |- n ~ m : A].
   Proof.
     induction 1 ; cbn in * ; refold.
-    
+
     - now econstructor.
 
     - assert [Γ |- a' ≅ a : A] by now eapply TermSym.
@@ -224,14 +224,14 @@ Section NeuConvProperties.
         1: now eapply TermSym.
         eapply elimSuccHypTy_conv ; boundary.
       + eapply TypeSym, typing_subst1 ; eauto using conv_neu_sound.
-    
+
     - econstructor.
       1: econstructor ; eauto.
       + now eapply TypeSym.
       + eapply TypeSym, typing_subst1 ; eauto using conv_neu_sound.
 
     - now econstructor.
-    
+
     - econstructor.
       1: econstructor ; eauto.
       eapply typing_subst1.
@@ -241,7 +241,7 @@ Section NeuConvProperties.
       + econstructor.
         eapply sig_ty_inv.
         eauto using conv_neu_sound with boundary.
-    
+
     - assert [Γ |- A' ≅ A] by now eapply TypeSym.
       assert [Γ |- x' ≅ x : A'] by
         (econstructor ; tea ; now eapply TermSym).
@@ -288,12 +288,12 @@ Section NeuConvProperties.
   Proof.
     intros Hconv Hty.
     induction Hconv in T', Hty |- *.
-    
-    - eapply termGen' in Hty as [? [[]]]. 
+
+    - eapply termGen' in Hty as [? [[]]].
       prod_hyp_splitter ; subst.
       eapply in_ctx_inj in i ; [..|eassumption] ; subst.
       assumption.
-    
+
     - eapply termGen' in Hty as [? [(?&?&[-> []%IHHconv%prod_ty_inj])]].
       eapply TypeTrans ; tea.
       eapply typing_subst1.
@@ -492,6 +492,6 @@ Module DeclarativeTypingProperties.
 
   #[export] Instance DeclarativeTypingProperties
     `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
-    GenericTypingProperties de _ _ _ _ _ _ _ _ _ _ := {}.
+    GenericTypingProperties de _ _ _ _ _ _ _ _ := {}.
 
 End DeclarativeTypingProperties.

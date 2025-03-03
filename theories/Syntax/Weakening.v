@@ -5,7 +5,7 @@ From LogRel.Syntax Require Import BasicAst Notations Context NormalForms.
 
 (** ** Raw weakenings *)
 
-(** Weakenings are an intentional representation of a subclass of renamings 
+(** Weakenings are an intentional representation of a subclass of renamings
 (order-preserving ones), to allow easy proofs by induction. There is a unique
 representation for extensionally equal renamings. *)
 
@@ -195,7 +195,7 @@ Proof.
   now rewrite wk_to_ren_id.
 Qed.
 
-Lemma wk_up_ren {Γ Δ A} (ρ : Δ ≤ Γ) : 
+Lemma wk_up_ren {Γ Δ A} (ρ : Δ ≤ Γ) :
   wk_up A ρ =1 upRen_term_term ρ.
 Proof.
   intros; cbn; now asimpl.
@@ -214,17 +214,17 @@ Section RenWlWhnf.
   Proof.
     apply whnf_ren.
   Qed.
-  
+
   Lemma isType_ren_wl A : isType A -> isType (A⟨ρ⟩).
   Proof.
     apply isType_ren.
   Qed.
-  
+
   Lemma isPosType_ren_wl A : isPosType A -> isPosType (A⟨ρ⟩).
   Proof.
     apply isPosType_ren.
   Qed.
-  
+
   Lemma isFun_ren_wl f : isFun f -> isFun (f⟨ρ⟩).
   Proof.
     apply isFun_ren.
@@ -232,7 +232,7 @@ Section RenWlWhnf.
 
   Lemma isPair_ren_wl f : isPair f -> isPair (f⟨ρ⟩).
   Proof.
-    apply isPair_ren. 
+    apply isPair_ren.
   Qed.
 
   Lemma isCanonical_ren_wl t : isCanonical t <~> isCanonical (t⟨ρ⟩).
@@ -335,7 +335,10 @@ Qed.
 Lemma subst_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ): P[n..]⟨ρ⟩ = P⟨wk_up A ρ⟩[n⟨ρ⟩..].
 Proof. now bsimpl. Qed.
 
-Lemma subst_ren_wk_up2 {Γ Δ P A B a b} (ρ : Γ ≤ Δ): 
+Lemma subst1_ren_wk_up {Γ Δ P A n} (ρ : Γ ≤ Δ) : P[n .: ρ >> tRel] = P⟨wk_up A ρ⟩[n..].
+Proof. now bsimpl. Qed.
+
+Lemma subst_ren_wk_up2 {Γ Δ P A B a b} (ρ : Γ ≤ Δ):
   P[a .: b..]⟨ρ⟩ = P⟨wk_up A (wk_up B ρ)⟩[a⟨ρ⟩ .: b⟨ρ⟩..].
 Proof. now bsimpl. Qed.
 
@@ -346,12 +349,15 @@ Lemma subst_ren_subst_mixed2 {Γ Δ P a b} (ρ : Γ ≤ Δ): P[a .: b..]⟨ρ⟩
 Proof. now bsimpl. Qed.
 
 
-Lemma wk_up_ren_subst {Γ Δ Ξ P A n}  (ρ : Γ ≤ Δ) (ρ' : Δ ≤ Ξ) : 
+Lemma wk_up_ren_subst {Γ Δ Ξ P A n}  (ρ : Γ ≤ Δ) (ρ' : Δ ≤ Ξ) :
   P[n .: ρ ∘w ρ' >> tRel] = P⟨wk_up A ρ'⟩[n .: ρ >> tRel].
 Proof. now bsimpl. Qed.
 
 Lemma shift_subst_scons {B a Γ Δ} (ρ : Δ ≤ Γ) : B⟨↑⟩[a .: ρ >> tRel] = B⟨ρ⟩.
 Proof. bsimpl; now rewrite rinstInst'_term. Qed.
+
+Lemma shift_subst1 {B a} : B⟨↑⟩[a..] = B.
+Proof. now bsimpl. Qed.
 
 Lemma shift_upRen ρ t : t⟨ρ⟩⟨↑⟩ = t⟨↑⟩⟨upRen_term_term ρ⟩.
 Proof. now asimpl. Qed.
@@ -365,7 +371,7 @@ Proof. now bsimpl. Qed.
 
 Lemma wk1_ren_on Γ F (H : term) : H⟨@wk1 Γ F⟩ = H⟨↑⟩.
 Proof. now bsimpl. Qed.
-  
+
 Lemma wk_up_ren_on Γ Δ (ρ : Γ ≤ Δ) F (H : term) : H⟨wk_up F ρ⟩ = H⟨upRen_term_term ρ⟩.
 Proof. now bsimpl. Qed.
 
@@ -382,6 +388,9 @@ Proof.
 Qed.
 
 Lemma wk_prod {A B Γ Δ} (ρ : Δ ≤ Γ) : tProd A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tProd A B)⟨ρ⟩.
+Proof. now bsimpl. Qed.
+
+Lemma wk_lam {A t Γ Δ} (ρ : Δ ≤ Γ) : tLambda A⟨ρ⟩ t⟨wk_up A ρ⟩ = (tLambda A t)⟨ρ⟩.
 Proof. now bsimpl. Qed.
 
 Lemma wk_sig {A B Γ Δ} (ρ : Δ ≤ Γ) : tSig A⟨ρ⟩ B⟨wk_up A ρ⟩ = (tSig A B)⟨ρ⟩.
@@ -432,3 +441,15 @@ Proof. intros; now rewrite 2!wk1_ren_on. Qed.
 
 Lemma var0_wk1_id {Γ A t} : t[tRel 0 .: @wk1 Γ A >> tRel] = t.
 Proof. bsimpl. rewrite scons_eta'. now asimpl. Qed.
+
+Lemma eq_subst_scons {Γ} a B : B[a..] = B[a⟨@wk_id Γ⟩ .: @wk_id Γ >> tRel].
+Proof. now bsimpl. Qed.
+
+Lemma wk1_subst A Γ F σ : (A ⟨@wk1 Γ F⟩)[σ] = A[↑ >> σ].
+Proof. asimpl; now rewrite wk1_ren. Qed.
+
+Lemma ren_subst  {Γ Δ} A (ρ : Γ ≤ Δ) σ : A⟨ρ⟩[σ] = A[ ρ >> σ].
+Proof. now asimpl. Qed.
+
+Lemma liftSubstComm Γ F G t σ : G[t]⇑[σ] = G[t[σ] .: @wk1 Γ F >> σ].
+Proof. now bsimpl. Qed.

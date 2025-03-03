@@ -29,7 +29,7 @@ Import DeclarativeTypingProperties AlgorithmicTypingData.
   (** Removing unused variables from a context*)
 
 Section ConvStr.
-  
+
   Let PTyEq (Γ : context) (A B : term) := forall Δ (ρ : Γ ≤ Δ) A' B',
     A = A'⟨ρ⟩ -> B = B'⟨ρ⟩ ->
     [Δ |- A' ≅ B'].
@@ -87,7 +87,7 @@ Section ConvStr.
       econstructor.
       + eapply IHA ; reflexivity.
       + eapply IHa ; reflexivity.
-      + eapply IHa' ; reflexivity. 
+      + eapply IHa' ; reflexivity.
     - intros * ?? ? IH ** ; subst.
       edestruct IH as [? [->]].
       1-2 : reflexivity.
@@ -490,15 +490,15 @@ Section AlgoConvConv.
     - intros * ? ? ? IHf ? ? ? * ? ? (?&?&[->])%conv_prod_l ; tea.
       econstructor ; tea.
       eapply IHf ; tea.
-      now econstructor. 
+      now econstructor.
     - intros * ? [ihA] ? [ihB] [] * ?? ->%conv_univ_l ; tea.
       econstructor.
       + eapply ihA ; tea.
         do 2 econstructor ; boundary.
       + assert [ |-[ de ] Γ',, A ≅ Γ,, A].
         {
-          econstructor; tea; eapply stability; tea. 
-          eapply lrefl; now econstructor. 
+          econstructor; tea; eapply stability; tea.
+          eapply lrefl; now econstructor.
         }
       eapply ihB; tea.
       do 2 constructor; boundary.
@@ -889,7 +889,7 @@ Section Symmetry.
     - intros * ? IH **.
       econstructor.
       now eapply IH.
-    - now econstructor.  
+    - now econstructor.
     - intros * ? ? ? IH [Hf] **.
       econstructor.
       1-2: assumption.
@@ -993,7 +993,7 @@ Section Transitivity.
       {
         eapply whred_det ; tea.
         - eapply algo_conv_wh in H5 as [] ; gen_typing.
-        - eapply algo_conv_wh in Hconv as [] ; gen_typing. 
+        - eapply algo_conv_wh in Hconv as [] ; gen_typing.
       }
       econstructor ; tea.
       eapply IH ; tea.
@@ -1212,7 +1212,7 @@ Section Transitivity.
         eapply red_whnf.
         2: gen_typing.
         now eapply red_compl_univ_r, redty_red in Hconvty.
-      }  
+      }
       inversion Hconv ; subst ; clear Hconv ; refold.
       2: now inversion H0.
       now econstructor.
@@ -2014,6 +2014,6 @@ Module IntermediateTypingProperties.
 
   #[export] Instance IntermediateTypingProperties
     `{!TypingSubst (ta := de)} `{!TypeReductionComplete (ta := de)} `{!TypeConstructorsInj (ta := de)} :
-    GenericTypingProperties bni _ _ _ _ _ _ _ _ _ _ := {}.
+    GenericTypingProperties bni _ _ _ _ _ _ _ _ := {}.
 
 End IntermediateTypingProperties.

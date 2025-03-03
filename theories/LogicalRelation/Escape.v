@@ -8,144 +8,113 @@ Set Universe Polymorphism.
 Section Escapes.
   Context `{GenericTypingProperties}.
 
-  Lemma escape {l Γ A} :
-      [Γ ||-< l > A ] ->
-      [Γ |- A].
+  Lemma escapeTy {l Γ A B} (lr : [Γ ||-< l > A ≅ B]) :
+      [Γ |- A] × [Γ |- B] × [Γ |- A ≅ B].
   Proof.
-    intros lr.
-    pattern l, Γ, A, lr.
-    eapply LR_rect_TyUr.
-    - intros * [].
-      now gen_typing.
-    - intros ? * [].
-      now gen_typing.
-    - intros ??? [] **; cbn in *.
-      now gen_typing.
-    - intros ??? []; gen_typing.
-    - intros ??? []; gen_typing.
-    - intros ??? [] **; gen_typing.
-    - intros ??? [] **; gen_typing.
+    indLR lr.
+    - intros []; prod_splitter; [ | | eapply convty_exp]; gen_typing.
+    - intros []; prod_splitter; [ | | eapply convty_exp]; gen_typing.
+    - intros [???? [] []] _ _; prod_splitter;[ | | eapply convty_exp]; gtyping.
+    - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros []; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros [???? [] []] _ _; prod_splitter; [| |eapply convty_exp]; gtyping.
+    - intros [] _ ; prod_splitter; [| |eapply convty_exp]; gtyping.
   Qed.
 
-  Lemma escapeEq {l Γ A B} (lr : [Γ ||-< l > A]) :
-      [ Γ ||-< l > A ≅ B | lr ] ->
+  Lemma escape {l Γ A B} :
+      [Γ ||-< l > A ≅ B] ->
+      [Γ |- A].
+  Proof.
+    apply escapeTy.
+  Qed.
+
+  Lemma escapeEq {l Γ A B} (lr : [Γ ||-< l > A ≅ B]) :
       [Γ |- A ≅ B].
   Proof.
-    pattern l, Γ, A, lr ; eapply LR_rect_TyUr.
-    + intros ??? [] [].
-      gen_typing.
-    + intros ??? [] [].
-      cbn in *.
-      eapply convty_exp.
-      all: gen_typing.
-    + intros ??? [] * ? ? [] ; cbn in *.
-      gen_typing.
-    + intros ??? [] []; gen_typing.
-    + intros ??? [] []; gen_typing.
-    + intros ??? [] * ? ? []; cbn in *.
-      eapply convty_exp. all: gen_typing.
-    + intros ??? [???? red] ?? [???? red']; cbn in *.
-      eapply convty_exp; tea;[eapply red | eapply red'].
+    now eapply escapeTy.
   Qed.
+
+  Lemma escapeTm {l Γ A B t u} (lr : [Γ ||-< l > A ≅ B]) :
+    [Γ ||-< l > t ≅ u : A | lr ] ->
+    [Γ |- t : A] × [Γ |- u : A] × [Γ |- t ≅ u : A].
+  Proof.
+    generalize (whredL_conv lr); caseLR lr.
+    - intros RU ? [[] []]; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct RU; eapply convtm_wfexp; gtyping.
+    - intros neA ? []; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct neA; cbn in *; eapply convtm_wfexp.
+      1-3: gtyping.
+      2: now eapply urefl.
+      eapply convtm_convneu; tea.
+      constructor; now eapply convneu_whne.
+    - intros ΠA ? [[] []]; cbn in *; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct ΠA as [???? []]; cbn in *.
+      eapply convtm_wfexp.
+      1-3: gtyping.
+      2: now eapply lrefl.
+      tea.
+    - intros NA ? []; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct NA; eapply convtm_wfexp.
+      1-3: gen_typing.
+      2: now eapply urefl.
+      tea.
+    - intros EA ? [???? []]; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct EA; eapply convtm_wfexp.
+      1-3: gen_typing.
+      2: now eapply urefl.
+      eapply convtm_convneu; tea; constructor.
+    - intros ΣA ? [[] []]; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct ΣA as [???? []]; cbn in *; eapply convtm_wfexp.
+      1-3: gtyping.
+      2: now eapply urefl.
+      tea.
+    - intros IA ? []; cbn in *; prod_splitter.
+      1,2: (eapply ty_conv; [gtyping|now symmetry]).
+      destruct IA as []; cbn in *; eapply convtm_wfexp.
+      1-3: gtyping.
+      2: now eapply urefl.
+      tea.
+  Qed.
+
 
   Definition escapeTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
     [Γ ||-< l > t ≅ u : A | lr ] ->
     [Γ |- t : A].
-  Proof.
-    pattern l, Γ, A, lr ; eapply LR_rect_TyUr.
-    - intros ??? [] [[]] ; cbn in *.
-      gen_typing.
-    - intros ??? [] [] ; cbn in *.
-      gen_typing.
-    - intros ??? [] * ?? [[]] ; cbn in *.
-      gen_typing.
-    - intros ??? [] []; gen_typing.
-    - intros ??? [] []; gen_typing.
-    - intros ??? [] * ?? [[]] ; cbn in *.
-      gen_typing.
-    - intros ??? IA _ _ [].
-      unfold_id_outTy; destruct IA; cbn in *; gen_typing.
-  Qed.
+  Proof. apply escapeTm. Qed.
 
   Definition escapeEqTerm {l Γ t u A} (lr : [Γ ||-< l > A ]) :
     [Γ ||-< l > t ≅ u : A | lr ] ->
     [Γ |- t ≅ u : A].
-  Proof.
-    pattern l, Γ, A, lr ; eapply LR_rect_TyUr.
-    - intros ??? [] [[] []] ; cbn in *.
-      eapply (convtm_conv (A := U)).
-      eapply convtm_exp ; tea.
-      all: gen_typing.
-    - intros ??? [ty] [] ; cbn in *.
-      assert (isPosType ty).
-      {
-      constructor.
-      now eapply convneu_whne.
-      }
-      eapply (convtm_conv (A := ty)).
-      eapply convtm_exp ; tea.
-      all: gen_typing.
-    - intros ??? [dom cod] * ?? [[termL] [termR]] ; cbn in *.
-      eapply (convtm_conv (A := tProd dom cod)).
-      eapply convtm_exp ; tea.
-      all: gen_typing.
-    - intros ??? [] []; cbn in *.
-      eapply (convtm_conv (A := tNat)); [|gen_typing].
-      eapply convtm_exp; tea; gen_typing.
-    - intros ??? [] []; cbn in *.
-      eapply (convtm_conv (A := tEmpty)); [|gen_typing].
-      eapply convtm_exp; tea; gen_typing.
-    - intros ??? [dom cod] * ?? [[termL] [termR]] ; cbn in *.
-      eapply (convtm_conv (A := tSig dom cod)).
-      eapply convtm_exp ; tea.
-      all: gen_typing.
-    - intros ??? [ty lhs rhs] _ _ []; unfold_id_outTy; cbn in *.
-      eapply (convtm_conv (A := tId ty lhs rhs)); [|gen_typing].
-      eapply convtm_exp; tea; gen_typing.
-  Qed.
+  Proof. apply escapeTm. Qed.
 
-  Lemma escapeConv {l Γ A} (RA : [Γ ||-<l> A]) :
-    forall B,
-    [Γ ||-<l> A ≅ B | RA] ->
+  Lemma escapeConv {l Γ A B} (RA : [Γ ||-<l> A ≅ B]) :
+    [Γ ||-<l> A ≅ B] ->
     [Γ |- B].
-  Proof.
-    pattern l, Γ, A, RA; eapply LR_rect_TyUr; clear l Γ A RA.
-    - intros * []; gen_typing.
-    - intros * []; gen_typing.
-    - intros * ihdom ihcod ? []; gen_typing.
-    - intros * []; gen_typing.
-    - intros * []; gen_typing.
-    - intros * ??? []; gen_typing.
-    - intros * _ _ ? []; gen_typing.
-  Qed.
+  Proof. apply escapeTy. Qed.
 
 End Escapes.
 
 
-(* hack to redefine the symmetric version for term later *)
-Ltac sym_escape RA H := idtac.
-Ltac eqty_escape_right RA H := idtac.
-
 Ltac escape :=
   repeat lazymatch goal with
-  | [H : [_ ||-< _ > _] |- _] =>
+  | [H : [_ ||-< _ > _] |-  _ ] =>
     try
-     (let X := fresh "Esc" H in
-     pose proof (X := escape H));
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeTy H) as (Xl & Xr & X) );
     block H
-  | [H : [_ ||-<_> _ ≅ _ | ?RA ] |- _] =>
+  | [H : [_ ||-<_> _ ≅ _  : _ | ?RA ] |- _] =>
     try
-      (let X := fresh "Esc" H in
-      pose proof (X := escapeEq RA H)) ;
-    try (eqty_escape_right RA H) ;
-    block H
-  (* | [H : [_ ||-<_> _ : _ | ?RA] |- _] =>
-    let X := fresh "R" H in
-    try pose proof (X := escapeTerm RA H) ;
-    block H *)
-  | [H : [_ ||-<_> _ ≅ _ : _ | ?RA] |- _] =>
-    try (let X := fresh "R" H in pose proof (X := escapeEqTerm RA H)) ;
-    try (let X := fresh "Rl" H in pose proof (X := escapeTerm RA H)) ;
-    try (sym_escape RA H) ;
-    block H
+     (let Xl := fresh "EscL" H in
+      let Xr := fresh "EscR" H in
+      let X := fresh "Esc" H in
+      pose proof (escapeTm RA H) as (Xl & Xr & X) );
+      block H
   end; unblock.
